@@ -1,0 +1,6 @@
+-r python-libs.txt
+coverage==4.5.1
+flake8==3.5.0
+flake8-quotes==1.0.0
+mypy==0.641
+pytest==3.9.1

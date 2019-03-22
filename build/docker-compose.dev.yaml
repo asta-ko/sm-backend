@@ -1,0 +1,51 @@
+version: '3.4'
+
+x-global-environment: &global-environment
+  C_PROJECT_VERSION: __C_PROJECT_VERSION__
+  C_PROJECT_STACK: __C_PROJECT_STACK__
+
+x-projectname: &oi_sud
+    env_file: .env
+    image: __C_PROJECT_NAME__-virtualenv-test:latest
+    environment:
+        <<: *global-environment
+    volumes:
+        - ./:/code
+    restart: on-failure
+
+services:
+    db:
+      image: postgres:alpine
+      ports:
+      - 5432
+      restart: always
+      environment:
+        POSTGRES_USER: "sudmonster"
+        POSTGRES_PASSWORD: "sudmonster"
+        POSTGRES_DB: "sudmonster"
+      volumes:
+        - db-data:/data/db
+        - ./share/sql:/docker-entrypoint-initdb.d
+
+    redis:
+        image: redis:4.0.11
+        volumes:
+            - ./.docker/redis/data:/var/redis
+        restart: always
+
+    backend:
+        <<: *oi_sud
+        environment:
+          DJANGO_MANAGE_MIGRATE: "on"
+          DJANGO_MANAGE_COLLECTSTATIC: "on"
+        volumes:
+          - ./:/code
+          - ./.docker/static:/var/www/static
+          - ./.docker/media:/var/www/media
+        command: ["gunicorn", "blackboxes.wsgi:application", "-b", "0.0.0.0:8000", "--name", "blackboxes", "--reload"]
+        ports:
+          - "8000:8000"
+
+    test:
+        <<: *oi_sud
+        command: ["echo", "'test'"]

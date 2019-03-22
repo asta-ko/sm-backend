@@ -1,0 +1,11 @@
+[run]
+data_file = tmp/coverage/.coverage
+source = .
+parallel = True
+omit =
+    */migrations/*
+    */config/*
+    */test/*
+
+[html]
+directory = tmp/coverage/report
