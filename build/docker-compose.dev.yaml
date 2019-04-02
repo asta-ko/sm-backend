@@ -42,10 +42,15 @@ services:
           - ./:/code
           - ./.docker/static:/var/www/static
           - ./.docker/media:/var/www/media
-        command: ["gunicorn", "blackboxes.wsgi:application", "-b", "0.0.0.0:8000", "--name", "blackboxes", "--reload"]
+        command: ["gunicorn", "oi_sud.wsgi:application", "-b", "0.0.0.0:8081", "--name", "oi_sud", "--reload"]
         ports:
-          - "8000:8000"
+          - "8081:8081"
 
     test:
         <<: *oi_sud
+        environment:
+          DJANGO_SETTINGS_MODULE: 'oi_sud.config.test'
         command: ["echo", "'test'"]
+
+volumes:
+  db-data:

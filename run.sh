@@ -335,11 +335,11 @@ test_functional() {
 test_unit() {
     echo "Running unit tests"
     mkdir -p "tmp/coverage";
-
+    docker-compose --compatibility up -d
     docker-compose run \
         -v "${PWD}":/code \
         --rm test \
-        pytest -p no:cacheprovider test/unit "$@"
+        python -m pytest -p no:cacheprovider test/unit "$@"
 }
 
 test_ci() {
