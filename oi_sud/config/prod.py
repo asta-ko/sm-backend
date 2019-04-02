@@ -1,9 +1,9 @@
 import os
+
 from .default import *  # NOQA
 
 DEBUG = False
-ALLOWED_HOSTS = ['*','boxes.ovdinfo.org',]
-
+ALLOWED_HOSTS = ['*',]
 
 DATABASES = {
     'default': {
@@ -15,5 +15,3 @@ DATABASES = {
         'PORT': '5432',
     }
 }
-
-

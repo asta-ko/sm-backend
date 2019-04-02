@@ -1,14 +1,12 @@
-import requests
-from bs4 import BeautifulSoup
-
-from requests import Request, Session
-import re
-from urllib.parse import urlparse
-
 import datetime
-import re
 import json
+import re
+import re
+import requests
 import time
+from bs4 import BeautifulSoup
+from requests import Request, Session
+from urllib.parse import urlparse
 from user_agent import generate_user_agent, generate_navigator
 
 from oi_sud.core.consts import *
@@ -25,7 +23,7 @@ class CommonParser(object):
         if gen_useragent:
             prepped.headers['User-Agent'] = generate_user_agent()
         r = s.send(prepped)
-        #return r.status_code
+        # return r.status_code
         if encoding:
             r.encoding = encoding
         if content_text_status:
@@ -47,16 +45,15 @@ class CommonParser(object):
 
     @staticmethod
     def generate_url_first(court_url, case_type, params):
-       if case_type == 'administrative':
-          print(generate_url(court_url, adm_type_one_params_string, adm_type_one_params_dict, params))
-          return generate_url(court_url, adm_type_one_params_string, adm_type_one_params_dict, params)
-       elif case_type == 'criminal':
-          return generate_url(court_url, cr_type_one_params_string, cr_type_one_params_dict, params)
+        if case_type == 'administrative':
+            print(generate_url(court_url, adm_type_one_params_string, adm_type_one_params_dict, params))
+            return generate_url(court_url, adm_type_one_params_string, adm_type_one_params_dict, params)
+        elif case_type == 'criminal':
+            return generate_url(court_url, cr_type_one_params_string, cr_type_one_params_dict, params)
 
     @staticmethod
     def generate_url_second(court_url, case_type, params):
-       if case_type == 'administrative':
-          return generate_url(court_url, adm_type_two_params_string, adm_type_two_params_dict, params)
-       elif case_type == 'criminal':
-          return generate_url(court_url, cr_type_two_params_string, cr_type_two_params_dict, params)
-
+        if case_type == 'administrative':
+            return generate_url(court_url, adm_type_two_params_string, adm_type_two_params_dict, params)
+        elif case_type == 'criminal':
+            return generate_url(court_url, cr_type_two_params_string, cr_type_two_params_dict, params)

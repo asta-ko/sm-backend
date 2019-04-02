@@ -1,4 +1,5 @@
 from django.db import models
+
 from oi_sud.core.utils import nullable
 
 CASE_TYPES = (
@@ -17,6 +18,7 @@ EVENT_TYPES = ()
 
 RESULT_TYPES = ()
 
+
 class Case(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -32,10 +34,11 @@ class Case(models.Model):
     protocol_number = models.CharField(max_length=20, unique=True, **nullable)  # номер протокола (для дел об АП)
     codex_articles = models.ManyToManyField('codex.CodexArticle')
     result_text = models.TextField(**nullable)  # Текст решения
-    #events = models.ManyToManyField('CaseEvent')  # Движение дела
+    # events = models.ManyToManyField('CaseEvent')  # Движение дела
     case_type = models.IntegerField(choices=CASE_TYPES)  # тип судопроизводства
     case_stage = models.IntegerField(choices=CASE_STAGES)  # первая инстанция, обжалование, пересмотр, кассация
     case_group = models.ForeignKey('CaseGroup', on_delete=models.CASCADE)  # ссылки на аппеляции и пересмотры
+
 
 class CaseEvent(models.Model):
     created_at = models.DateTimeField()
@@ -45,10 +48,12 @@ class CaseEvent(models.Model):
     courtroom = models.IntegerField()
     case = models.ForeignKey('Case', on_delete=models.CASCADE)
 
+
 class CaseGroup(models.Model):
     second_inst = models.BooleanField()
     third_inst = models.BooleanField()
     revision = models.BooleanField()
+
 
 class Defendant(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)

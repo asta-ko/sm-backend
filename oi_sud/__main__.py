@@ -3,7 +3,6 @@ import os
 import sys
 
 C_PROJECT_STACK = os.environ.get('C_PROJECT_STACK', 'dev')
-print(C_PROJECT_STACK)
 
 if __name__ == '__main__':
     os.environ.setdefault('DJANGO_SETTINGS_MODULE', f'oi_sud.config.{C_PROJECT_STACK}')

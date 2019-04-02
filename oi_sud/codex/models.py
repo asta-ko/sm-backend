@@ -1,10 +1,12 @@
 from django.db import models
+
 from oi_sud.core.utils import nullable
 
 CODEX_CHOICES = (
     ('uk', 'УК'),
     ('koap', 'КОАП'),
 )
+
 
 class CodexArticle(models.Model):
     article_number = models.CharField(max_length=10)
@@ -19,6 +21,3 @@ class CodexArticle(models.Model):
             return f'{self.article_number} ч.{self.part} {self.get_codex_display()}'
         else:
             return f'{self.article_number} {self.get_codex_display()}'
-
-
-

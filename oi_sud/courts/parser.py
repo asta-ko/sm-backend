@@ -1,16 +1,16 @@
 # -*- coding: utf-8 -*-
-from oi_sud.core.parser import CommonParser
-from airtable.airtable import Airtable
-from airtable import airtable
-from .models import Court, Judge
-from oi_sud.core.consts import region_choices
-from bs4 import BeautifulSoup
-import re
 import json
+import re
+from airtable import airtable
+from airtable.airtable import Airtable
+from bs4 import BeautifulSoup
+
+from oi_sud.core.consts import region_choices
+from oi_sud.core.parser import CommonParser
+from .models import Court, Judge
 
 
 class CourtsParser(CommonParser):
-
     at_table = 'Суды общей юрисдикции'
     airtable_app = 'appYdzQXoOfxI1xvV'
     airtable_key = 'keywzBJ8QNsoO4RlZ'
@@ -47,7 +47,7 @@ class CourtsParser(CommonParser):
                 offset = table["offset"]
             else:
                 break
-        #print(records)
+        # print(records)
         if limit is not None:
             return records[:limit]
         else:
@@ -204,11 +204,11 @@ class CourtsParser(CommonParser):
         elif 'окружной военный' in court_title or ' флотский' in court_title:
             return 6, 2
 
+
 courts_parser = CourtsParser()
 
 
 class MoscowCourtParser(CourtsParser):
-
     at_table = 'Суды Москвы'
     airtable_app = 'appYdzQXoOfxI1xvV'
     airtable_key = 'keywzBJ8QNsoO4RlZ'
@@ -239,6 +239,5 @@ class MoscowCourtParser(CourtsParser):
     def get_and_save_judges(self, court):
         raise NotImplementedError
 
+
 moscow_courts_parser = MoscowCourtParser()
-
-
