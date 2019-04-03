@@ -11,3 +11,6 @@ class NewCasesParser(CommonParser):
 
 class MoscowNewCasesParser(CommonParser):
     pass
+
+class MJudgesCasesParser(CommonParser):
+    pass

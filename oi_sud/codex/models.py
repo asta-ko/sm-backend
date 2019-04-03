@@ -15,6 +15,7 @@ class CodexArticle(models.Model):
     parent_title = models.TextField(**nullable)
     full_text = models.TextField(**nullable)
     codex = models.CharField(max_length=4, choices=CODEX_CHOICES)
+    m_judge = models.BooleanField(default=False) #рассматривается мировым судьей в 1 инстанции
 
     def __str__(self):
         if self.part:
