@@ -36,3 +36,6 @@ from django.conf import settings
 #     moscow_courts_parser.save_courts()
 #     print(Court.objects.all())
 #     assert len(Court.objects.all())
+
+@pytest.mark.django_db
+def test_rf_parser_url_generator():
