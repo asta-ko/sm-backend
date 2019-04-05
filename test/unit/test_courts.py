@@ -3,6 +3,7 @@ from oi_sud.courts.parser import courts_parser, moscow_courts_parser
 from oi_sud.courts.models import Court, Judge
 from django.conf import settings
 
+
 # def test_courts_regions():
 #     courts_parser.get_regions()
 #     sdfsdf
@@ -37,5 +38,3 @@ from django.conf import settings
 #     print(Court.objects.all())
 #     assert len(Court.objects.all())
 
-@pytest.mark.django_db
-def test_rf_parser_url_generator():

@@ -1,4 +1,4 @@
-adm_type_one_params_string = '/modules.php?name=sud_delo&srv_num=1&name_op=r&delo_id=1500001&case_type=0&new=0&delo_table=adm_case'
+adm_type_one_params_string = '/modules.php?name=sud_delo&srv_num=1&name_op=r&delo_id=1500001&case_type=0&new=0&delo_table=adm_case&nc=1'
 
 adm_type_one_params_dict = {'last_name': 'adm_parts__NAMES',
                             'case_number': 'adm_case__CASE_NUMBERSS',
@@ -17,7 +17,7 @@ adm_type_one_params_dict = {'last_name': 'adm_parts__NAMES',
                             'validity_date_to': 'ADM_CASE__VALIDITY_DATE2D'
                             }
 
-adm_type_two_params_string = '/modules.php?name_op=r&name=sud_delo&srv_num=1&_deloId=1500001&case__case_type=0&_new=0&case__num_build=1&process-type=1500001_0_0'
+adm_type_two_params_string = '/modules.php?name_op=r&name=sud_delo&srv_num=1&_deloId=1500001&case__case_type=0&_new=0&case__num_build=1&process-type=1500001_0_0&nc=1'
 
 adm_type_two_params_dict = {'last_name': 'part__namess',
                             'case_number': 'case__case_numberss',
@@ -36,7 +36,7 @@ adm_type_two_params_dict = {'last_name': 'part__namess',
                             'validity_date_to': 'case__validity_date2d'
                             }
 
-cr_type_one_params_string = '/modules.php?name=sud_delo&srv_num=1&name_op=r&delo_id=1540006&case_type=0&new=0&delo_table=u1_case'
+cr_type_one_params_string = '/modules.php?name=sud_delo&srv_num=1&name_op=r&delo_id=1540006&case_type=0&new=0&delo_table=u1_case&nc=1'
 
 cr_type_one_params_dict = {'last_name': 'U1_DEFENDANT__NAMESS',
                            'case_number': 'U1_CASE__CASE_NUMBERSS',
@@ -54,7 +54,7 @@ cr_type_one_params_dict = {'last_name': 'U1_DEFENDANT__NAMESS',
                            'validity_date_to': 'U1_CASE__VALIDITY_DATE2D'
                            }
 
-cr_type_two_params_string = '/modules.php?name_op=r&name=sud_delo&srv_num=1&_deloId=1540006&case__case_type=0&_new=0&process-type=1540006_0_0&case__vnkod=XXX'
+cr_type_two_params_string = '/modules.php?name_op=r&name=sud_delo&srv_num=1&_deloId=1540006&case__case_type=0&_new=0&process-type=1540006_0_0&case__vnkod=XXX&nc=1'
 
 cr_type_two_params_dict = {'last_name': 'parts__namess',
                            'case_number': 'case__case_numberss',
