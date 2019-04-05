@@ -17,6 +17,116 @@ from .consts import site_types_by_codex
 #     pass
 
 
+class CourtSiteParser(CommonParser):
+
+    def get_cases(self, url):
+        print(url)
+        txt = self.send_get_request(url)
+        page = BeautifulSoup(txt, 'html.parser')
+        pages_number = self.get_pages_number(page)
+        cases_urls = [url.replace('modules.php', '').split('?')[0] + u for u in self.get_cases_urls(page)]
+
+        for case_url in cases_urls:
+            self.get_case_information(case_url)
+
+
+class FirstParser(CourtSiteParser):
+
+    def get_pages_number(self, page):
+        print('yay')
+
+        pagination_a = page.find('a', attrs={'title': 'На последнюю страницу списка'})
+        if not pagination_a:
+            return 1
+        else:
+            last_page_href = pagination_a['href']
+            pages_number = int(get_query_key(last_page_href, 'page'))
+            return pages_number
+
+    def get_cases_urls(self, page):
+        urls = []
+        tds = page.find('table', id='tablcont').findAll('td', attrs={
+            'title': 'Для получения справки по делу, нажмите на номер дела'})
+        for td in tds:
+            href = td.find('a')['href']
+            urls.append(href + '&nc=1')
+        return urls
+
+    def get_case_information(self, url):
+
+        case_info = {}
+        txt = self.send_get_request(url)
+        page = BeautifulSoup(txt, 'html.parser')
+        case_trs = page.find('div', id='cont1').find('tr').findAll('tr')
+        for tr in case_trs[4:]:
+            val = tr.findAll('td')[1].text
+            tr_text = tr.text
+            if 'Уникальный идентификатор дела' in tr_text:
+                case_info['uid'] = val
+            if 'Дата поступления' in tr_text:
+                case_info['entry_date'] = val
+            if 'Номер протокола об АП' in tr_text:
+                case_info['protocol_number'] = val
+            if 'Судья' in tr_text:
+                case_info['judge'] = val
+            if 'Дата рассмотрения' in tr_text:
+                case_info['result_date'] = val
+            if 'Результат рассмотрения' in tr_text:
+                case_info['result'] = val
+
+        print(case_info)
+
+        return case_info
+
+
+class SecondParser(CourtSiteParser):
+
+    def get_pages_number(self, page):
+        pagination = page.find('ul', class_='pagination')
+        if pagination:
+            return pagination.findAll('li')[-1]
+        else:
+            return 1
+
+    def get_cases_urls(self, page):
+        urls = []
+
+        a_cases = page.findAll('a', class_='open-lawcase')
+        for a in a_cases:
+            urls.append(a['href'] + '&nc=1')
+        return urls
+
+    def get_case_information(self, url):
+
+        case_info = {}
+        txt = self.send_get_request(url)
+        page = BeautifulSoup(txt, 'html.parser')
+        case_trs = page.find('div', id='tab_content_Case').findAll('tr')
+        for tr in case_trs:
+            tr_text = tr.text
+            val = tr.findAll('td')[1].text
+            if 'Уникальный идентификатор дела' in tr_text:
+                case_info['uid'] = val
+            if 'Дата поступления' in tr_text:
+                case_info['entry_date'] = val
+            if 'Номер протокола об АП' in tr_text:
+                case_info['protocol_number'] = val
+            if 'Судья' in tr_text:
+                case_info['judge'] = val
+            if 'Дата рассмотрения' in tr_text:
+                case_info['result_date'] = val
+            if 'Результат рассмотрения' in tr_text:
+                case_info['result'] = val
+
+        print(case_info)
+
+        return case_info
+
+
+first_rf_parser = FirstParser()
+second_rf_parser = SecondParser()
+
+
 class RFCasesParser(CommonParser):
 
     def __init__(self, codex):
@@ -49,36 +159,15 @@ class RFCasesParser(CommonParser):
         params_dict = self.site_params[site_type]['params_dict']
         return court.url + self.generate_params(string, params_dict, params)
 
-    def get_pages_number(self, page):
-
-        pagination_a = page.find('a', attrs={'title':'На последнюю страницу списка'})
-        if not pagination_a:
-            return 1
-        else:
-            last_page_href=pagination_a['href']
-            pages_number = int(get_query_key(last_page_href, 'page'))
-            return pages_number
-
-    def parse_case_table(self):
-        pass
-
-    def get_cases(self, url):
-        r = self.send_get_request(url)
-        txt = self.send_get_request(url)
-        page = BeautifulSoup(txt, 'html.parser')
-        pages_number=self.get_pages_number(page)
-
     def get_cases_first_instance(self):
         articles = CodexArticle.objects.filter(codex=self.codex)
         article_string = self.generate_articles_string(articles)
         print(article_string)
         for court in Court.objects.all()[:5]:
-            params = {'articles':article_string}
+            params = {'articles': article_string}
             url = self.generate_url(court, params)
-            if court.site_type==2:
-                url.replace('XXX', court.vn_kod)
-            print(url)
-            self.get_cases(url)
-
-
-
+            if court.site_type == 2:
+                url = url.replace('XXX', court.vn_kod)
+                second_rf_parser.get_cases(url)
+            elif court.site_type == 1:
+                first_rf_parser.get_cases(url)

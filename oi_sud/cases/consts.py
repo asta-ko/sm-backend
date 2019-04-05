@@ -17,7 +17,7 @@ adm_type_one_params_dict = {'last_name': 'adm_parts__NAMES',
                             'validity_date_to': 'ADM_CASE__VALIDITY_DATE2D'
                             }
 
-adm_type_two_params_string = '/modules.php?name_op=r&name=sud_delo&srv_num=1&_deloId=1500001&case__case_type=0&_new=0&case__num_build=1&process-type=1500001_0_0&nc=1'
+adm_type_two_params_string = '/modules.php?name_op=r&nc=1&name=sud_delo&srv_num=1&_deloId=1500001&case__vnkod=XXX&process-type=1500001_0_0'
 
 adm_type_two_params_dict = {'last_name': 'part__namess',
                             'case_number': 'case__case_numberss',
