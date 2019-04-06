@@ -27,7 +27,7 @@ class CourtSiteParser(CommonParser):
         cases_urls = [url.replace('modules.php', '').split('?')[0] + u for u in self.get_cases_urls(page)]
 
         for case_url in cases_urls:
-            self.get_case_information(case_url)
+            self.get_raw_case_information(case_url)
 
 
 class FirstParser(CourtSiteParser):
@@ -52,11 +52,12 @@ class FirstParser(CourtSiteParser):
             urls.append(href + '&nc=1')
         return urls
 
-    def get_case_information(self, url):
+    def get_raw_case_information(self, url):
 
         case_info = {}
         txt = self.send_get_request(url)
         page = BeautifulSoup(txt, 'html.parser')
+        case_info['case_number'] = page.find('div', class_='casenumber').text.replace('ДЕЛО № ','')
         case_trs = page.find('div', id='cont1').find('tr').findAll('tr')
         for tr in case_trs[4:]:
             val = tr.findAll('td')[1].text
@@ -73,6 +74,11 @@ class FirstParser(CourtSiteParser):
                 case_info['result_date'] = val
             if 'Результат рассмотрения' in tr_text:
                 case_info['result'] = val
+        if page.find('div', id='cont3'):
+            tr = page.find('div', id='cont3').findAll('tr')[2]
+            case_info['defendant'] = tr.findAll('td')[1].text.strip()
+            case_info['codex_articles'] = tr.findAll('td')[2].text.strip()
+
 
         print(case_info)
 
@@ -96,11 +102,12 @@ class SecondParser(CourtSiteParser):
             urls.append(a['href'] + '&nc=1')
         return urls
 
-    def get_case_information(self, url):
+    def get_raw_case_information(self, url):
 
         case_info = {}
         txt = self.send_get_request(url)
         page = BeautifulSoup(txt, 'html.parser')
+        case_info['case_number'] = page.find('div', class_='case-num').text.replace('дело № ', '')
         case_trs = page.find('div', id='tab_content_Case').findAll('tr')
         for tr in case_trs:
             tr_text = tr.text
@@ -117,6 +124,11 @@ class SecondParser(CourtSiteParser):
                 case_info['result_date'] = val
             if 'Результат рассмотрения' in tr_text:
                 case_info['result'] = val
+
+        defendant_tds = page.find('div', id='tab_content_PersonList').findAll('tr')[1].findAll('td')
+        case_info['defendant'] = defendant_tds[1].text.strip()
+        case_info['articles'] = defendant_tds[2].text.strip()
+
 
         print(case_info)
 
