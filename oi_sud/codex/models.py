@@ -4,7 +4,7 @@ from oi_sud.core.utils import nullable
 
 CODEX_CHOICES = (
     ('uk', 'УК'),
-    ('koap', 'КОАП'),
+    ('koap', 'КОАП'), #TODO: КАС и ГПК
 )
 
 

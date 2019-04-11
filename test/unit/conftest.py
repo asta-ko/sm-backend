@@ -21,3 +21,8 @@ def better_courts():
 def koap_articles():
     CodexArticle.objects.bulk_create(
         [CodexArticle(article_number='19.3', part=1, codex='koap'), CodexArticle(article_number='20.33', codex='koap')])
+
+@pytest.fixture()
+def uk_articles():
+    CodexArticle.objects.bulk_create(
+        [CodexArticle(article_number='318', part=1, codex='uk'), CodexArticle(article_number='319', codex='uk')])
