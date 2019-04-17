@@ -155,7 +155,7 @@ class CourtSiteParser(CommonParser):
         for item in case_info['events']:
             result_item = {}
             if item.get('courtroom'):
-                result_item['courtroom'] = int(item['courtroom'].replace('Зал', '').replace('№', '').strip())
+                result_item['courtroom'] = int(''.join(filter(str.isdigit, item['courtroom'])))
             result_item['type'] = event_types_dict[item['type'].strip()]
             if item.get('date'):
                 d = dateparser.parse(f'{item.get("date")} {item.get("time")}')
@@ -333,7 +333,7 @@ class SecondParser(CourtSiteParser):
 
         a_cases = page.findAll('a', class_='open-lawcase')
         for a in a_cases:
-            if Cases.objects.filter(url=a['href']).exists():
+            if Case.objects.filter(url=a['href']).exists():
                 continue
             urls.append(a['href'] + '&nc=1')
         return urls
