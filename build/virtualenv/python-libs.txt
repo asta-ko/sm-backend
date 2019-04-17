@@ -13,5 +13,5 @@ pytz==2018.7
 requests==2.20.1
 requests-toolbelt==0.8.0
 urllib3==1.24.1
-django-suit==0.2.26
 dateparser==0.7.1
+django-jet

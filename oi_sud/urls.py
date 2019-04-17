@@ -5,6 +5,7 @@ from django.contrib import admin
 from django.http import HttpResponse
 from django.urls import path, include
 
+admin.site.site_header = 'OVD-info Sud Monster'
 
 def current_datetime(request):
     now = datetime.datetime.now()
@@ -14,6 +15,7 @@ def current_datetime(request):
 
 urlpatterns = [
     path('', current_datetime),
+    path('jet/', include('jet.urls', 'jet')),
     path('admin/', admin.site.urls),
 ]
 

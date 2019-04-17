@@ -34,7 +34,8 @@ ALLOWED_HOSTS = ['oi_sud.ovdinfo.org']
 
 INSTALLED_APPS = [
 
-    'suit',
+    #'suit',
+    'jet',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -42,9 +43,9 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'oi_sud.core',
-    'oi_sud.courts',
-    'oi_sud.codex',
-    'oi_sud.cases'
+    'oi_sud.courts.apps.CourtsConfig',
+    'oi_sud.codex.apps.CodexConfig',
+    'oi_sud.cases.apps.CasesConfig'
 ]
 
 MIDDLEWARE = [
@@ -142,3 +143,7 @@ CELERY_TASK_DEFAULT_QUEUE = 'main'
 CELERY_IMPORTS = ()
 
 CELERY_BEAT_SCHEDULE = {}
+
+JET_THEME = 'light-gray'
+
+JET_SIDE_MENU_COMPACT = True

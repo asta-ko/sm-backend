@@ -1,8 +1,11 @@
+import pytz
 from django.contrib.postgres.fields import ArrayField
 from django.db import models
 
 from oi_sud.core.consts import region_choices
 from oi_sud.core.utils import nullable
+
+from oi_sud.core.consts import region_choices, timezone_dict, far_east_timezone_dict
 
 COURT_TYPES = (
     (0, 'Районный суд'),
@@ -36,19 +39,41 @@ class Judge(models.Model):
     def __str__(self):
         return self.name
 
+    class Meta:
+        verbose_name = 'Судья'
+        verbose_name_plural = 'Судьи'
+
+
 
 class Court(models.Model):
-    title = models.CharField(max_length=100)
-    phone_numbers = ArrayField(models.CharField(max_length=25, blank=True), )
-    full_address = models.CharField(max_length=200, **nullable)
-    city = models.CharField(max_length=50, **nullable)
-    region = models.IntegerField(choices=region_choices)
-    url = models.URLField(null=True, blank=True)
-    type = models.IntegerField(choices=COURT_TYPES)  # районный/областной/военный/городской
-    instance = models.IntegerField(choices=COURT_INSTANCE_TYPES, default=1)
-    site_type = models.IntegerField(choices=SITE_TYPES, default=1)  # тип сайта для парсинга
-    vn_kod = models.CharField(max_length=25, **nullable)
-    email = models.CharField(max_length=40, **nullable)
+    title = models.CharField(max_length=100, verbose_name='Название')
+    phone_numbers = ArrayField(models.CharField(max_length=25, blank=True), verbose_name='Телефоны')
+    full_address = models.CharField(max_length=200, verbose_name='Адрес', **nullable)
+    city = models.CharField(max_length=50, verbose_name='Населенный пункт', **nullable)
+    region = models.IntegerField(verbose_name='Регион', choices=region_choices)
+    url = models.URLField(verbose_name='URL', **nullable)
+    type = models.IntegerField(verbose_name='Тип суда', choices=COURT_TYPES)  # районный/областной/военный/городской
+    instance = models.IntegerField(verbose_name='Тип суда по инстанции', choices=COURT_INSTANCE_TYPES, default=1)
+    site_type = models.IntegerField(verbose_name='Тип сайта суда', choices=SITE_TYPES, default=1)  # тип сайта для парсинга
+    vn_kod = models.CharField(verbose_name='VN код', max_length=25, **nullable)
+    email = models.CharField(verbose_name='Email', max_length=40, **nullable)
+
+    class Meta:
+        verbose_name = 'Суд'
+        verbose_name_plural = 'Суды'
+
 
     def __str__(self):
         return self.title
+
+
+    def get_timezone(self):
+        r = {y: x for x, y in dict(region_choices).items()}
+        if self.region != r['Республика Саха (Якутия)'] and self.city != 'г. Северо-Курильск':
+            for timezone in timezone_dict.keys():
+                if self.region in timezone_dict[timezone]:
+                    return pytz.timezone(timezone)
+        else:
+            for timezone in far_east_timezone_dict.keys():
+                if self.city in far_east_timezone_dict[timezone]:
+                    return pytz.timezone(timezone)

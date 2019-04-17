@@ -1,31 +1,72 @@
-version: '3.6'
+version: '3.4'
 
 x-global-environment: &global-environment
   C_PROJECT_VERSION: __C_PROJECT_VERSION__
   C_PROJECT_STACK: __C_PROJECT_STACK__
-  C_PROJECT_NAME: __C_PROJECT_NAME__
-  C_PROJECT_REGISTRY: __C_PROJECT_REGISTRY__
 
-networks:
-  backend:
-    external: true
-
-services:
-  projectname: &projectname-base
+x-projectname: &oi_sud
     env_file: .env
-    expose:
-      - 8000
-    image: "__C_PROJECT_REGISTRY__/__C_PROJECT_NAME__:__C_PROJECT_VERSION__"
-    command: ["gunicorn", "projectname.app:app", "-b", "0.0.0.0:8000", "--name", "iprojectname", "--reload"]
+    image: __C_PROJECT_NAME__-virtualenv-test:latest
     environment:
         <<: *global-environment
-    labels:
-      - "traefik.enable=true"
-      - "traefik.backend=projectname"
-      - "traefik.frontend.entryPoints=http"
-      - "traefik.frontend.rule=HostRegexp:{subdomain:^projectname.*}.stage.local,{subdomain:^projectname.*}.prod.local;PathPrefix:/stat"
-      - "traefik.docker.network=backend"
-      - "traefik.port=8000"
-    restart: unless-stopped
-    networks:
-      - backend
+    volumes:
+        - ./:/code
+        - /var/www/static:/var/www/static:rw
+        - /var/www/media:/var/www/media:rw
+    restart: on-failure
+
+services:
+    db:
+      image: postgres:alpine
+      ports:
+      - 5432
+      restart: always
+      environment:
+        POSTGRES_USER: "sudmonster"
+        POSTGRES_PASSWORD: "sudmonster"
+        POSTGRES_DB: "sudmonster"
+      volumes:
+        - db-data:/data/db
+        - ./share/sql:/docker-entrypoint-initdb.d
+
+    redis:
+        image: redis:4.0.11
+        volumes:
+            - ./.docker/redis/data:/var/redis
+        restart: always
+
+    backend:
+        <<: *oi_sud
+        environment:
+          VIRTUAL_HOST: sudmonster.ovdinfo.org
+          VIRTUAL_PORT: 8000
+          LETSENCRYPT_HOST: sudmonster.ovdinfo.org
+          LETSENCRYPT_EMAIL: asta.ko@ovdinfo.org
+
+          DJANGO_MANAGE_MIGRATE: "on"
+          DJANGO_MANAGE_COLLECTSTATIC: "on"
+
+        volumes:
+          - ./:/code
+          - ./.docker/static:/var/www/static
+          - ./.docker/media:/var/www/media
+        command: ["gunicorn", "oi_sud.wsgi:application", "-b", "0.0.0.0:8000", "--name", "oi_sud", "--reload"]
+        ports:
+          - "8081:8081"
+
+    test:
+        <<: *oi_sud
+        environment:
+          DJANGO_SETTINGS_MODULE: 'oi_sud.config.test'
+        command: ["echo", "'test'"]
+
+volumes:
+  db-data:
+  data-static:
+    external: true
+  data-media:
+
+networks:
+  default:
+    external:
+      name: webproxy
