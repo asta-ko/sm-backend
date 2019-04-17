@@ -26,3 +26,8 @@ class CodexArticle(models.Model):
             return f'{self.article_number} ч.{self.part} {self.get_codex_display()}'
         else:
             return f'{self.article_number} {self.get_codex_display()}'
+
+
+    @staticmethod
+    def autocomplete_search_fields():
+        return 'article_number', 'short_title'

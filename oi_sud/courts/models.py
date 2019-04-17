@@ -43,6 +43,9 @@ class Judge(models.Model):
         verbose_name = 'Судья'
         verbose_name_plural = 'Судьи'
 
+    @staticmethod
+    def autocomplete_search_fields():
+        return 'name',
 
 
 class Court(models.Model):
@@ -61,6 +64,10 @@ class Court(models.Model):
     class Meta:
         verbose_name = 'Суд'
         verbose_name_plural = 'Суды'
+
+    @staticmethod
+    def autocomplete_search_fields():
+        return 'title',
 
 
     def __str__(self):
