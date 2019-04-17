@@ -133,19 +133,19 @@ class CourtSiteParser(CommonParser):
         for attribute in ['case_number', 'case_uid', 'protocol_number', 'result_text']:
             result['case'][attribute] = case_info.get(attribute)
 
-        result['case']['entry_date'] = self.court.get_timezone().localize(dateparser.parse(case_info['entry_date']))
+        result['case']['entry_date'] = self.court.get_timezone().localize(dateparser.parse(case_info['entry_date'], date_formats=['%d.%m.%Y']))
         if case_info.get('result_date'):
             result['case']['result_date'] = self.court.get_timezone().localize(
-                dateparser.parse(case_info['result_date']))
+                dateparser.parse(case_info['result_date'], date_formats=['%d.%m.%Y']))
         if case_info.get('result_published'):
             result['case']['result_published'] = self.court.get_timezone().localize(
-                dateparser.parse(case_info['result_published']))
+                dateparser.parse(case_info['result_published'], date_formats=['%d.%m.%Y']))
         if case_info.get('result_valid'):
             result['case']['result_valid'] = self.court.get_timezone().localize(
-                dateparser.parse(case_info['result_valid']))
+                dateparser.parse(case_info['result_valid'], date_formats=['%d.%m.%Y']))
         if case_info.get('result_type'):
             result['case']['result_type'] = result_types_dict[case_info['result_type'].strip()]
-        result['case']['url'] = case_info['url'].replace('nc=1', '')
+        result['case']['url'] = case_info['url'].replace('&nc=1', '')
         result['case']['court'] = self.court
         result['case']['type'] = self.type
         result['case']['stage'] = self.stage

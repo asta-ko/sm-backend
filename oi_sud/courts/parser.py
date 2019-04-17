@@ -19,7 +19,7 @@ class CourtsParser(CommonParser):
         if 'mos-gorsud' in url:
             return 3
         url = url + '/modules.php?name=sud_delo&srv_num=1'
-        txt = self.send_get_request(url)
+        txt, code = self.send_get_request(url)
         result_two = re.search(r'Список дел, назначенных к слушанию на', txt)
         result_one = re.search(r'Вывести список дел, назначенных на дату', txt)
         if result_one:
@@ -30,7 +30,7 @@ class CourtsParser(CommonParser):
 
     def get_vnkod(self, url):
         url = url + '/modules.php?name=sud_delo&srv_num=1&name_op=sf'
-        txt = self.send_get_request(url)
+        txt, code = self.send_get_request(url)
         page = BeautifulSoup(txt, 'html.parser')
         inp = page.find(name='input', attrs={"name": "case__vnkod"})
         return inp['value']
@@ -70,7 +70,7 @@ class CourtsParser(CommonParser):
         judges = []
         for x in ['U1_CASE', 'adm_case']:
             url = f'{court.url}/modules.php?name=sud_delo&name_op=cat&nc=1&curent_delo_table={x}&fieldname=JUDGE'
-            txt = self.send_get_request(url)
+            txt, code = self.send_get_request(url)
             page = BeautifulSoup(txt, 'html.parser')
             divs = page.findAll('div', {"onmouseout": "button_out(this);"})
             judges += [x.text.strip() for x in divs if x.text.strip() != '']
@@ -82,7 +82,7 @@ class CourtsParser(CommonParser):
         court_url = court.url
         for x in ['1540006', '1500001']:
             url = f'{court_url}/modules.php?name=sud_delo&name_op=cat&nc=1&_deloId=1540006&_caseType=0&_new=0&_table=case&_fieldname=judge&srv_num=1'
-            txt = self.send_get_request(url)
+            txt, code = self.send_get_request(url)
             page = BeautifulSoup(txt, 'html.parser')
             div = page.findAll('div', id='search_results')[0]
             judges += json.loads(div.text).values()
@@ -219,7 +219,7 @@ class MoscowCourtParser(CourtsParser):
             url = rec['fields'].get('url')
             if not url:
                 continue
-            txt = self.send_get_request(url)
+            txt, code = self.send_get_request(url)
             page = BeautifulSoup(txt, 'html.parser')
             phone = page.select('div.icon_phone')[0].find('div').text
             print(rec['fields'].get('название суда'), phone)
