@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Case, CaseEvent, CaseGroup, Defendant, CaseDefense
+from .models import Case, KoapCase, UKCase, CaseEvent, CaseGroup, Defendant, CaseDefense
 
 from jet.admin import CompactInline
 from jet.filters import RelatedFieldAjaxListFilter
@@ -17,9 +17,18 @@ class CaseEventsInline(CompactInline):
 
 class CaseAdmin(admin.ModelAdmin):
     inlines = (DefendantsInline, CaseEventsInline)
-    list_filter = (('court', RelatedFieldAjaxListFilter), 'court__region', 'stage', 'type', 'result_type')
+    list_filter = (('court', RelatedFieldAjaxListFilter), 'court__region', 'stage',  'result_type')
     list_display = ('__str__', 'court', 'judge',  'result_type', 'entry_date', 'result_date')
     search_fields = ('title', 'city', 'full_address',)
     #raw_id_fields = ('codex_articles',)
 
-admin.site.register(Case, CaseAdmin)
+class UKCaseAdmin(CaseAdmin):
+    def queryset(self, request):
+        return self.model.objects.filter(type=2)
+
+class KoapCaseAdmin(CaseAdmin):
+    def queryset(self, request):
+        return self.model.objects.filter(type=1)
+
+admin.site.register(UKCase, UKCaseAdmin)
+admin.site.register(KoapCase, KoapCaseAdmin)

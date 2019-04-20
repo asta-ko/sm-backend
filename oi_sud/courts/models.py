@@ -34,7 +34,7 @@ SITE_TYPES = (
 class Judge(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     court = models.ForeignKey('Court', on_delete=models.CASCADE)
-    name = models.CharField(max_length=50)
+    name = models.CharField(max_length=50, db_index=True)
 
     def __str__(self):
         return self.name
@@ -49,7 +49,7 @@ class Judge(models.Model):
 
 
 class Court(models.Model):
-    title = models.CharField(max_length=100, verbose_name='Название')
+    title = models.CharField(max_length=100, verbose_name='Название', db_index=True)
     phone_numbers = ArrayField(models.CharField(max_length=25, blank=True), verbose_name='Телефоны')
     full_address = models.CharField(max_length=200, verbose_name='Адрес', **nullable)
     city = models.CharField(max_length=50, verbose_name='Населенный пункт', **nullable)

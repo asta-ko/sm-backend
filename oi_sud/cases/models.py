@@ -23,7 +23,7 @@ GENDER_TYPES = ()
 class Case(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    entry_date = models.DateField(verbose_name='Дата поступления')  # поступление в суд
+    entry_date = models.DateField(verbose_name='Дата поступления', db_index=True)  # поступление в суд
     result_date = models.DateField(verbose_name='Дата решения', **nullable)  # рассмотрение
     result_published = models.DateField(verbose_name='Дата публикации решения', **nullable)  # публикация решения
     result_valid = models.DateField(verbose_name='Решение вступило в силу', **nullable)  # решение вступило в силу
@@ -44,11 +44,23 @@ class Case(models.Model):
 
     class Meta:
         verbose_name = 'Дело'
-        verbose_name_plural = 'Дела'
+        verbose_name_plural = 'Все дела'
 
     def __str__(self):
         articles_list = ','.join([str(x) for x in self.codex_articles.all()])
         return f'{self.case_number} {articles_list}'
+
+class UKCase(Case):
+    class Meta:
+        proxy=True
+        verbose_name = 'Дело (УК)'
+        verbose_name_plural = 'Дела (УК)'
+
+class KoapCase(Case):
+    class Meta:
+        proxy=True
+        verbose_name = 'Дело (КОАП)'
+        verbose_name_plural = 'Дела (КОАП)'
 
 class CaseEvent(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
@@ -96,7 +108,7 @@ class CaseDefense(models.Model):
 
 class Defendant(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
-    name = models.CharField(max_length=50)
+    name = models.CharField(max_length=50, db_index=True)
     region = models.IntegerField()
     gender = models.IntegerField(choices=GENDER_TYPES, **nullable)
 
