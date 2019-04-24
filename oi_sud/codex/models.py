@@ -31,3 +31,30 @@ class CodexArticle(models.Model):
     @staticmethod
     def autocomplete_search_fields():
         return 'article_number', 'short_title'
+
+
+class KoapManager(models.Manager):
+    def get_queryset(self):
+        return super(KoapManager, self).get_queryset().filter(
+            codex='koap')
+
+class UKManager(models.Manager):
+    def get_queryset(self):
+        return super(UKManager, self).get_queryset().filter(
+            codex='uk')
+
+
+class UKCodexArticle(CodexArticle):
+    objects = UKManager()
+    class Meta:
+        proxy = True
+        verbose_name = 'Статья УК'
+        verbose_name_plural = 'Статьи УК'
+
+
+class KoapCodexArticle(CodexArticle):
+    objects = KoapManager()
+    class Meta:
+        proxy = True
+        verbose_name = 'Статья КОАП'
+        verbose_name_plural = 'Статьи КОАП'

@@ -2,6 +2,7 @@ import dateparser
 import re
 import time
 import traceback
+import pprint
 from bs4 import BeautifulSoup
 from dateparser.conf import settings as dateparse_settings
 from django.utils.html import strip_tags
@@ -21,7 +22,7 @@ event_types_dict = {y: x for x, y in dict(EVENT_TYPES).items()}
 event_result_types_dict = {y: x for x, y in dict(EVENT_RESULT_TYPES).items()}
 result_types_dict = {y: x for x, y in dict(RESULT_TYPES).items()}
 
-
+from pytz import timezone, utc
 # class OldCasesParser(CommonParser):
 #     pass
 #
@@ -34,7 +35,7 @@ result_types_dict = {y: x for x, y in dict(RESULT_TYPES).items()}
 
 class CourtSiteParser(CommonParser):
 
-    def __init__(self, court, url, type, stage):
+    def __init__(self, court=None, url=None, type=None, stage=None):
         self.court = court
         self.url = url
         self.type = type
@@ -45,18 +46,18 @@ class CourtSiteParser(CommonParser):
         print(self.court)
 
         if not urls:
-            urls = self.get_all_cases_urls()  # [:50]
+            urls = self.get_all_cases_urls()#[:5]  # [:50]
 
         if not urls:
             return
 
         for case_url in urls:
             try:
-                raw_case_info = self.get_raw_case_information(case_url)
-                if not raw_case_info:
+                raw_case_data = self.get_raw_case_information(case_url)
+                if not raw_case_data:
                     continue
-                serialized_case_info = self.serialize_data(raw_case_info)
-                self.save_case(serialized_case_info)
+                serialized_case_data = self.serialize_data(raw_case_data)
+                Case.objects.create_case_from_data(serialized_case_data)
             except:
                 print('error: ', case_url)
                 print(traceback.format_exc())
@@ -126,23 +127,26 @@ class CourtSiteParser(CommonParser):
                 codex_articles.append(codex_article)
         return codex_articles
 
+    def normalize_date(self, datetime):
+
+
+        local_dt = self.court.get_timezone().localize(dateparser.parse(datetime, date_formats=['%d.%m.%Y']))
+        return utc.normalize(local_dt.astimezone(utc))
+
     def serialize_data(self, case_info):
 
-        result = {'case': {}, 'defenses': [], 'events': [], 'judge': None, 'codex_articles': []}
+        result = {'case': {}, 'defenses': [], 'events': [],  'codex_articles': []}
 
         for attribute in ['case_number', 'case_uid', 'protocol_number', 'result_text']:
             result['case'][attribute] = case_info.get(attribute)
 
-        result['case']['entry_date'] = self.court.get_timezone().localize(dateparser.parse(case_info['entry_date'], date_formats=['%d.%m.%Y']))
+        result['case']['entry_date'] = self.normalize_date(case_info['entry_date']).date()
         if case_info.get('result_date'):
-            result['case']['result_date'] = self.court.get_timezone().localize(
-                dateparser.parse(case_info['result_date'], date_formats=['%d.%m.%Y']))
+            result['case']['result_date'] = self.normalize_date(case_info['result_date']).date()
         if case_info.get('result_published'):
-            result['case']['result_published'] = self.court.get_timezone().localize(
-                dateparser.parse(case_info['result_published'], date_formats=['%d.%m.%Y']))
+            result['case']['result_published'] = self.normalize_date(case_info['result_published']).date()
         if case_info.get('result_valid'):
-            result['case']['result_valid'] = self.court.get_timezone().localize(
-                dateparser.parse(case_info['result_valid'], date_formats=['%d.%m.%Y']))
+            result['case']['result_valid'] = self.normalize_date(case_info['result_valid']).date()
         if case_info.get('result_type'):
             result['case']['result_type'] = result_types_dict[case_info['result_type'].strip()]
         result['case']['url'] = case_info['url'].replace('&nc=1', '')
@@ -160,21 +164,25 @@ class CourtSiteParser(CommonParser):
             if item.get('date'):
                 d = dateparser.parse(f'{item.get("date")} {item.get("time")}')
                 if d:
-                    result_item['date'] = self.court.get_timezone().localize(d)
+                    local_dt = self.court.get_timezone().localize(d)
+                    result_item['date'] = utc.normalize(local_dt.astimezone(utc))
             if item.get('result'):
                 result_item['result'] = event_result_types_dict[item['result'].strip()]
             result['events'].append(result_item)
 
         for item in case_info['defenses']:
             if self.type == 1:
-                article = item['articles'] = self.get_koap_article(item['articles'])  # TODO: КАС и ГПК
+                article = item['codex_articles'] = self.get_koap_article(item['codex_articles'])  # TODO: КАС и ГПК
                 if len(article) and article[0] not in all_articles_ids:  # TODO: NON POLITICAL ARTICLES
                     all_articles_ids.append(article[0].id)
             elif self.type == 2:
-                articles = item['articles'] = self.get_uk_articles(item['articles'])
+                articles = item['codex_articles'] = self.get_uk_articles(item['codex_articles'])
                 for article in articles:
                     if article.id not in all_articles_ids:
                         all_articles_ids.append(article.id)
+            defendant_name = item['defendant']
+            defendant, created = Defendant.objects.get_or_create(name=defendant_name, region=self.court.region)
+            item['defendant'] = defendant
 
         result['defenses'] = case_info['defenses']
         result['codex_articles'] = CodexArticle.objects.filter(pk__in=all_articles_ids)
@@ -184,25 +192,6 @@ class CourtSiteParser(CommonParser):
             result['case']['judge'] = judge
 
         return result
-
-    def save_case(self, item):
-        try:
-            case = Case.objects.create(**item['case'])
-            case.codex_articles.set(item['codex_articles'])
-            for defense in item['defenses']:
-                defendant_name = defense['name']
-                articles = defense['articles']
-                defendant = Defendant.objects.create(name=defendant_name, region=case.court.region)
-                defense = CaseDefense.objects.create(defendant=defendant, case=case)
-                if len(articles):
-                    defense.codex_articles.set(articles)
-            for event in item['events']:
-                event['case'] = case
-                case_event = CaseEvent.objects.create(**event)
-            print('saved case ', case)
-        except Exception as e:
-            print(traceback.format_exc())
-
 
 class FirstParser(CourtSiteParser):
 
@@ -232,7 +221,7 @@ class FirstParser(CourtSiteParser):
         for th in ths:
             a = th.find('a')
             if a and a['href']:
-                return self.url + a['href'] + '&nc=1'
+                return self.court.url + a['href'] + '&nc=1'
         return
 
     def get_result_text(self, url):
@@ -311,7 +300,7 @@ class FirstParser(CourtSiteParser):
                     elif self.type == 2:
                         codex_articles = tds[1].text.strip()
                         defendant = tds[0].text.strip()
-                    defenses.append({'name': defendant, 'articles': codex_articles})
+                    defenses.append({'defendant': defendant, 'codex_articles': codex_articles})
             case_info['defenses'] = defenses
 
         return case_info
@@ -398,7 +387,7 @@ class SecondParser(CourtSiteParser):
         for tr in trs:
             codex_articles = tr.findAll('td')[2].text.strip()
             defendant = tr.findAll('td')[1].text.strip()
-            defenses.append({'name': defendant, 'articles': codex_articles})
+            defenses.append({'defendant': defendant, 'codex_articles': codex_articles})
         case_info['defenses'] = defenses
 
         return case_info
@@ -460,3 +449,17 @@ class RFCasesParser(CommonParser):
             elif court.site_type == 1:
                 FirstParser(court=court, stage=1, type=self.type, url=url).save_cases()
         print("--- %s seconds ---" % (time.time() - start_time))
+
+    def update_cases(self):
+
+        for case in Case.objects.filter(type=self.type):
+
+            if case.court.site_type == 1:
+                p = FirstParser(court=case.court, stage=1, type=self.type)
+            elif case.court.site_type == 2:
+                p = SecondParser(court=case.court, stage=1, type=self.type)
+
+            raw_data = p.get_raw_case_information(case.url)
+            fresh_data =  {i:j for i,j in p.serialize_data(raw_data).items() if j != None}
+            case.update_if_needed(fresh_data)
+
