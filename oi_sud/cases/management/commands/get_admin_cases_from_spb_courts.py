@@ -8,5 +8,5 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         # Court.objects.all().delete()
         courts = Court.objects.filter(region=78)
-        RFCasesParser(codex='koap').get_cases_first_instance(courts=courts, courts_limit=5)
+        RFCasesParser(codex='koap').get_cases(1, courts=courts, courts_limit=5)
 

@@ -8,6 +8,7 @@ class Command(BaseCommand):
     def add_arguments(self, parser):
 
         parser.add_argument('codex', type=str)
+        parser.add_argument('instance', type=int)
         parser.add_argument(
             '--region',
         )
@@ -27,6 +28,7 @@ class Command(BaseCommand):
         limit = None
         entry_date_from = None
         codex = options['codex']
+        instance = options['instance']
         if options.get('region'):
             region = options['region']
             courts = courts.filter(region=region)
@@ -35,4 +37,4 @@ class Command(BaseCommand):
         if options.get('entry_date_from'): #DD.MM.YYYY
             entry_date_from = options['entry_date_from']
 
-        RFCasesParser(codex=codex).get_cases_first_instance(courts=courts, courts_limit=limit, entry_date_from=entry_date_from)
+        RFCasesParser(codex=codex).get_cases(instance, courts=courts, courts_limit=limit, entry_date_from=entry_date_from)

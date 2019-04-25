@@ -12,7 +12,7 @@ from oi_sud.codex.models import CodexArticle
 from oi_sud.core.parser import CommonParser
 from oi_sud.core.utils import get_query_key
 from oi_sud.courts.models import Court, Judge
-from .consts import site_types_by_codex, EVENT_TYPES, EVENT_RESULT_TYPES, RESULT_TYPES
+from .consts import site_types_by_codex, EVENT_TYPES, EVENT_RESULT_TYPES, RESULT_TYPES, instances_dict
 from .models import Case, CaseEvent, CaseDefense, Defendant
 
 dateparse_settings.TIMEZONE = str(get_current_timezone())
@@ -53,6 +53,9 @@ class CourtSiteParser(CommonParser):
 
         for case_url in urls:
             try:
+                u = case_url.replace('&nc=1','')
+                if Case.objects.filter(url=u).exists():
+                    continue
                 raw_case_data = self.get_raw_case_information(case_url)
                 if not raw_case_data:
                     continue
@@ -423,13 +426,19 @@ class RFCasesParser(CommonParser):
                 result_string += '&{0}={1}'.format(params_dict[k], v)
         return result_string
 
-    def generate_url(self, court, params):
+    def generate_url(self, court, params, instance):
         site_type = str(court.site_type)
         string = self.site_params[site_type]['string']
+        delo_id, case_type, delo_table = instances_dict[self.codex][str(instance)]
+        string = string.replace('DELOID', delo_id).replace('CASETYPE', case_type).replace('DELOTABLE', delo_table)
         params_dict = self.site_params[site_type]['params_dict']
-        return court.url + self.generate_params(string, params_dict, params)
+        params_string = self.generate_params(string, params_dict, params)
+        if instance == 2:
+            params_string = params_string.replace('adm', 'adm1').replace('adm11', 'adm1')
+        print(court.url + params_string)
+        return court.url + params_string
 
-    def get_cases_first_instance(self, courts=None, courts_limit=None, entry_date_from=None):
+    def get_cases(self, instance, courts=None, courts_limit=None, entry_date_from=None):
         start_time = time.time()
         articles = CodexArticle.objects.filter(codex=self.codex)
         article_string = self.generate_articles_string(articles)
@@ -442,12 +451,12 @@ class RFCasesParser(CommonParser):
             params = {'articles': article_string}
             if entry_date_from:
                 params['entry_date_from'] = entry_date_from  # DD.MM.YYYY
-            url = self.generate_url(court, params)
+            url = self.generate_url(court, params, instance)
             if court.site_type == 2:
                 url = url.replace('XXX', court.vn_kod)
-                SecondParser(court=court, stage=1, type=self.type, url=url).save_cases()
+                SecondParser(court=court, stage=instance, type=self.type, url=url).save_cases()
             elif court.site_type == 1:
-                FirstParser(court=court, stage=1, type=self.type, url=url).save_cases()
+                FirstParser(court=court, stage=instance, type=self.type, url=url).save_cases()
         print("--- %s seconds ---" % (time.time() - start_time))
 
     def update_cases(self):

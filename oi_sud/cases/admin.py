@@ -57,11 +57,11 @@ class DefendantAdmin(admin.ModelAdmin):
     pass
 
 class UKCaseAdmin(CaseAdmin):
-    def queryset(self, request):
+    def get_queryset(self, request):
         return self.model.objects.filter(type=2)
 
 class KoapCaseAdmin(CaseAdmin):
-    def queryset(self, request):
+    def get_queryset(self, request):
         return self.model.objects.filter(type=1)
 
 
