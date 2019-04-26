@@ -39,6 +39,7 @@ EVENT_TYPES = (
     (35, 'Снято с апелляционного рассмотрения'),
     (36, 'Дело отправлено мировому судье'),
     (37, 'Отзыв жалобы (представления)'),
+    (38, 'Вручение копии решения (определения) в соотв. с чч. 2, 2.1, 2.2 ст. 30.8 КоАП РФ'),
 
 )
 
@@ -121,7 +122,7 @@ adm_type_one_params_dict = {'last_name': 'adm_parts__NAMES',
                             'validity_date_to': 'ADM_CASE__VALIDITY_DATE2D'
                             }
 
-adm_type_two_params_string = '/modules.php?name_op=r&nc=1&name=sud_delo&srv_num=1&_deloId=DELOID&case__vnkod=XXX&process-type=DELOID_0_0'
+adm_type_two_params_string = '/modules.php?name_op=r&nc=1&name=sud_delo&srv_num=1&_deloId=DELOID&case__vnkod=XXX&process-type=DELOID_CASETYPE_0'
 
 adm_type_two_params_dict = {'last_name': 'part__namess',
                             'case_number': 'case__case_numberss',
@@ -158,7 +159,7 @@ cr_type_one_params_dict = {'last_name': 'U1_DEFENDANT__NAMESS',
                            'validity_date_to': 'U1_CASE__VALIDITY_DATE2D'
                            }
 
-cr_type_two_params_string = '/modules.php?name_op=r&name=sud_delo&srv_num=1&_deloId=DELOID&case__case_type=CASETYPE&_new=0&process-type=DELOID_0_0&case__vnkod=XXX&nc=1'
+cr_type_two_params_string = '/modules.php?name_op=r&name=sud_delo&srv_num=1&_deloId=DELOID&case__case_type=CASETYPE&_new=0&case__vnkod=XXX&case__num_build=1&case__case_numberss=&part__namess=&process-type=DELOID_CASETYPE_0&case__ss='
 
 cr_type_two_params_dict = {'last_name': 'parts__namess',
                            'case_number': 'case__case_numberss',
