@@ -13,7 +13,7 @@ from oi_sud.core.parser import CommonParser
 from oi_sud.core.utils import get_query_key
 from oi_sud.courts.models import Court, Judge
 from .consts import site_types_by_codex, EVENT_TYPES, EVENT_RESULT_TYPES, RESULT_TYPES, APPEAL_RESULT_TYPES, instances_dict
-from .models import Case, CaseEvent, CaseDefense, Defendant
+from .models import Case, Defendant, CaseGroup
 
 dateparse_settings.TIMEZONE = str(get_current_timezone())
 dateparse_settings.RETURN_AS_TIMEZONE_AWARE = False
@@ -24,14 +24,6 @@ result_types_dict = {y: x for x, y in dict(RESULT_TYPES).items()}
 appeal_result_types_dict = {y: x for x, y in dict(APPEAL_RESULT_TYPES).items()}
 
 from pytz import timezone, utc
-# class OldCasesParser(CommonParser):
-#     pass
-#
-# class MoscowNewCasesParser(CommonParser):
-#     pass
-#
-# class MJudgesCasesParser(CommonParser):
-#     pass
 
 
 class CourtSiteParser(CommonParser):
@@ -271,9 +263,9 @@ class FirstParser(CourtSiteParser):
                 case_info['entry_date'] = val
             if 'Номер протокола об АП' in tr_text:
                 case_info['protocol_number'] = val
-            if 'Судья' in tr_text:
+            if 'Судья' in tr_text or 'Передано в производство судье' in tr_text:
                 case_info['judge'] = val
-            if 'Дата рассмотрения' in tr_text:
+            if 'Дата рассмотрения' in tr_text or 'Дата вынесения постановления (определения) по делу' in tr_text:
                 case_info['result_date'] = val
             if 'Результат рассмотрения' in tr_text:
                 case_info['result_type'] = val
@@ -379,9 +371,9 @@ class SecondParser(CourtSiteParser):
                 case_info['entry_date'] = val
             if 'Номер протокола об АП' in tr_text:
                 case_info['protocol_number'] = val
-            if 'Судья' in tr_text:
+            if 'Судья' in tr_text or 'Передано в производство судье' in tr_text:
                 case_info['judge'] = val
-            if 'Дата рассмотрения' in tr_text:
+            if 'Дата рассмотрения' in tr_text or 'Дата вынесения постановления (определения) по делу' in tr_text:
                 case_info['result_date'] = val
             if 'Результат рассмотрения' in tr_text:
                 case_info['result_type'] = val
@@ -528,6 +520,14 @@ class RFCasesParser(CommonParser):
     def group_cases(self):
         for case in Case.objects.filter(court__instance=2):
             #print(case)
-            first_case = self.get_first_cases(case)
-            #print(first_case, 'FIRSTCASES')
-
+            first_cases = self.get_first_cases(case)
+            if first_cases:
+                if len(first_cases) > 1:
+                    print('got more than 1 first cases')
+                    continue
+                first_case = first_cases.first()
+                new_group = CaseGroup.objects.create()
+                first_case.group = new_group
+                first_case.save()
+                case.group = new_group
+                case.save()

@@ -7,6 +7,7 @@ from django.utils.encoding import smart_text
 from .models import Case, KoapCase, UKCase, CaseEvent, CaseGroup, Defendant, CaseDefense
 from jet.admin import CompactInline
 from jet.filters import RelatedFieldAjaxListFilter
+from django.utils.html import format_html
 
 class ArticlesRelatedFieldAjaxListFilter(RelatedFieldAjaxListFilter):
 
@@ -47,11 +48,20 @@ class CaseEventsInline(CompactInline):
     show_change_link = True
     extra = 0
 
+
 class CaseAdmin(admin.ModelAdmin):
     inlines = (DefendantsInline, CaseEventsInline)
     list_filter = (('codex_articles',ArticlesRelatedFieldAjaxListFilter), ('court', RelatedFieldAjaxListFilter), 'court__region', 'stage',  'result_type')
-    list_display = ('__str__', 'court', 'judge',  'result_type', 'entry_date', 'result_date')
+    list_display = ('__str__', 'court', 'judge',  'result_type', 'entry_date', 'result_date', 'has_result_text_icon')
     search_fields = ('case_number', 'protocol_number', 'result_text')
+
+
+    def has_result_text_icon(self, obj):
+        if obj.result_text:
+            return format_html(
+            '<i class="fas fa-file-alt"></i>')
+
+    has_result_text_icon.short_description = 'Есть текст'
 
     def get_form(self, request, obj=None, **kwargs):
         exclude = []
@@ -63,6 +73,11 @@ class CaseAdmin(admin.ModelAdmin):
         self.exclude = tuple(exclude)
         form = super(CaseAdmin, self).get_form(request, obj, **kwargs)
         return form
+
+    class Media:
+        css = {
+            'all': ('https://use.fontawesome.com/releases/v5.8.2/css/all.css',)
+        }
 
 
 class DefendantAdmin(admin.ModelAdmin):

@@ -17,7 +17,7 @@ def main_get_koap_cases(data=None):
     #     chunked_courts = chunks(region_courts, 10)
     #     for chunk in chunked_courts:
     #         for court in chunk
-    chunked_courts = chunks(Courts.objects.all(), 10)
+    chunked_courts = chunks(Court.objects.all(), 10)
     for chunk in chunked_courts:
         get_koap_cases_first.s(chunk)
 

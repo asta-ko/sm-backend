@@ -75,9 +75,13 @@ class Case(models.Model):
         articles_list = ','.join([str(x) for x in self.codex_articles.all()])
         return f'{self.case_number} {articles_list} {self.court}'
 
+    def get_2_instance_case(self):
+        if self.group:
+            case = self.group.case_set.filter(instance=2)
+            if case:
+                return case
+
     def update_if_needed(self, fresh_data):
-
-
 
         old_data = self.serialize()
         #print(old_data, fresh_data)
