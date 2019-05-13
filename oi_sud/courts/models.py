@@ -73,6 +73,8 @@ class Court(models.Model):
     def __str__(self):
         return self.title
 
+    # def get_
+
 
     def get_timezone(self):
         r = {y: x for x, y in dict(region_choices).items()}

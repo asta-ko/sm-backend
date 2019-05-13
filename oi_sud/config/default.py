@@ -142,6 +142,18 @@ CELERY_TIMEZONE = 'UTC'
 CELERY_TASK_DEFAULT_QUEUE = 'main'
 CELERY_IMPORTS = ()
 
+CELERYD_MAX_TASKS_PER_CHILD = 1,
+CELERY_TASK_DEFAULT_QUEUE = 'main',
+CELERY_ROUTES = {
+                    'oi_sud.cases.tasks.main_get_koap_cases': {
+                        'queue': 'main'
+                    },
+                    'oi_sud.cases.tasks.get_koap_cases': {
+                        'queue': 'other'
+                    },
+                },
+
+
 CELERY_BEAT_SCHEDULE = {}
 
 JET_THEME = 'light-gray'

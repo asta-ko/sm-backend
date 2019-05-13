@@ -1,6 +1,6 @@
 from django.db import models
 
-from oi_sud.cases.consts import RESULT_TYPES, EVENT_TYPES, EVENT_RESULT_TYPES
+from oi_sud.cases.consts import RESULT_TYPES, EVENT_TYPES, EVENT_RESULT_TYPES, APPEAL_RESULT_TYPES
 from oi_sud.core.utils import nullable
 
 CASE_TYPES = (
@@ -11,8 +11,8 @@ CASE_TYPES = (
 
 CASE_STAGES = (
     (1, 'Первая инстанция'),
-    (2, 'Аппеляция'),
-    (3, 'Пересмотр')
+    (2, 'Аппеляция/первый пересмотр'),
+    (3, 'Новое рассмотрение в первой инстанции')
 )
 
 GENDER_TYPES = ()
@@ -38,7 +38,6 @@ class CaseManager(models.Manager):
             print(traceback.format_exc())
 
 
-
 class Case(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -46,6 +45,10 @@ class Case(models.Model):
     result_date = models.DateField(verbose_name='Дата решения', **nullable)  # рассмотрение
     result_published = models.DateField(verbose_name='Дата публикации решения', **nullable)  # публикация решения
     result_valid = models.DateField(verbose_name='Решение вступило в силу', **nullable)  # решение вступило в силу
+    forwarding_to_higher_court_date = models.DateField(verbose_name='Дата направления в вышестоящий суд', **nullable)
+    appeal_date = models.DateField(verbose_name='Дата рассмотрения жалобы', **nullable)
+    appeal_result = models.IntegerField(verbose_name='Результат обжалования', choices=APPEAL_RESULT_TYPES, **nullable)
+    forwarding_to_lower_court_date = models.DateField(verbose_name='Дата направления в нижестоящий суд', **nullable)
     judge = models.ForeignKey('courts.Judge', verbose_name='Судья', on_delete=models.CASCADE, **nullable)
     court = models.ForeignKey('courts.Court', verbose_name='Cуд', on_delete=models.CASCADE)
     defendants = models.ManyToManyField('Defendant', through='CaseDefense')
@@ -70,12 +73,14 @@ class Case(models.Model):
 
     def __str__(self):
         articles_list = ','.join([str(x) for x in self.codex_articles.all()])
-        return f'{self.case_number} {articles_list}'
+        return f'{self.case_number} {articles_list} {self.court}'
 
     def update_if_needed(self, fresh_data):
 
-        old_data = self.serialize()
 
+
+        old_data = self.serialize()
+        #print(old_data, fresh_data)
         if fresh_data['case'] != old_data['case']:
             print(f'Updating case... {self}')
             Case.objects.filter(pk=self.id).update(**fresh_data['case'])
@@ -100,8 +105,10 @@ class Case(models.Model):
         result = {'case': {}, 'defenses': [], 'events': [], 'codex_articles': []}
 
         for attribute in ['case_number', 'case_uid', 'protocol_number', 'result_text', 'entry_date', 'result_date',
-                          'result_type', 'type', 'stage', 'url', 'court', 'judge']:
-            result['case'][attribute] = getattr(self, attribute)
+                          'forwarding_to_higher_court_date', 'forwarding_to_lower_court_date', 'appeal_date',
+                          'appeal_result','result_type', 'type', 'stage', 'url', 'court', 'judge']:
+            if getattr(self, attribute):
+                result['case'][attribute] = getattr(self, attribute)
 
         for event in CaseEvent.objects.filter(case=self):
             e_dict = {}
@@ -126,6 +133,7 @@ class Case(models.Model):
         result['codex_articles'] = self.codex_articles.all()
 
         return result
+
 
 class UKCase(Case):
     class Meta:

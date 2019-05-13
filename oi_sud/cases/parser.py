@@ -12,7 +12,7 @@ from oi_sud.codex.models import CodexArticle
 from oi_sud.core.parser import CommonParser
 from oi_sud.core.utils import get_query_key
 from oi_sud.courts.models import Court, Judge
-from .consts import site_types_by_codex, EVENT_TYPES, EVENT_RESULT_TYPES, RESULT_TYPES, instances_dict
+from .consts import site_types_by_codex, EVENT_TYPES, EVENT_RESULT_TYPES, RESULT_TYPES, APPEAL_RESULT_TYPES, instances_dict
 from .models import Case, CaseEvent, CaseDefense, Defendant
 
 dateparse_settings.TIMEZONE = str(get_current_timezone())
@@ -21,6 +21,7 @@ dateparse_settings.RETURN_AS_TIMEZONE_AWARE = False
 event_types_dict = {y: x for x, y in dict(EVENT_TYPES).items()}
 event_result_types_dict = {y: x for x, y in dict(EVENT_RESULT_TYPES).items()}
 result_types_dict = {y: x for x, y in dict(RESULT_TYPES).items()}
+appeal_result_types_dict = {y: x for x, y in dict(APPEAL_RESULT_TYPES).items()}
 
 from pytz import timezone, utc
 # class OldCasesParser(CommonParser):
@@ -150,6 +151,14 @@ class CourtSiteParser(CommonParser):
             result['case']['result_published'] = self.normalize_date(case_info['result_published']).date()
         if case_info.get('result_valid'):
             result['case']['result_valid'] = self.normalize_date(case_info['result_valid']).date()
+        if case_info.get('forwarding_to_higher_court_date'):
+            result['case']['forwarding_to_higher_court_date'] = self.normalize_date(case_info['forwarding_to_higher_court_date']).date()
+        if case_info.get('forwarding_to_lower_court_date'):
+            result['case']['forwarding_to_lower_court_date'] = self.normalize_date(case_info['forwarding_to_lower_court_date']).date()
+        if case_info.get('appeal_date'):
+            result['case']['appeal_date'] = self.normalize_date(case_info['appeal_date']).date()
+        if case_info.get('appeal_result'):
+            result['case']['appeal_result'] = appeal_result_types_dict[case_info['appeal_result']]
         if case_info.get('result_type'):
             result['case']['result_type'] = result_types_dict[case_info['result_type'].strip()]
         result['case']['url'] = case_info['url'].replace('&nc=1', '')
@@ -305,6 +314,19 @@ class FirstParser(CourtSiteParser):
                         defendant = tds[0].text.strip()
                     defenses.append({'defendant': defendant, 'codex_articles': codex_articles})
             case_info['defenses'] = defenses
+        if page.find('div', id='cont4'):
+            trs = page.find('div', id='cont4').findAll('tr')
+            for tr in trs:
+                tr_text = tr.text
+                if 'Дата направления дела в вышест. суд' in tr_text:
+                    case_info['forwarding_to_higher_court_date'] = tr.findAll('td')[1].text.replace('\xa0', '').strip()
+                if 'Дата рассмотрения жалобы' in tr_text:
+                    case_info['appeal_date'] = tr.findAll('td')[1].text.replace('\xa0', '').strip()
+                if 'Результат обжалования' in tr_text:
+                    case_info['appeal_result'] = tr.findAll('td')[1].text.replace('\xa0', '').strip()
+                if 'Дата возврата в нижестоящий суд' in tr_text:
+                    case_info['forwarding_to_lower_court_date'] = tr.findAll('td')[1].text.replace('\xa0', '').strip()
+                    
 
         return case_info
 
@@ -454,6 +476,7 @@ class RFCasesParser(CommonParser):
             url = self.generate_url(court, params, instance)
             if court.site_type == 2:
                 url = url.replace('XXX', court.vn_kod)
+                print(url, "WTF")
                 SecondParser(court=court, stage=instance, type=self.type, url=url).save_cases()
             elif court.site_type == 1:
                 FirstParser(court=court, stage=instance, type=self.type, url=url).save_cases()
@@ -462,13 +485,49 @@ class RFCasesParser(CommonParser):
     def update_cases(self):
 
         for case in Case.objects.filter(type=self.type):
+            try:
+                if case.court.site_type == 1:
+                    p = FirstParser(court=case.court, stage=1, type=self.type)
+                elif case.court.site_type == 2:
+                    p = SecondParser(court=case.court, stage=1, type=self.type)
+                url = case.url + '&nc=1'
+                # print(url)
+                raw_data = p.get_raw_case_information(url)
+                fresh_data =  {i:j for i,j in p.serialize_data(raw_data).items() if j != None}
+                case.update_if_needed(fresh_data)
+            except:
+                print('error: ', case.url)
+                print(traceback.format_exc())
 
-            if case.court.site_type == 1:
-                p = FirstParser(court=case.court, stage=1, type=self.type)
-            elif case.court.site_type == 2:
-                p = SecondParser(court=case.court, stage=1, type=self.type)
+    def get_first_cases(self, case):
 
-            raw_data = p.get_raw_case_information(case.url)
-            fresh_data =  {i:j for i,j in p.serialize_data(raw_data).items() if j != None}
-            case.update_if_needed(fresh_data)
+        params = {'entry_date__lte':case.entry_date, 'court__instance':1}
+
+        print(case.case_number)
+
+
+        if case.protocol_number:
+            if Case.objects.filter(protocol_number=case.protocol_number, **params).exists():
+                print(Case.objects.filter(protocol_number=case.protocol_number, **params), 'by protocol')
+                return Case.objects.filter(protocol_number=case.protocol_number, **params).first()
+        if case.case_uid:
+            if Case.objects.filter(case_uid=case.case_uid, **params).exists():
+                print(Case.objects.filter(case_uid=case.case_uid, **params), 'by case uid')
+                return Case.objects.filter(case_uid=case.case_uid, **params)
+        if Case.objects.filter(appeal_date=case.result_date, **params).exists():
+            #print(Case.objects.filter(appeal_date=case.result_date, **params), 'by DATE')
+            date_cases = Case.objects.filter(appeal_date=case.result_date, **params)
+            if date_cases.filter(defendants__in=case.defendants.all(), **params).exists():
+                print(date_cases.filter(defendants__in=case.defendants.all(), **params), 'by date and defendants')
+                return date_cases.filter(defendants__in=case.defendants.all(), **params)
+
+        if Case.objects.filter(defendants__in=case.defendants.all(), **params).exists():
+             print(Case.objects.filter(defendants__in=case.defendants.all(), **params), 'by DEFENDANTS')
+             return Case.objects.filter(defendants__in=[case.defendants.first()], **params)
+
+    def group_cases(self):
+        for case in Case.objects.filter(court__instance=2):
+            #print(case)
+            first_case = self.get_first_cases(case)
+            #print(first_case, 'FIRSTCASES')
 

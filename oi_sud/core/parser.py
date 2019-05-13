@@ -41,8 +41,8 @@ class CommonParser(object):
         req = Request('GET', url)
         prepped = req.prepare()
 
-        if gen_useragent:
-            prepped.headers['User-Agent'] = generate_user_agent()
+        #if gen_useragent:
+        prepped.headers['User-Agent'] = generate_user_agent()
 
         r = session.send(prepped)
         return r.text, r.status_code

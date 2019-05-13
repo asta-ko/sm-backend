@@ -24,7 +24,7 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, **options):
-        courts = Court.objects.all()
+        courts = Court.objects.filter(instance=1)
         limit = None
         entry_date_from = None
         codex = options['codex']

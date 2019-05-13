@@ -53,6 +53,18 @@ class CaseAdmin(admin.ModelAdmin):
     list_display = ('__str__', 'court', 'judge',  'result_type', 'entry_date', 'result_date')
     search_fields = ('case_number', 'protocol_number', 'result_text')
 
+    def get_form(self, request, obj=None, **kwargs):
+        exclude = []
+        for field in Case._meta.get_fields():
+            if field.name in ['caseevent', 'casedefense']:
+                continue
+            if getattr(obj, field.name) is None:
+                exclude.append(field.name)
+        self.exclude = tuple(exclude)
+        form = super(CaseAdmin, self).get_form(request, obj, **kwargs)
+        return form
+
+
 class DefendantAdmin(admin.ModelAdmin):
     pass
 

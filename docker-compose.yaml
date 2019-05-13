@@ -1,7 +1,7 @@
 version: '3.4'
 
 x-global-environment: &global-environment
-  C_PROJECT_VERSION: 820a4a25df093594df7a2687ce4bec2f92f64ba7
+  C_PROJECT_VERSION: 72fe0221b8d816141265f40e5f69d59e4d225596
   C_PROJECT_STACK: dev
 
 x-projectname: &oi_sud
@@ -44,13 +44,26 @@ services:
           - ./.docker/media:/var/www/media
         command: ["gunicorn", "oi_sud.wsgi:application", "-b", "0.0.0.0:8081", "--name", "oi_sud", "--reload"]
         ports:
-          - "8081:8081"
+          - "8082:8081"
 
     test:
         <<: *oi_sud
         environment:
           DJANGO_SETTINGS_MODULE: 'oi_sud.config.test'
         command: ["echo", "'test'"]
+
+    celery_main:
+        <<: *oi_sud
+        command: ["celery", "-A", "oi_sud", "worker", "-l", "info", "-Q", "main", "-c", "1", "-n", "main" ]
+
+    celery_other:
+        <<: *oi_sud
+        command: ["celery", "-A", "oi_sud", "worker", "-l", "info", "-Q", "other", "-c", "8", "-n", "other" ]
+
+    celerybeat:
+        <<: *oi_sud
+        command: ["celery", "-A", "oi_sud", "beat", "-l", "info", "--pidfile", "/tmp/celerybeat.pid", "--schedule", "/tmp/celerybeat-schedule"]
+
 
 volumes:
   db-data:
