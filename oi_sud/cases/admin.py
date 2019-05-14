@@ -4,10 +4,11 @@ from django.forms.utils import flatatt
 from django.contrib.admin.utils import get_model_from_relation
 from django.urls import reverse
 from django.utils.encoding import smart_text
-from .models import Case, KoapCase, UKCase, CaseEvent, CaseGroup, Defendant, CaseDefense
+from .models import Case, KoapCase, UKCase, CaseEvent, Defendant, CaseDefense, LinkedCasesProxy
 from jet.admin import CompactInline
 from jet.filters import RelatedFieldAjaxListFilter
 from django.utils.html import format_html
+
 
 class ArticlesRelatedFieldAjaxListFilter(RelatedFieldAjaxListFilter):
 
@@ -48,13 +49,36 @@ class CaseEventsInline(CompactInline):
     show_change_link = True
     extra = 0
 
+class LinkedCases(CompactInline):
+    model = LinkedCasesProxy
+    fk_name = 'from_case'
+    verbose_name = "Связанное дело"
+    verbose_name_plural = "Связанные дела"
+    extra = 0
+    readonly_fields = ('admin_link',)
+    exclude = ['to_case']
+
+    def admin_link(self, instance):
+        return format_html(f'<a href="/admin/cases/{instance.get_codex_type()}case/{instance.get_pk()}/change/">Link</a>') #str(instance)#.objects
+
 
 class CaseAdmin(admin.ModelAdmin):
-    inlines = (DefendantsInline, CaseEventsInline)
-    list_filter = (('codex_articles',ArticlesRelatedFieldAjaxListFilter), ('court', RelatedFieldAjaxListFilter), 'court__region', 'stage',  'result_type')
-    list_display = ('__str__', 'court', 'judge',  'result_type', 'entry_date', 'result_date', 'has_result_text_icon')
+    inlines = (DefendantsInline, CaseEventsInline, LinkedCases)
+    list_filter = (('codex_articles',ArticlesRelatedFieldAjaxListFilter), ('court', RelatedFieldAjaxListFilter), ('judge', RelatedFieldAjaxListFilter), 'court__region', 'stage',  'result_type')
+    list_display = ('__str__', 'judge',  'result_type', 'entry_date', 'result_date', 'has_result_text_icon', 'has_linked_cases')
     search_fields = ('case_number', 'protocol_number', 'result_text')
 
+    def has_linked_cases(self, obj):
+        if obj.get_2_instance_case():
+            second_instance_case = obj.get_2_instance_case()
+            link = f'/admin/cases/{second_instance_case.get_codex_type()}case/{second_instance_case.pk}/change/'
+            return format_html(f'<a href="{link}">2 инстанция</a>')
+        if obj.get_1_instance_case():
+            first_instance_case = obj.get_1_instance_case()
+            link = f'/admin/cases/{first_instance_case.get_codex_type()}case/{first_instance_case.pk}/change/'
+            return format_html(f'<a href="{link}">1 инстанция</a>')
+
+    has_linked_cases.short_description = 'Связанные дела'
 
     def has_result_text_icon(self, obj):
         if obj.result_text:

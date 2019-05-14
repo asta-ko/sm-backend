@@ -13,7 +13,7 @@ from oi_sud.core.parser import CommonParser
 from oi_sud.core.utils import get_query_key
 from oi_sud.courts.models import Court, Judge
 from .consts import site_types_by_codex, EVENT_TYPES, EVENT_RESULT_TYPES, RESULT_TYPES, APPEAL_RESULT_TYPES, instances_dict
-from .models import Case, Defendant, CaseGroup
+from .models import Case, Defendant
 
 dateparse_settings.TIMEZONE = str(get_current_timezone())
 dateparse_settings.RETURN_AS_TIMEZONE_AWARE = False
@@ -495,27 +495,29 @@ class RFCasesParser(CommonParser):
 
         params = {'entry_date__lte':case.entry_date, 'court__instance':1}
 
-        print(case.case_number)
+
 
 
         if case.protocol_number:
             if Case.objects.filter(protocol_number=case.protocol_number, **params).exists():
-                print(Case.objects.filter(protocol_number=case.protocol_number, **params), 'by protocol')
-                return Case.objects.filter(protocol_number=case.protocol_number, **params).first()
+                #print(Case.objects.filter(protocol_number=case.protocol_number, **params), 'by protocol')
+                return Case.objects.filter(protocol_number=case.protocol_number, **params)
         if case.case_uid:
             if Case.objects.filter(case_uid=case.case_uid, **params).exists():
-                print(Case.objects.filter(case_uid=case.case_uid, **params), 'by case uid')
+                #print(Case.objects.filter(case_uid=case.case_uid, **params), 'by case uid')
                 return Case.objects.filter(case_uid=case.case_uid, **params)
         if Case.objects.filter(appeal_date=case.result_date, **params).exists():
             #print(Case.objects.filter(appeal_date=case.result_date, **params), 'by DATE')
             date_cases = Case.objects.filter(appeal_date=case.result_date, **params)
             if date_cases.filter(defendants__in=case.defendants.all(), **params).exists():
-                print(date_cases.filter(defendants__in=case.defendants.all(), **params), 'by date and defendants')
+                #print(date_cases.filter(defendants__in=case.defendants.all(), **params), 'by date and defendants')
                 return date_cases.filter(defendants__in=case.defendants.all(), **params)
 
         if Case.objects.filter(defendants__in=case.defendants.all(), **params).exists():
+             print(case.case_number)
              print(Case.objects.filter(defendants__in=case.defendants.all(), **params), 'by DEFENDANTS')
              return Case.objects.filter(defendants__in=[case.defendants.first()], **params)
+        print(case.case_number, 'NOT FOUND')
 
     def group_cases(self):
         for case in Case.objects.filter(court__instance=2):
@@ -526,8 +528,5 @@ class RFCasesParser(CommonParser):
                     print('got more than 1 first cases')
                     continue
                 first_case = first_cases.first()
-                new_group = CaseGroup.objects.create()
-                first_case.group = new_group
-                first_case.save()
-                case.group = new_group
-                case.save()
+                first_case.linked_cases.add(case)
+

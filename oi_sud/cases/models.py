@@ -3,6 +3,8 @@ from django.db import models
 from oi_sud.cases.consts import RESULT_TYPES, EVENT_TYPES, EVENT_RESULT_TYPES, APPEAL_RESULT_TYPES
 from oi_sud.core.utils import nullable
 
+from django.urls import reverse
+
 CASE_TYPES = (
     (1, 'Дело об административном правонарушении'),
     (2, 'Уголовное дело'),
@@ -63,8 +65,9 @@ class Case(models.Model):
     type = models.IntegerField(choices=CASE_TYPES, verbose_name='Тип судопроизводства')  # тип судопроизводства
     stage = models.IntegerField(choices=CASE_STAGES,
                                 verbose_name='Инстанция')  # первая инстанция, обжалование, пересмотр, кассация
-    group = models.ForeignKey('CaseGroup', on_delete=models.CASCADE, **nullable)  # ссылки на аппеляции и пересмотры
+    #group = models.ForeignKey('CaseGroup', on_delete=models.CASCADE, related_name='group_cases',**nullable)  # ссылки на аппеляции и пересмотры
     url = models.URLField(verbose_name='URL', unique=True, **nullable)
+    linked_cases = models.ManyToManyField("self", symmetrical=True)
     objects = CaseManager()
 
     class Meta:
@@ -72,14 +75,25 @@ class Case(models.Model):
         verbose_name_plural = 'Все дела'
 
     def __str__(self):
+
         articles_list = ','.join([str(x) for x in self.codex_articles.all()])
         return f'{self.case_number} {articles_list} {self.court}'
 
+    def get_codex_type(self):
+        if self.type == 1:
+            return 'koap'
+        elif self.type == 2:
+            return 'uk'
+
     def get_2_instance_case(self):
-        if self.group:
-            case = self.group.case_set.filter(instance=2)
-            if case:
-                return case
+        return self.linked_cases.filter(stage=2).first()
+
+    def get_1_instance_case(self):
+        return self.linked_cases.filter(stage=1).first()
+
+    @staticmethod
+    def autocomplete_search_fields():
+        return 'case_number',
 
     def update_if_needed(self, fresh_data):
 
@@ -153,6 +167,19 @@ class KoapCase(Case):
         verbose_name_plural = 'Дела (КОАП)'
 
 
+class LinkedCasesProxy(Case.linked_cases.through):
+    class Meta:
+        proxy = True
+
+    def get_pk(self):
+        return self.to_case.pk
+
+    def get_codex_type(self):
+        return self.to_case.get_codex_type()
+
+    def __str__(self):
+        return str(self.to_case)
+
 class CaseEvent(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     date = models.DateTimeField(verbose_name='Дата', **nullable)
@@ -167,13 +194,6 @@ class CaseEvent(models.Model):
     class Meta:
         verbose_name = 'Событие в деле'
         verbose_name_plural = 'События в деле'
-
-
-class CaseGroup(models.Model):
-    created_at = models.DateTimeField(auto_now_add=True)
-    second_inst = models.BooleanField()
-    third_inst = models.BooleanField()
-    revision = models.BooleanField()
 
 
 class Advocate(models.Model):
@@ -206,6 +226,11 @@ class Defendant(models.Model):
     name = models.CharField(max_length=50, db_index=True)
     region = models.IntegerField()
     gender = models.IntegerField(choices=GENDER_TYPES, **nullable)
+
+
+    @staticmethod
+    def autocomplete_search_fields():
+        return 'name',
 
     def __str__(self):
         return f'{self.name}'
