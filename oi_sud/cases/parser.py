@@ -574,18 +574,14 @@ class RFCasesParser(CommonParser):
             c = first_cases_not_found.filter(defendants__in=case.defendants.all(), result_date__lt=case.entry_date, result_date__year=case.entry_date.year)
             if len(c):
                 print([x.case_number for x in c])
-                #case.linked_cases.add(*c)
+                case.linked_cases.add(*c)
 
-        #         print(case.case_number, [(x.case_number, 'http://127.0.0.1:8082'+x.get_admin_url()) for x in c])
-        # print(len(first_cases_not_found.filter(result_date__year__lt=2017)))
-        # print(len(second_instance_cases_not_found.filter(result_text__isnull=False)))
-
-        first_cases_not_found = Case.objects.filter(stage=1, court__region=region, appeal_result__isnull=False,
-                                                    linked_cases=None)
-        second_instance_cases_not_found = Case.objects.filter(stage=2, court__region=region, linked_cases=None)
-
-        for case in first_cases_not_found:
-            print(case.defendants.all())
-
-        for case in second_instance_cases_not_found:
-            print(case.defendants.all())
+        # first_cases_not_found = Case.objects.filter(stage=1, court__region=region, appeal_result__isnull=False,
+        #                                             linked_cases=None)
+        # second_instance_cases_not_found = Case.objects.filter(stage=2, court__region=region, linked_cases=None)
+        #
+        # for case in first_cases_not_found:
+        #     print(case.defendants.all())
+        #
+        # for case in second_instance_cases_not_found:
+        #     print(case.defendants.all())
