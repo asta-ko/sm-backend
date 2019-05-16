@@ -105,8 +105,9 @@ class CaseAdmin(admin.ModelAdmin):
 
 
 class DefendantAdmin(admin.ModelAdmin):
-    pass
-
+    search_fields = ('name_normalized',)
+    list_filter = ('region',)
+    list_display = ('__str__', 'region')
 class UKCaseAdmin(CaseAdmin):
     def get_queryset(self, request):
         return self.model.objects.filter(type=2)

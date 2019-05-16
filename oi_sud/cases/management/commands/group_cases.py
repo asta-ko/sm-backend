@@ -5,7 +5,16 @@ from oi_sud.cases.parser import RFCasesParser
 
 class Command(BaseCommand):
 
+    def add_arguments(self, parser):
+        parser.add_argument('region', type=int)
+        parser.add_argument('codex', type=str)
+
     def handle(self, *args, **options):
         # Court.objects.all().delete()
         #courts = Court.objects.filter(site_type=2)
-        RFCasesParser(codex='koap').group_cases()
+        region = options['region']
+        codex = options['codex']
+        if codex not in ['uk', 'koap']:
+            print('Codex is not uk and not koap. Exiting.')
+            return
+        RFCasesParser(codex=codex).group_cases(region=region)

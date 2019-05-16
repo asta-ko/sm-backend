@@ -16,3 +16,5 @@ urllib3==1.24.1
 dateparser==0.7.1
 django-jet
 requests-futures
+pymorphy2
+editdistance
