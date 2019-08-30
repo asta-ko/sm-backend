@@ -34,6 +34,48 @@ class CourtSiteParser(CommonParser):
         self.type = type
         self.stage = stage
 
+    def parse_defenses(self, el):
+        defenses = []
+        title_tr = None
+        title_tr_index = None
+        title_tds = []
+        defendant_index = None
+        codex_articles_index = None
+        trs = el.findAll('tr')
+        for index, tr in enumerate(trs):
+
+            tr_text = tr.text
+            #print(tr_text, 'tr_text')
+            if 'ФИО' in tr_text or 'Фамилия' in tr_text or 'статей' in tr_text:
+                title_tr = tr
+                title_tr_index = index
+
+        if not title_tr:
+            title_tds = el.findAll('td', attrs={'align':'center'})
+            title_tr_index = 2
+        else:
+            title_tds = title_tr.findAll('td')
+
+        for index, td in enumerate(title_tds):
+            td_text = td.text
+            if 'ФИО' in td_text or 'Фамилия' in td_text:
+                defendant_index = index
+                #print(defendant_index, 'defeant_index')
+            if 'статей' in td_text:
+                codex_articles_index = index
+
+        for tr in trs[title_tr_index:]:
+            if 'ФИО' in tr.text or 'статей' in tr.text or 'Фамилия' in tr.text or 'Информация скрыта' in tr.text:
+                continue
+            tds = tr.findAll('td')
+            if len(tds)>=defendant_index and len(tds) >= codex_articles_index:
+                defendant = tds[defendant_index].text.strip()
+                codex_articles = tds[codex_articles_index].text.strip()
+                print(defendant, codex_articles)
+                defenses.append({'defendant': defendant, 'codex_articles': codex_articles})
+
+        return defenses
+
     def save_cases(self, urls=None):
 
         print(self.court)
@@ -292,20 +334,8 @@ class FirstParser(CourtSiteParser):
             case_info['events'] = events
         if page.find('div', id='cont3'):
             defenses = []
-            trs = page.find('div', id='cont3').findAll('tr')[2:]
-
-            for tr in trs:
-                tds = tr.findAll('td')
-                if len(tds) > 2:
-                    codex_articles, defendant = None, None
-                    if self.type == 1:
-                        codex_articles = tds[2].text.strip()
-                        defendant = tds[1].text.strip()
-                    elif self.type == 2:
-                        codex_articles = tds[1].text.strip()
-                        defendant = tds[0].text.strip()
-                    defenses.append({'defendant': defendant, 'codex_articles': codex_articles})
-            case_info['defenses'] = defenses
+            #trs = page.find('div', id='cont3').findAll('tr')
+            case_info['defenses'] = self.parse_defenses(page.find('div', id='cont3'))
         if page.find('div', id='cont4'):
             trs = page.find('div', id='cont4').findAll('tr')
             for tr in trs:
@@ -400,12 +430,11 @@ class SecondParser(CourtSiteParser):
 
         # defendant_tds = page.find('div', id='tab_content_PersonList').findAll('tr')[1].findAll('td')
         defenses = []
-        trs = page.find('div', id='tab_content_PersonList').find('table', class_='none-mobile').findAll('tr')[1:]
-        for tr in trs:
-            codex_articles = tr.findAll('td')[2].text.strip()
-            defendant = tr.findAll('td')[1].text.strip()
-            defenses.append({'defendant': defendant, 'codex_articles': codex_articles})
-        case_info['defenses'] = defenses
+        #trs = page.find('div', id='tab_content_PersonList').find('table', class_='none-mobile').findAll('tr')
+
+        defense_table =  page.find('div', id='tab_content_PersonList').find('table', class_='none-mobile')
+
+        case_info['defenses'] = self.parse_defenses(defense_table)
 
         return case_info
 
@@ -452,12 +481,14 @@ class RFCasesParser(CommonParser):
         print(court.url + params_string)
         return court.url + params_string
 
-    def get_cases(self, instance, courts=None, courts_limit=None, entry_date_from=None):
+    def get_cases(self, instance, courts_ids=None, courts_limit=None, entry_date_from=None):
         start_time = time.time()
         articles = CodexArticle.objects.filter(codex=self.codex)
         article_string = self.generate_articles_string(articles)
-        if not courts:
+        if not courts_ids:
             courts = Court.objects.all()
+        else:
+            courts = Court.objects.filter(pk__in=courts_ids)
         if courts_limit:
             courts = courts[:courts_limit]
 

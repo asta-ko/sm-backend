@@ -51,7 +51,7 @@ class Case(models.Model):
     forwarding_to_lower_court_date = models.DateField(verbose_name='Дата направления в нижестоящий суд', **nullable)
     judge = models.ForeignKey('courts.Judge', verbose_name='Судья', on_delete=models.CASCADE, **nullable)
     court = models.ForeignKey('courts.Court', verbose_name='Cуд', on_delete=models.CASCADE)
-    defendants = models.ManyToManyField('Defendant', through='CaseDefense')
+    defendants = models.ManyToManyField('Defendant', through='CaseDefense', related_name='cases')
     advocates = models.ManyToManyField('Advocate', through='CaseDefense')
     case_number = models.CharField(max_length=50, verbose_name='Номер дела')  # Номер дела
     case_uid = models.CharField(max_length=50, verbose_name='ID в sudrf', **nullable)  # Уникальный id в системе sudrf

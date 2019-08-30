@@ -53,7 +53,7 @@ class CaseAdmin(admin.ModelAdmin):
     inlines = (DefendantsInline, CaseEventsInline)
     list_filter = (('codex_articles',ArticlesRelatedFieldAjaxListFilter), ('court', RelatedFieldAjaxListFilter), 'court__region', 'stage',  'result_type')
     list_display = ('__str__', 'court', 'judge',  'result_type', 'entry_date', 'result_date', 'has_result_text_icon')
-    search_fields = ('case_number', 'protocol_number', 'result_text')
+    search_fields = ('case_number', 'protocol_number', 'result_text', 'defendants__name')
 
 
     def has_result_text_icon(self, obj):
@@ -81,8 +81,17 @@ class CaseAdmin(admin.ModelAdmin):
 
 
 class DefendantAdmin(admin.ModelAdmin):
-    pass
-
+    list_display = ('__str__', 'get_case_court', 'get_case_link','get_site_type')
+    search_fields = ('name',)
+    def get_case_court(self, obj):
+        if obj.cases.first():
+            return obj.cases.first().court
+    def get_case_link(self, obj):
+        if obj.cases.first():
+            return obj.cases.first().url
+    def get_site_type(self, obj):
+        if obj.cases.first():
+            return obj.cases.first().court.site_type
 class UKCaseAdmin(CaseAdmin):
     def get_queryset(self, request):
         return self.model.objects.filter(type=2)

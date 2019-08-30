@@ -3,11 +3,19 @@ from oi_sud.cases.parser import RFCasesParser
 from oi_sud.cases.models import Case
 from oi_sud.cases.management.commands.get_admin_cases_from_spb_courts import Command as SpbCourtsCommand
 
-@pytest.mark.django_db
-def test_rf_parser_koap_first_instance(better_courts, koap_articles):
+# @pytest.mark.django_db
+# def test_rf_parser_koap_first_instance(better_courts, koap_articles):
+#
+#     p = RFCasesParser(codex='koap')
+#     p.get_cases(1)
+#     assert len(Case.objects.all())
+#     assert False
 
-    p = RFCasesParser(codex='koap')
-    p.get_cases(1)
+@pytest.mark.django_db
+def test_rf_parser_koap_second_instance(better_courts, koap_articles):
+    RFCasesParser('koap').get_cases(2, better_courts)
+    # p = RFCasesParser(codex='koap')
+    # p.get_cases(1)
     assert len(Case.objects.all())
     assert False
 
