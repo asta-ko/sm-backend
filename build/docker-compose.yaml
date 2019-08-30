@@ -39,7 +39,7 @@ services:
         <<: *oi_sud
         environment:
           VIRTUAL_HOST: sudmonster.ovdinfo.org
-          VIRTUAL_PORT: 8000
+          VIRTUAL_PORT: 8081
           LETSENCRYPT_HOST: sudmonster.ovdinfo.org
           LETSENCRYPT_EMAIL: asta.ko@ovdinfo.org
 
