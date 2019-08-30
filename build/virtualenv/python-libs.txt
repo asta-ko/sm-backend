@@ -5,9 +5,10 @@ beautifulsoup4
 airtable
 redis==3.2.0
 celery
+celery_once
 user_agent
 idna==2.7
-kombu==4.4.0
+kombu==4.6.3
 psycopg2==2.7.3.2
 pytz==2018.7
 requests==2.20.1
@@ -15,3 +16,6 @@ requests-toolbelt==0.8.0
 urllib3==1.24.1
 dateparser==0.7.1
 django-jet
+requests-futures
+pymorphy2
+editdistance

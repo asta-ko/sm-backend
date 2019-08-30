@@ -140,9 +140,35 @@ CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
 CELERY_TIMEZONE = 'UTC'
 CELERY_TASK_DEFAULT_QUEUE = 'main'
-CELERY_IMPORTS = ()
+CELERY_IMPORTS = ('oi_sud.cases.tasks')
 
-CELERY_BEAT_SCHEDULE = {}
+CELERYD_MAX_TASKS_PER_CHILD = 1
+
+CELERY_ROUTES = {
+                    'oi_sud.cases.tasks.main_get_koap_cases': {
+                        'queue': 'main'
+                    },
+                    'oi_sud.cases.tasks.get_koap_cases': {
+                        'queue': 'other'
+                    },
+
+                    'oi_sud.cases.tasks.main_get_uk_cases': {
+                        'queue': 'main'
+                    },
+                    'oi_sud.cases.tasks.get_uk_cases': {
+                        'queue': 'other'
+                    },
+
+                }
+
+
+CELERY_BEAT_SCHEDULE = {
+    'get-cases': {
+        'task': 'oi_sud.cases.tasks.main_get_koap_cases',
+        'schedule': crontab(minute='*/1')
+    },
+
+}
 
 JET_THEME = 'light-gray'
 

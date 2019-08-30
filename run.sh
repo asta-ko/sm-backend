@@ -339,7 +339,7 @@ test_unit() {
     docker-compose run \
         -v "${PWD}":/code \
         --rm test \
-        python -m pytest -p no:cacheprovider test/unit "$@"
+        python -m pytest --capture=sys -p no:cacheprovider test/unit "$@"
 }
 
 test_ci() {
