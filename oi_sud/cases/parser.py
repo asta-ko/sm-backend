@@ -11,9 +11,11 @@ from django.utils.timezone import get_current_timezone, localtime
 from oi_sud.codex.models import CodexArticle
 from oi_sud.core.parser import CommonParser
 from oi_sud.core.utils import get_query_key
+from oi_sud.cases.utils import normalize_name
 from oi_sud.courts.models import Court, Judge
 from .consts import site_types_by_codex, EVENT_TYPES, EVENT_RESULT_TYPES, RESULT_TYPES, APPEAL_RESULT_TYPES, instances_dict
-from .models import Case, Defendant, CaseGroup
+from .models import Case, Defendant
+from dateutil.relativedelta import relativedelta
 
 dateparse_settings.TIMEZONE = str(get_current_timezone())
 dateparse_settings.RETURN_AS_TIMEZONE_AWARE = False
@@ -171,6 +173,7 @@ class CourtSiteParser(CommonParser):
         local_dt = self.court.get_timezone().localize(dateparser.parse(datetime, date_formats=['%d.%m.%Y']))
         return utc.normalize(local_dt.astimezone(utc))
 
+
     def serialize_data(self, case_info):
 
         result = {'case': {}, 'defenses': [], 'events': [],  'codex_articles': []}
@@ -227,7 +230,7 @@ class CourtSiteParser(CommonParser):
                     if article.id not in all_articles_ids:
                         all_articles_ids.append(article.id)
             defendant_name = item['defendant']
-            defendant, created = Defendant.objects.get_or_create(name=defendant_name, region=self.court.region)
+            defendant = Defendant.objects.create_from_name(name=defendant_name, region=self.court.region)
             item['defendant'] = defendant
 
         result['defenses'] = case_info['defenses']
@@ -524,41 +527,92 @@ class RFCasesParser(CommonParser):
 
     def get_first_cases(self, case):
 
-        params = {'entry_date__lte':case.entry_date, 'court__instance':1}
+        params = {'stage':1, 'defendants__in':case.defendants.all()}
+        other_params_list = []
 
-        print(case.case_number)
-
-
-        if case.protocol_number:
-            if Case.objects.filter(protocol_number=case.protocol_number, **params).exists():
-                print(Case.objects.filter(protocol_number=case.protocol_number, **params), 'by protocol')
-                return Case.objects.filter(protocol_number=case.protocol_number, **params).first()
+        if case.result_date:
+            other_params_list.append({'appeal_date': case.result_date})
         if case.case_uid:
-            if Case.objects.filter(case_uid=case.case_uid, **params).exists():
-                print(Case.objects.filter(case_uid=case.case_uid, **params), 'by case uid')
-                return Case.objects.filter(case_uid=case.case_uid, **params)
-        if Case.objects.filter(appeal_date=case.result_date, **params).exists():
-            #print(Case.objects.filter(appeal_date=case.result_date, **params), 'by DATE')
-            date_cases = Case.objects.filter(appeal_date=case.result_date, **params)
-            if date_cases.filter(defendants__in=case.defendants.all(), **params).exists():
-                print(date_cases.filter(defendants__in=case.defendants.all(), **params), 'by date and defendants')
-                return date_cases.filter(defendants__in=case.defendants.all(), **params)
+            other_params_list.append({'case_uid': case.case_uid})
+        if case.protocol_number:
+            other_params_list.append({'protocol_number': case.protocol_number})
+            other_params_list.append({'result_text__contains': case.protocol_number})
 
-        if Case.objects.filter(defendants__in=case.defendants.all(), **params).exists():
-             print(Case.objects.filter(defendants__in=case.defendants.all(), **params), 'by DEFENDANTS')
-             return Case.objects.filter(defendants__in=[case.defendants.first()], **params)
+        for item in other_params_list:
+            merged_params = {**params, **item}
+            # print(merged_params)
+            if Case.objects.filter(**merged_params).exists():
+                # print(item)
+                return Case.objects.filter(**merged_params)
 
-    def group_cases(self):
-        for case in Case.objects.filter(court__instance=2):
-            #print(case)
+    def get_second_case(self, case):
+        params = {'stage':2, 'defendants__in':case.defendants.all()}
+        other_params_list = []
+
+        if case.appeal_date:
+            other_params_list.append({'result_date':case.appeal_date})
+        if case.case_uid:
+            other_params_list.append({'case_uid':case.case_uid})
+        if case.protocol_number:
+            other_params_list.append({'protocol_number':case.protocol_number})
+            other_params_list.append({'result_text__contains':case.protocol_number})
+
+        other_params_list.append({'result_text__contains':case.case_number})
+
+        for item in other_params_list:
+            merged_params = {**params, **item}
+            #print(merged_params)
+            if Case.objects.filter(**merged_params).exists():
+                #print(item)
+                return Case.objects.filter(**merged_params)
+
+    def group_cases(self, region):
+
+        first_cases_appealed = Case.objects.filter(court__region=region, appeal_result__isnull=False, linked_cases=None)
+        second_cases = Case.objects.filter(stage=2, court__region=region)
+        for case in first_cases_appealed:
+            second_cases = self.get_second_case(case)
+            if second_cases:
+                case.linked_cases.add(*second_cases)
+
+        first_cases_not_found = Case.objects.filter(stage=1, court__region=region, appeal_result__isnull=False, linked_cases=None)
+        second_instance_cases_not_found = Case.objects.filter(stage=2, court__region=region, linked_cases=None)
+
+        #print(len(first_cases_appealed), 'first_cases_appealed')
+        print(len(first_cases_not_found), 'first_cases_not_found')
+        #print(len(second_cases), 'second_cases_all')
+        print(len(second_instance_cases_not_found), 'second_cases_not_found')
+
+        for case in second_instance_cases_not_found:
             first_cases = self.get_first_cases(case)
             if first_cases:
-                if len(first_cases) > 1:
-                    print('got more than 1 first cases')
-                    continue
-                first_case = first_cases.first()
-                new_group = CaseGroup.objects.create()
-                first_case.group = new_group
-                first_case.save()
-                case.group = new_group
-                case.save()
+                case.linked_cases.add(*first_cases)
+                print('Yikes!')
+
+        first_cases_not_found = Case.objects.filter(stage=1, court__region=region, appeal_result__isnull=False, linked_cases=None)
+        second_instance_cases_not_found = Case.objects.filter(stage=2, court__region=region, linked_cases=None)
+        #print(len(first_cases_appealed), 'first_cases_appealed')
+        print(len(first_cases_not_found), 'first_cases_not_found')
+        #print(len(second_cases), 'second_cases_all')
+        print(len(second_instance_cases_not_found), 'second_cases_not_found')
+
+        for case in first_cases_not_found:
+            c = second_instance_cases_not_found.filter(defendants__in=case.defendants.all(), entry_date__gte=case.result_date, entry_date__lte=case.result_date+relativedelta(months=3))
+            if len(c):
+                case.linked_cases.add(*c)
+
+        for case in second_instance_cases_not_found:
+            c = first_cases_not_found.filter(defendants__in=case.defendants.all(), result_date__lt=case.entry_date, result_date__year=case.entry_date.year)
+            if len(c):
+                print([x.case_number for x in c])
+                case.linked_cases.add(*c)
+
+        # first_cases_not_found = Case.objects.filter(stage=1, court__region=region, appeal_result__isnull=False,
+        #                                             linked_cases=None)
+        # second_instance_cases_not_found = Case.objects.filter(stage=2, court__region=region, linked_cases=None)
+        #
+        # for case in first_cases_not_found:
+        #     print(case.defendants.all())
+        #
+        # for case in second_instance_cases_not_found:
+        #     print(case.defendants.all())

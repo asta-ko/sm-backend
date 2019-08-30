@@ -1,7 +1,15 @@
+import editdistance
+
 from django.db import models
+from django.urls import reverse
 
 from oi_sud.cases.consts import RESULT_TYPES, EVENT_TYPES, EVENT_RESULT_TYPES, APPEAL_RESULT_TYPES
 from oi_sud.core.utils import nullable
+from oi_sud.cases.utils import normalize_name, parse_name_and_get_gender
+from oi_sud.core.consts import region_choices
+
+
+
 
 CASE_TYPES = (
     (1, 'Дело об административном правонарушении'),
@@ -15,7 +23,10 @@ CASE_STAGES = (
     (3, 'Новое рассмотрение в первой инстанции')
 )
 
-GENDER_TYPES = ()
+GENDER_TYPES = (
+    (1, 'Ж'),
+    (2, 'М'),
+)
 
 
 class CaseManager(models.Manager):
@@ -63,8 +74,9 @@ class Case(models.Model):
     type = models.IntegerField(choices=CASE_TYPES, verbose_name='Тип судопроизводства')  # тип судопроизводства
     stage = models.IntegerField(choices=CASE_STAGES,
                                 verbose_name='Инстанция')  # первая инстанция, обжалование, пересмотр, кассация
-    group = models.ForeignKey('CaseGroup', on_delete=models.CASCADE, **nullable)  # ссылки на аппеляции и пересмотры
+    #group = models.ForeignKey('CaseGroup', on_delete=models.CASCADE, related_name='group_cases',**nullable)  # ссылки на аппеляции и пересмотры
     url = models.URLField(verbose_name='URL', unique=True, **nullable)
+    linked_cases = models.ManyToManyField("self", symmetrical=True)
     objects = CaseManager()
 
     class Meta:
@@ -72,14 +84,28 @@ class Case(models.Model):
         verbose_name_plural = 'Все дела'
 
     def __str__(self):
+
         articles_list = ','.join([str(x) for x in self.codex_articles.all()])
         return f'{self.case_number} {articles_list} {self.court}'
 
+    def get_codex_type(self):
+        if self.type == 1:
+            return 'koap'
+        elif self.type == 2:
+            return 'uk'
+
     def get_2_instance_case(self):
-        if self.group:
-            case = self.group.case_set.filter(instance=2)
-            if case:
-                return case
+        return self.linked_cases.filter(stage=2).first()
+
+    def get_1_instance_case(self):
+        return self.linked_cases.filter(stage=1).first()
+
+    def get_admin_url(self):
+        return f'/admin/cases/{self.get_codex_type()}case/{self.pk}/change/'
+
+    @staticmethod
+    def autocomplete_search_fields():
+        return 'case_number',
 
     def update_if_needed(self, fresh_data):
 
@@ -153,6 +179,19 @@ class KoapCase(Case):
         verbose_name_plural = 'Дела (КОАП)'
 
 
+class LinkedCasesProxy(Case.linked_cases.through):
+    class Meta:
+        proxy = True
+
+    def get_pk(self):
+        return self.to_case.pk
+
+    def get_codex_type(self):
+        return self.to_case.get_codex_type()
+
+    def __str__(self):
+        return str(self.to_case)
+
 class CaseEvent(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     date = models.DateTimeField(verbose_name='Дата', **nullable)
@@ -169,13 +208,6 @@ class CaseEvent(models.Model):
         verbose_name_plural = 'События в деле'
 
 
-class CaseGroup(models.Model):
-    created_at = models.DateTimeField(auto_now_add=True)
-    second_inst = models.BooleanField()
-    third_inst = models.BooleanField()
-    revision = models.BooleanField()
-
-
 class Advocate(models.Model):
     name = models.CharField(max_length=50)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -188,29 +220,70 @@ class Advocate(models.Model):
 class CaseDefense(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    defendant = models.ForeignKey('Defendant', verbose_name='Ответчик', on_delete=models.CASCADE)
+    defendant = models.ForeignKey('Defendant', verbose_name='Ответчик', related_name='defenses', on_delete=models.CASCADE)
     advocate = models.ForeignKey('Advocate', verbose_name='Адвокат', on_delete=models.CASCADE, **nullable)
     codex_articles = models.ManyToManyField('codex.CodexArticle', verbose_name='Статьи')
     case = models.ForeignKey('Case', on_delete=models.CASCADE)
 
     def __str__(self):
-        return self.defendant.name
+        return self.defendant.name_normalized
 
     class Meta:
         verbose_name = 'Ответчик в деле'
         verbose_name_plural = 'Ответчики в делах'
 
+class DefendantManager(models.Manager):
+    def create_from_name(self, name, region):
+
+        names, gender = parse_name_and_get_gender(name)
+        normalized_name = normalize_name(name)
+        if len(names) and Defendant.objects.filter(region=region, last_name=names[0], first_name=names[1], middle_name=names[2]).exists(): #Совпадают регион и ФИО полностью
+                return Defendant.objects.filter(region=region, last_name=names[0], first_name=names[1], middle_name=names[2]).first()
+        elif Defendant.objects.filter(name_normalized=normalized_name, region=region).exists(): #Совпадают регион, фамилия и инициалы
+            qs = Defendant.objects.filter(name_normalized=normalized_name, region=region)
+            if not len(names): #не можем проверить, отдаем первое совпадение
+                return qs.first()
+            else:
+                for d in qs:
+                    if d.first_name and d.middle_name:
+                        e = editdistance.eval(f'{names[1]} {names[2]}', f'{d.first_name} {d.middle_name}')
+                        if e <= 3: #проверяем, что это то же самое имя и отчество и учитываем возможность опечаток
+                            return d
+                return qs.first() #если не можем проверить, берем первое попавшееся
+        else:
+
+            d_dict = {'region':region,
+                      'name_normalized':normalized_name}
+            if len(names):
+                d_dict['last_name'] = names[0]
+                d_dict['first_name'] = names[1]
+                d_dict['middle_name'] = names[2]
+            if gender:
+                d_dict['gender'] = gender
+            defendant = Defendant(**d_dict)
+            defendant.save()
+            return defendant
 
 class Defendant(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
-    name = models.CharField(max_length=50, db_index=True)
-    region = models.IntegerField()
+    region = models.IntegerField(choices=region_choices)
     gender = models.IntegerField(choices=GENDER_TYPES, **nullable)
+    name_normalized = models.CharField(max_length=150, db_index=True, **nullable)
+    first_name = models.CharField(max_length=150, **nullable)
+    middle_name = models.CharField(max_length=150, **nullable)
+    last_name = models.CharField(max_length=150, **nullable)
+    objects = DefendantManager()
+
+    @staticmethod
+    def autocomplete_search_fields():
+        return 'name_normalized',
 
     def __str__(self):
-        return f'{self.name}'
+        return f'{self.name_normalized}'
+
+    def normalize_name(self):
+        return normalize_name(self.name)
 
     class Meta:
         verbose_name = 'Ответчик'
         verbose_name_plural = 'Ответчики'
-        unique_together = ['name', 'region']
