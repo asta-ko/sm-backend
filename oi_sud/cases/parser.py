@@ -48,13 +48,15 @@ class CourtSiteParser(CommonParser):
         for index, tr in enumerate(trs):
 
             tr_text = tr.text
-            #print(tr_text, 'tr_text')
+
             if 'ФИО' in tr_text or 'Фамилия' in tr_text or 'статей' in tr_text:
                 title_tr = tr
                 title_tr_index = index
 
         if not title_tr:
             title_tds = el.findAll('td', attrs={'align':'center'})
+            if not title_tds:
+                title_tds = el.findAll('td', attrs={'style':'text-align:center;'})
             title_tr_index = 2
         else:
             title_tds = title_tr.findAll('td')
@@ -63,7 +65,6 @@ class CourtSiteParser(CommonParser):
             td_text = td.text
             if 'ФИО' in td_text or 'Фамилия' in td_text:
                 defendant_index = index
-                #print(defendant_index, 'defeant_index')
             if 'статей' in td_text:
                 codex_articles_index = index
 
