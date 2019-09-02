@@ -76,6 +76,7 @@ EVENT_RESULT_TYPES = (
     (24, 'Изменено'),
     (25, 'Дело рассмотрено по существу'),
     (26, 'Апелляционное производство прекращено'),
+    (27, 'Отменено с направлением по подведомственности')
 )
 
 RESULT_TYPES = (
@@ -103,6 +104,8 @@ RESULT_TYPES = (
     (20, 'Производство по жалобе прекращено'),
     (21, 'Изменено'),
     (22, 'Отменено с направлением по подведомственности'),
+    (23, 'Жалоба (протест) на определение (постановление) не по существу дела - рассмотрена'),
+    (24, 'Направлено по подведомственности')
 )
 
 APPEAL_RESULT_TYPES = (
@@ -189,6 +192,22 @@ cr_type_one_params_dict = {'last_name': 'U1_DEFENDANT__NAMESS',
 cr_type_two_params_string = '/modules.php?name_op=r&name=sud_delo&srv_num=1&_deloId=DELOID&case__case_type=CASETYPE&_new=0&case__vnkod=XXX&case__num_build=1&case__case_numberss=&part__namess=&process-type=DELOID_CASETYPE_0&case__ss='
 
 cr_type_two_params_dict = {'last_name': 'parts__namess',
+                           'case_number': 'case__case_numberss',
+                           'case_uid': 'case__judicial_uidss',
+                           'entry_date_from': 'case__entry_date1d',
+                           'entry_date_to': 'case__entry_date2d',
+                           'judge': 'case__judge',
+                           'result_date_from': 'case__result1d',
+                           'result_date_to': 'case__result1d',
+                           'case_result': 'case__result',
+                           'articles': 'parts__law_articless',
+                           'publish_date_from': 'document__publ_date1d',
+                           'publish_date_to': 'document__publ_date2d',
+                           'validity_date_from': 'case__validity_date1d',
+                           'validity_date_to': 'case__validity_date2d'
+                           }
+
+moscow_params_dict = {'last_name': 'parts__namess',
                            'case_number': 'case__case_numberss',
                            'case_uid': 'case__judicial_uidss',
                            'entry_date_from': 'case__entry_date1d',

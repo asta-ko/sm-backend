@@ -38,6 +38,7 @@ class CourtSiteParser(CommonParser):
         self.stage = stage
 
     def parse_defenses(self, el):
+        # Получаем имя обвиняемого и статьи (может быть несколько)
         defenses = []
         title_tr = None
         title_tr_index = None
@@ -81,6 +82,7 @@ class CourtSiteParser(CommonParser):
         return defenses
 
     def save_cases(self, urls=None):
+        # Берем список урлов дел данного суда данной инстанции и сохраняем дела в базу. Это самый главный метод
 
         print(self.court)
 
@@ -113,6 +115,7 @@ class CourtSiteParser(CommonParser):
                 print(traceback.format_exc())
 
     def get_all_cases_urls(self):
+        # Получаем все урлы дел в данном суде
         txt, status_code = self.send_get_request(self.url)
         if status_code != 200:
             print("GET error: ", status_code)
@@ -151,18 +154,22 @@ class CourtSiteParser(CommonParser):
         return all_cases_urls
 
     def get_koap_article(self, raw_string):
+        # получаем объекты статей КОАП из строки, полученной из карточки дела
 
         m = re.search(r'КоАП:\sст\.\s([0-9\.]+)\s?ч?\.?([0-9\.]*)', raw_string)
 
         if m:
             article = m.group(1)
             part = m.group(2)
+            if part == '':
+                part = None
             codex_article = CodexArticle.objects.filter(codex='koap', article_number=article, part=part).first()
             if codex_article:
                 return [codex_article]
         return []
 
     def get_uk_articles(self, raw_string):
+        # получаем объекты статей УК из строки, полученной из карточки дела
         raw_list = list(set(raw_string.replace('УК РФ', '').split(';')))
         codex_articles = []
         for item in raw_list:
@@ -172,6 +179,8 @@ class CourtSiteParser(CommonParser):
             if m:
                 article = m.group(1)
                 part = m.group(2)
+                if part == '':
+                    part = None
                 codex_article = CodexArticle.objects.filter(codex='uk', article_number=article, part=part).first()
             if codex_article:
                 codex_articles.append(codex_article)
@@ -185,6 +194,7 @@ class CourtSiteParser(CommonParser):
 
 
     def serialize_data(self, case_info):
+        # сериализуем данные, полученные методом get_raw_case_information
 
         result = {'case': {}, 'defenses': [], 'events': [],  'codex_articles': []}
 
@@ -450,6 +460,8 @@ class SecondParser(CourtSiteParser):
         case_info['defenses'] = self.parse_defenses(defense_table)
 
         return case_info
+
+
 
 
 class RFCasesParser(CommonParser):
