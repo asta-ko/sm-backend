@@ -1,4 +1,6 @@
-from oi_sud.cases.tasks import pymorphy2
+import pymorphy2
+
+morph = pymorphy2.MorphAnalyzer()
 
 def normalize_name(name):
     name = name.replace('ё','е')
@@ -20,7 +22,6 @@ def parse_name_and_get_gender(name):
     middle_name = None
     gender = None
     prob_thresh = 0.8
-    morph = pymorphy2.MorphAnalyzer()
     def most_common(lst):
         return max(set(lst), key=lst.count)
     def is_first_name(parsed_word):

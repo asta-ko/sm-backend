@@ -1,7 +1,7 @@
 from datetime import timedelta
 
 import requests
-import pymorphy2
+
 
 from celery import shared_task
 from django.conf import settings
