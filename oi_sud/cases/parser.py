@@ -98,6 +98,14 @@ class CourtSiteParser(CommonParser):
                     continue
                 serialized_case_data = self.serialize_data(raw_case_data)
                 Case.objects.create_case_from_data(serialized_case_data)
+                if self.court.was_unavailable:
+                    self.court.was_unavailable = False
+                    self.court.save()
+            except requests.exceptions.RequestException as e:
+                self.court.was_unavailable = True
+                self.court.save()
+                print('requests error: ', case_url)
+                print(traceback.format_exc())
             except:
                 print('error: ', case_url)
                 print(traceback.format_exc())

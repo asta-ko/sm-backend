@@ -1,3 +1,5 @@
+import pymorphy2
+
 def normalize_name(name):
     name = name.replace('ё','е')
     lowername = name.lower()
@@ -12,7 +14,7 @@ def normalize_name(name):
     return normalized_name
 
 def parse_name_and_get_gender(name):
-    import pymorphy2
+
     first_name = None
     last_name = None
     middle_name = None
