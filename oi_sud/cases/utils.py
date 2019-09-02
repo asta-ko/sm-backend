@@ -1,4 +1,4 @@
-import pymorphy2
+from oi_sud.cases.tasks import pymorphy2
 
 def normalize_name(name):
     name = name.replace('ё','е')
