@@ -3,6 +3,7 @@ import re
 import time
 import traceback
 import pprint
+import requests
 from bs4 import BeautifulSoup
 from dateparser.conf import settings as dateparse_settings
 from django.utils.html import strip_tags
