@@ -1,7 +1,7 @@
 from django.core.management.base import BaseCommand
 
 from oi_sud.courts.models import Court
-from oi_sud.cases.parser import RFCasesParser
+from oi_sud.cases.parsers.rf import RFCasesGetter
 
 class Command(BaseCommand):
 
@@ -39,4 +39,4 @@ class Command(BaseCommand):
             entry_date_from = options['entry_date_from']
         courts_ids = courts.values_list('id', flat=True)
 
-        RFCasesParser(codex=codex).get_cases(instance, courts_ids=courts_ids, courts_limit=limit, entry_date_from=entry_date_from)
+        RFCasesGetter(codex=codex).get_cases(instance, courts_ids=courts_ids, courts_limit=limit, entry_date_from=entry_date_from)
