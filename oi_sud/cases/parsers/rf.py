@@ -320,10 +320,6 @@ class RFCasesGetter(CommonParser):
 
     def __init__(self, codex):
         self.codex = codex
-        if self.codex == 'koap':
-            self.type = 1
-        elif self.codex == 'uk':
-            self.type = 2
         self.site_params = site_types_by_codex[self.codex]
 
     @staticmethod
@@ -377,8 +373,8 @@ class RFCasesGetter(CommonParser):
             if court.site_type == 2:
                 url = url.replace('XXX', court.vn_kod)
                 print(url, "WTF")
-                SecondParser(court=court, stage=instance, type=self.type, url=url).save_cases()
+                SecondParser(court=court, stage=instance, codex=self.codex, url=url).save_cases()
             elif court.site_type == 1:
-                FirstParser(court=court, stage=instance, type=self.type, url=url).save_cases()
+                FirstParser(court=court, stage=instance, codex=self.codex, url=url).save_cases()
         print("--- %s seconds ---" % (time.time() - start_time))
 

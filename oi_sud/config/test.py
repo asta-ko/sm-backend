@@ -17,6 +17,8 @@ USE_L10N = False  # True
 
 USE_TZ = True
 
+TEST_MODE = True
+
 
 CELERY_BEAT_SCHEDULE = {
 

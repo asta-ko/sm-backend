@@ -32,7 +32,19 @@ from pytz import timezone, utc
 
 class MoscowParser(CourtSiteParser):
 
+
+
+    def get_court_from_url(self, url):
+        # получаем суд из урла карточки
+
+        url = url.split('/services')[0]
+        court = Court.objects.filter(url=url).first()
+        print(court, 'court')
+        return court
+
+
     def get_pages_number(self, page):
+        # получаем число страниц с делами
 
         last_page_a = page.find('a', class_="intheend")
         if last_page_a:
@@ -43,6 +55,7 @@ class MoscowParser(CourtSiteParser):
             return 1
 
     def get_cases_urls_from_list(self, page):
+        # получаем урлы карточек дел из страницы поиска
         urls = []
         events = page.tbody.findAll('tr')
         for ev in events:
@@ -54,8 +67,8 @@ class MoscowParser(CourtSiteParser):
 
         return urls
 
-    def get_all_cases_urls(self):
-        # Получаем все урлы дел в данном суде
+    def get_all_cases_urls(self, limit_pages=False):
+        # Получаем все урлы дел по данной статье
         print('get all urls')
         txt, status_code = self.send_get_request(self.url)
         if status_code != 200:
@@ -65,10 +78,13 @@ class MoscowParser(CourtSiteParser):
         first_page = BeautifulSoup(txt, 'html.parser')
         pages_number = self.get_pages_number(first_page)  # TODO CHANGE
         print(pages_number,'pages_number')
+        if pages_number > 3 and limit_pages:
+            pages_number = 3 #FOR TESTING
         all_pages = [first_page, ]
 
         if pages_number != 1:
-            pages_urls = [f'{self.url}&page={p}' for p in range(2, 4)]#pages_number + 1)]**************
+
+            pages_urls = [f'{self.url}&page={p}' for p in range(2, pages_number + 1)]
 
             for url in pages_urls:
                 txt, status_code = self.send_get_request(url)
@@ -90,13 +106,18 @@ class MoscowParser(CourtSiteParser):
                 pass
 
         if all_cases_urls == []:
-            print(self.court, '...Got no cases urls')
+            print('...Got no cases urls')
         else:
-            print(self.court, '...Got all cases urls')
+            print('...Got all cases urls')
 
         return all_cases_urls
 
     def get_raw_case_information(self, url):
+
+        court = self.get_court_from_url(url)
+
+        # парсим карточку дела
+
         # return case_info = {'case_number':'',
         #      'url':'',
         #      'result_text':'',
@@ -123,6 +144,26 @@ class MoscowParser(CourtSiteParser):
         raise NotImplementedError
 
 
+    def get_koap_article(self, raw_string):
+        # получаем объекты статей КОАП из строки, полученной из карточки дела
+
+        m = re.search(r'Ст\.\s([0-9\.]+),?\s?Ч?\.?([0-9\.]*)', raw_string)
+
+        if m:
+            article = m.group(1)
+            part = m.group(2)
+            if part == '':
+                part = None
+            codex_article = CodexArticle.objects.filter(codex='koap', article_number=article, part=part).first()
+            if codex_article:
+                return [codex_article]
+        return []
+
+    def get_uk_articles(self, raw_string):
+        # получаем объекты статей УК из строки, полученной из карточки дела
+        raise NotImplementedError
+
+
 class MoscowCasesGetter(CommonParser):
 
 
@@ -136,19 +177,23 @@ class MoscowCasesGetter(CommonParser):
                 result_string += '&{0}={1}'.format(moscow_params_dict[k], v)
         return result_string
 
-    def get_cases(self, instance, codex, entry_date_from=None):
+    def get_cases(self, instance, codex, entry_date_from=None, articles_list=None):
+        # получаем дела по инстанции, типу производства
         processType = '3' if codex == 'koap' else '6'  # 3 for koap, 6 for uk
 
-        articles = CodexArticle.objects.filter(codex=codex)
+        if articles_list:
+            articles = CodexArticle.objects.get_from_list(articles_list).filter(codex=codex)
+        else:
+            articles = CodexArticle.objects.filter(codex=codex)
 
         for article in articles:
             if article.part:
-                article_string = f'{article.article_number},%20Ч.{article.part}'
+                article_string = f'Ст.%20{article.article_number},%20Ч.{article.part}'
             else:
-                article_string = f'{article.article_number}'
+                article_string = f'Ст.%20{article.article_number}'
             params = {'articles': article_string, 'instance': instance, 'processType': processType}
             if entry_date_from:
                 params['entry_date_from'] = entry_date_from  # DD.MM.YYYY
             url = self.generate_params('https://mos-gorsud.ru/mgs/search?courtAlias=', params)
-            print(url, 'moscowurl')
-            MoscowParser(url=url, stage=instance).get_all_cases_urls()
+
+            MoscowParser(url=url, stage=instance).save_cases()
