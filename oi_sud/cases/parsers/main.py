@@ -6,6 +6,7 @@ from bs4 import BeautifulSoup
 import dateparser
 from dateparser.conf import settings as dateparse_settings
 from django.utils.timezone import get_current_timezone
+from django.conf import settings
 
 from oi_sud.cases.consts import EVENT_TYPES, EVENT_RESULT_TYPES, RESULT_TYPES, APPEAL_RESULT_TYPES
 from oi_sud.cases.models import Case, Defendant
@@ -26,10 +27,10 @@ from pytz import utc
 
 class CourtSiteParser(CommonParser):
 
-    def __init__(self, court=None, url=None, type=None, stage=None):
+    def __init__(self, court=None, url=None, codex=None, stage=None):
         self.court = court
         self.url = url
-        self.type = type
+        self.codex = codex
         self.stage = stage
 
     def save_cases(self, urls=None):
@@ -42,6 +43,9 @@ class CourtSiteParser(CommonParser):
 
         if not urls:
             return
+
+        if settings.TEST_MODE:
+            urls = urls[:2]
 
         for case_url in urls:
             try:
@@ -140,8 +144,16 @@ class CourtSiteParser(CommonParser):
         if case_info.get('result_type'):
             result['case']['result_type'] = result_types_dict[case_info['result_type'].strip()]
         result['case']['url'] = case_info['url'].replace('&nc=1', '')
-        result['case']['court'] = self.court
-        result['case']['type'] = self.type
+        if self.court:
+            result['case']['court'] = self.court
+        elif case_info.get('court'):
+            result['case']['court'] = case_info.get('court')
+
+        if self.codex == 'koap':
+            result['case']['type'] = 1
+        elif self.codex == 'uk':
+            result['case']['type'] = 2
+
         result['case']['stage'] = self.stage
 
         all_articles_ids = []
@@ -161,11 +173,11 @@ class CourtSiteParser(CommonParser):
             result['events'].append(result_item)
 
         for item in case_info['defenses']:
-            if self.type == 1:
+            if self.codex == 'koap':
                 article = item['codex_articles'] = self.get_koap_article(item['codex_articles'])  # TODO: КАС и ГПК
                 if len(article) and article[0] not in all_articles_ids:  # TODO: NON POLITICAL ARTICLES
                     all_articles_ids.append(article[0].id)
-            elif self.type == 2:
+            elif self.codex == 'uk':
                 articles = item['codex_articles'] = self.get_uk_articles(item['codex_articles'])
                 for article in articles:
                     if article.id not in all_articles_ids:

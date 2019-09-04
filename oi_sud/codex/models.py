@@ -8,6 +8,21 @@ CODEX_CHOICES = (
 )
 
 
+class ArticlesManager(models.Manager):
+    def get_from_list(self, articles_list):
+        articles = []
+        for item in articles_list:  # ['19.3 ч.1',] -- для тестирования
+            item_list = item.split(' ч.')
+            article = item_list[0]
+            if len(item_list) > 0:
+                part = item_list[1]
+            else:
+                part = None
+            a = super().get_queryset().filter(article_number=article, part=part).first()
+            if a:
+                articles.append(a)
+        return articles
+
 class CodexArticle(models.Model):
     article_number = models.CharField(max_length=10, verbose_name='Номер cтатьи')
     part = models.CharField(max_length=10, verbose_name='Часть статьи', **nullable)
@@ -15,6 +30,7 @@ class CodexArticle(models.Model):
     parent_title = models.TextField(verbose_name='Родительская статья', **nullable)
     full_text = models.TextField(verbose_name='Текст статьи', **nullable)
     codex = models.CharField(max_length=4, verbose_name='Кодекс', choices=CODEX_CHOICES)
+    objects = ArticlesManager()
 
     class Meta:
         verbose_name = 'Статья'
@@ -33,14 +49,17 @@ class CodexArticle(models.Model):
         return 'article_number', 'short_title'
 
 
-class KoapManager(models.Manager):
+
+
+class KoapManager(ArticlesManager):
     def get_queryset(self):
-        return super(KoapManager, self).get_queryset().filter(
+        return super().get_queryset().filter(
             codex='koap')
 
-class UKManager(models.Manager):
+
+class UKManager(ArticlesManager):
     def get_queryset(self):
-        return super(UKManager, self).get_queryset().filter(
+        return super().get_queryset().filter(
             codex='uk')
 
 

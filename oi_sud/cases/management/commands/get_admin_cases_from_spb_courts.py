@@ -7,6 +7,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         # Court.objects.all().delete()
-        courts = Court.objects.filter(site_type=2)
-        RFCasesGetter(codex='uk').get_cases(2, courts=courts, courts_limit=5)
+        courts = Court.objects.filter(site_type=2, region=78)
+        courts_ids = courts.values_list('id', flat=True)
+        RFCasesGetter(codex='koap').get_cases(1, courts_ids=courts_ids, courts_limit=5)
 
