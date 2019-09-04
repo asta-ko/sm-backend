@@ -60,6 +60,7 @@ class Court(models.Model):
     site_type = models.IntegerField(verbose_name='Тип сайта суда', choices=SITE_TYPES, default=1)  # тип сайта для парсинга
     vn_kod = models.CharField(verbose_name='VN код', max_length=25, **nullable)
     email = models.CharField(verbose_name='Email', max_length=40, **nullable)
+    not_available = models.BooleanField(default=False)
 
     class Meta:
         verbose_name = 'Суд'

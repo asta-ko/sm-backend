@@ -52,22 +52,22 @@ services:
           DJANGO_SETTINGS_MODULE: 'oi_sud.config.test'
         command: ["echo", "'test'"]
 
-    celery_main:
-        <<: *oi_sud
-        command: ["celery", "-A", "oi_sud", "worker", "-l", "info", "-Q", "main", "-c", "1", "-n", "main" ]
-
-    celery_other:
-        <<: *oi_sud
-        command: ["celery", "-A", "oi_sud", "worker", "-l", "info", "-Q", "other", "-c", "8", "-n", "other" ]
-
-    celerybeat:
-        <<: *oi_sud
-        command: ["celery", "-A", "oi_sud", "beat", "-l", "info", "--pidfile", "/tmp/celerybeat.pid", "--schedule", "/tmp/celerybeat-schedule"]
-
-    flower:
-      image: mher/flower
-      command: ["flower", "--broker=redis://redis:6379/0", "--port=8888"]
-      ports:
-         - 8888:8888
+#    celery_main:
+#        <<: *oi_sud
+#        command: ["celery", "-A", "oi_sud", "worker", "-l", "info", "-Q", "main", "-c", "1", "-n", "main" ]
+#
+#    celery_other:
+#        <<: *oi_sud
+#        command: ["celery", "-A", "oi_sud", "worker", "-l", "info", "-Q", "other", "-c", "8", "-n", "other" ]
+#
+#    celerybeat:
+#        <<: *oi_sud
+#        command: ["celery", "-A", "oi_sud", "beat", "-l", "info", "--pidfile", "/tmp/celerybeat12.pid", "--schedule", "/tmp/celerybeat-schedule"]
+#
+#    flower:
+#      image: mher/flower
+#      command: ["flower", "--broker=redis://redis:6379/0", "--port=8888"]
+#      ports:
+#         - 8888:8888
 volumes:
   db-data:

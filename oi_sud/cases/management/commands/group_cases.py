@@ -1,7 +1,7 @@
 from django.core.management.base import BaseCommand
 
 from oi_sud.courts.models import Court
-from oi_sud.cases.parser import RFCasesParser
+from oi_sud.cases.parsers.rf import RFCasesGetter
 
 class Command(BaseCommand):
 
@@ -17,4 +17,4 @@ class Command(BaseCommand):
         if codex not in ['uk', 'koap']:
             print('Codex is not uk and not koap. Exiting.')
             return
-        RFCasesParser(codex=codex).group_cases(region=region)
+        RFCasesGetter(codex=codex).group_cases(region=region)

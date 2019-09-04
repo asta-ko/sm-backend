@@ -1,3 +1,7 @@
+import pymorphy2
+
+morph = pymorphy2.MorphAnalyzer()
+
 def normalize_name(name):
     name = name.replace('ё','е')
     lowername = name.lower()
@@ -12,13 +16,12 @@ def normalize_name(name):
     return normalized_name
 
 def parse_name_and_get_gender(name):
-    import pymorphy2
+
     first_name = None
     last_name = None
     middle_name = None
     gender = None
     prob_thresh = 0.8
-    morph = pymorphy2.MorphAnalyzer()
     def most_common(lst):
         return max(set(lst), key=lst.count)
     def is_first_name(parsed_word):

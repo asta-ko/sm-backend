@@ -43,6 +43,8 @@ EVENT_TYPES = (
     (39, 'Дело передано в экспедицию'),
     (40, 'Протокол (материалы дела) БЫЛИ возвращены в ТРЕХДНЕВНЫЙ срок'),
     (41, 'Продление срока рассмотрения'),
+    (42, 'Материалы дела сданы в канцелярию'),
+    (43, 'Дело сдано в канцелярию'),
 
 )
 
@@ -76,6 +78,7 @@ EVENT_RESULT_TYPES = (
     (24, 'Изменено'),
     (25, 'Дело рассмотрено по существу'),
     (26, 'Апелляционное производство прекращено'),
+    (27, 'Отменено с направлением по подведомственности')
 )
 
 RESULT_TYPES = (
@@ -102,6 +105,10 @@ RESULT_TYPES = (
     (19, 'Оставлено без рассмотрения в связи с пропуском срока обжалования'),
     (20, 'Производство по жалобе прекращено'),
     (21, 'Изменено'),
+    (22, 'Отменено с направлением по подведомственности'),
+    (23, 'Жалоба (протест) на определение (постановление) не по существу дела - рассмотрена'),
+    (24, 'Направлено по подведомственности'),
+    (25, 'Производство по делу прекращено')
 )
 
 APPEAL_RESULT_TYPES = (
@@ -201,6 +208,24 @@ cr_type_two_params_dict = {'last_name': 'parts__namess',
                            'publish_date_to': 'document__publ_date2d',
                            'validity_date_from': 'case__validity_date1d',
                            'validity_date_to': 'case__validity_date2d'
+                           }
+
+moscow_params_dict = {'last_name': 'participant',
+                           'case_number': 'caseNumber',
+                           'case_uid': 'uid',
+                           'entry_date_from': 'caseDateFrom',
+                           'entry_date_to': 'caseDateTo',
+                           'judge': 'judge',
+                           'result_date_from': 'caseFinalDateFrom',
+                           'result_date_to': 'caseFinalDateTo',
+                           'case_result': 'publishingState',
+                           'articles': 'codex',
+                           'publish_date_from': 'docsDateFrom',
+                           'publish_date_to': 'docsDateTo',
+                           'validity_date_from': 'caseLegalForceDateFrom',
+                           'validity_date_to': 'caseLegalForceDateTo',
+                           'instance':'instance',
+                           'processType':'processType',
                            }
 
 site_type_dict = {

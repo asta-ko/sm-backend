@@ -44,5 +44,5 @@ class CommonParser(object):
         #if gen_useragent:
         prepped.headers['User-Agent'] = generate_user_agent()
 
-        r = session.send(prepped)
+        r = session.send(prepped, verify=False)
         return r.text, r.status_code

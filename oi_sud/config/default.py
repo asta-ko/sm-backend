@@ -167,6 +167,10 @@ CELERY_BEAT_SCHEDULE = {
         'task': 'oi_sud.cases.tasks.main_get_koap_cases',
         'schedule': crontab(minute='*/1')
     },
+    'get-uk-cases': {
+        'task': 'oi_sud.cases.tasks.main_get_uk_cases',
+        'schedule': crontab(minute='*/1')
+    },
 
 }
 
