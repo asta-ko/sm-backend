@@ -61,6 +61,7 @@ class Court(models.Model):
     vn_kod = models.CharField(verbose_name='VN код', max_length=25, **nullable)
     email = models.CharField(verbose_name='Email', max_length=40, **nullable)
     not_available = models.BooleanField(default=False)
+    servers_num = models.IntegerField(verbose_name='Количество серверов', null=True, blank=True, default=1)
 
     class Meta:
         verbose_name = 'Суд'

@@ -27,6 +27,65 @@ appeal_result_types_dict = {y: x for x, y in dict(APPEAL_RESULT_TYPES).items()}
 
 
 class RFCourtSiteParser(CourtSiteParser):
+
+
+    def get_all_cases_urls(self):
+        if self.court.servers_num == 1:
+            return self.get_cases_urls()
+        else:
+            return self.get_all_cases_from_multiple_servers()
+
+    def get_all_cases_from_multiple_servers(self):
+        all_urls = []
+        for n in range(1, self.court.servers_num+1):
+            new_params = f'srv_num={str(n)}&case__num_build={str(n)}'
+            url = self.url.replace('srv_num=1', new_params)
+            print(url, 'URL', n)
+            all_urls+=self.get_cases_urls(url=url)
+        return all_urls
+
+    def get_cases_urls(self, url = None):
+        # Получаем все урлы дел в данном суде
+
+        if not url:
+            url = self.url
+        txt, status_code = self.send_get_request(url)
+        if status_code != 200:
+            print("GET error: ", status_code)
+            print('Unable to save cases')
+            return None
+        first_page = BeautifulSoup(txt, 'html.parser')
+        pages_number = self.get_pages_number(first_page)  # TODO CHANGE
+        all_pages = [first_page, ]
+
+        if pages_number != 1:
+            pages_urls = [f'{url}&page={p}' for p in range(2, pages_number + 1)]
+
+            for url in pages_urls:
+                txt, status_code = self.send_get_request(url)
+                if status_code != 200:
+                    print("GET error: ", status_code)
+                    continue
+                page = BeautifulSoup(txt, 'html.parser')
+                all_pages.append(page)
+
+        all_cases_urls = []
+
+        for page in all_pages:
+            try:
+                urls = self.get_cases_urls_from_list(page)
+                urls = [self.url.replace('/modules.php', '').split('?')[0] + u for u in urls]
+                all_cases_urls += urls
+            except AttributeError:
+                pass
+
+        if all_cases_urls == []:
+            print(self.court, '...Got no cases urls')
+        else:
+            print(self.court, '...Got all cases urls')
+
+        return all_cases_urls
+
     def get_koap_article(self, raw_string):
         # получаем объекты статей КОАП из строки, полученной из карточки дела
 
@@ -130,6 +189,7 @@ class FirstParser(RFCourtSiteParser):
             if Case.objects.filter(url=href).exists():
                 continue
             urls.append(href + '&nc=1')
+
         return urls
 
     def get_result_text_url(self, page):
@@ -241,6 +301,7 @@ class SecondParser(RFCourtSiteParser):
 
     def get_cases_urls_from_list(self, page):
         # получаем урлы карточек дел из страницы поиска
+        print('okay...')
         urls = []
 
         a_cases = page.findAll('a', class_='open-lawcase')
@@ -248,6 +309,7 @@ class SecondParser(RFCourtSiteParser):
             if Case.objects.filter(url=a['href']).exists():
                 continue
             urls.append(a['href'] + '&nc=1')
+
         return urls
 
     def get_raw_case_information(self, url):
