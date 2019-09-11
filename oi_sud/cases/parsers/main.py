@@ -122,7 +122,9 @@ class CourtSiteParser(CommonParser):
         for item in case_info['events']:
             result_item = {}
             if item.get('courtroom'):
-                result_item['courtroom'] = int(''.join(filter(str.isdigit, item['courtroom'])))
+                courtroom_string = ''.join(filter(str.isdigit, item['courtroom']))
+                if courtroom_string:
+                    result_item['courtroom'] = int(courtroom_string)
             result_item['type'] = event_types_dict[item['type'].strip()]
             if item.get('date'):
                 d = dateparser.parse(f'{item.get("date")} {item.get("time")}')
