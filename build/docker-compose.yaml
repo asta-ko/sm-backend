@@ -14,29 +14,62 @@ x-projectname: &oi_sud
         - /var/www/static:/var/www/static:rw
         - /var/www/media:/var/www/media:rw
     restart: on-failure
+    labels:
+        instance: sudmonster
+
+
+    logging:
+      driver: loki
+      options:
+        loki-url: "http://95.216.217.126:3100/api/prom/push"
+        labels: "instance,job"
+
+
 
 services:
     db:
+      container_name: sudmonster_db
       image: postgres:alpine
       ports:
       - 5432
       restart: always
       environment:
         POSTGRES_USER: "sudmonster"
-        POSTGRES_PASSWORD: "sudmonster"
+        POSTGRES_PASSWORD: ${DB_PASS}
         POSTGRES_DB: "sudmonster"
       volumes:
         - db-data:/data/db
         - ./share/sql:/docker-entrypoint-initdb.d
+      logging:
+        driver: loki
+        options:
+          loki-url: "http://95.216.217.126:3100/api/prom/push"
+          labels: "instance,job"
+      labels:
+        job: postgres
+        instance: sudmonster   
+
+
 
     redis:
+        container_name: sudmonster_redis
         image: redis:4.0.11
         volumes:
             - ./.docker/redis/data:/var/redis
         restart: always
+        logging:
+          driver: loki
+          options:
+            loki-url: "http://95.216.217.126:3100/api/prom/push"
+            labels: "instance,job"
+        labels:
+          job: redis
+          instance: sudmonster
+
 
     backend:
         <<: *oi_sud
+        container_name: sudmonster_backend
         environment:
           VIRTUAL_HOST: sudmonster.ovdinfo.org
           VIRTUAL_PORT: 8081
@@ -48,35 +81,59 @@ services:
 
         volumes:
           - ./:/code
-          - ./.docker/static:/var/www/static
+          - data-static:/var/www/static
           - ./.docker/media:/var/www/media
-        command: ["gunicorn", "oi_sud.wsgi:application", "-b", "0.0.0.0:8000", "--name", "oi_sud", "--reload"]
+        command: ["gunicorn", "oi_sud.wsgi:application", "-b", "0.0.0.0:8081", "--name", "oi_sud", "--reload"]
         ports:
           - "8081:8081"
+        labels:
+          job: backend
+          instance: sudmonster
+
 
     test:
+        container_name: sudmonster_test
         <<: *oi_sud
         environment:
           DJANGO_SETTINGS_MODULE: 'oi_sud.config.test'
         command: ["echo", "'test'"]
 
     celery_main:
+        container_name: sudmonster_celery_main
         <<: *oi_sud
         command: ["celery", "-A", "oi_sud", "worker", "-l", "info", "-Q", "main", "-c", "1", "-n", "main" ]
+        labels:
+          job: celery
+          instance: sudmonster
 
     celery_other:
+        container_name: sudmonster_celery_other
         <<: *oi_sud
         command: ["celery", "-A", "oi_sud", "worker", "-l", "info", "-Q", "other", "-c", "8", "-n", "other" ]
+        labels:
+          job: celery
+          instance: sudmonster
 
     celerybeat:
+        container_name: sudmonster_celerybeat
         <<: *oi_sud
         command: ["celery", "-A", "oi_sud", "beat", "-l", "info", "--pidfile", "/tmp/celerybeat.pid", "--schedule", "/tmp/celerybeat-schedule"]
 
+        labels:
+          job: celery
+          instance: sudmonster
+
     flower:
+      container_name: sudmonster_flower
+      <<: *oi_sud
+
       image: mher/flower
       command: ["flower", "--broker=redis://redis:6379/0", "--port=8888"]
       ports:
          - 8888:8888
+      labels:
+        job: flower
+        instance: sudmonster
 
 
 volumes:
