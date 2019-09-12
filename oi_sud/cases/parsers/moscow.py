@@ -112,11 +112,158 @@ class MoscowParser(CourtSiteParser):
 
         return all_cases_urls
 
+    def getText(filename):
+        ''' конвертирует doc или docx в строку'''
+        doc = docx.Document(filename)
+        fullText = []
+        for para in doc.paragraphs:
+            fullText.append(para.text)
+        return '\n'.join(fullText)
+
+    def doc_to_str(self, doc_name):
+        ''' конвертирует doc или docx в строку'''
+
+        text_bytes = textract.process(doc_name)
+        text_str = text_bytes.decode("utf-8")
+        return text_str.strip()
+
+    def url_to_str(self, url):
+        ''' выгружает текст из файла doc / docx, загружаемого по ссылке'''
+        file_res, status, content, extension = self.send_get_request(url, extended=True)
+        bytes0 = file_res[2]
+        exten = file_res[3]
+        filename = "txt." + exten
+        f = open(filename, 'wb')
+        f.write(bytes0)
+        f.close()
+        try:
+            return self.doc_to_str(filename)
+        except Exception:
+            return ''
+            # try:
+            #     return getText(filename)
+            # except Exception:
+            #     print ('ОШИБКА: текст не найден')
+            #     return ''
+
+
+    def get_result_text(self, url):
+
     def get_raw_case_information(self, url):
 
-        court = self.get_court_from_url(url)
-
         # парсим карточку дела
+
+        txt, status_code = self.send_get_request(url)
+        if status_code != 200:
+            print("GET error: ", status_code)
+            return
+        page = BeautifulSoup(txt, 'html.parser')
+
+        case_info = {}
+
+        case_info['court'] = self.get_court_from_url(url)
+
+        # выгружаем информацию из центральной таблицы на странице
+
+        content_dict = {}
+        content = page.findAll('div', class_="row_card")
+        # добавляем каждую строку в словарь
+        for row in content:
+            row_left = row.find('div', class_='left')
+            left = row_left.string.strip()
+            row_right = row.find('div', class_='right')
+            right = row_right.text.strip()
+            content_dict[left] = right
+
+        # записываем данные из первой таблицы в финальный словарь
+
+        # словарь с названиями параметров, которые мы будем записывать в финальный словарь
+        dict_names = {'Номер дела': 'case_number', 'Уникальный идентификатор дела': 'case_uid',
+                      'Дата регистрации': 'entry_date', 'Cудья': 'judge',
+                      'Привлекаемое лицо': 'defendant', 'Статья КоАП РФ': 'codex_articles'}
+        defense = {}
+        for key in content_dict.keys():
+            if key in dict_names.keys():
+
+                # закидываем привлекаемое лицо и статью во внутренний список словарей
+                if key in ['Привлекаемое лицо', 'Статья КоАП РФ']:
+                    defense[dict_names[key]] = content_dict[key]
+
+                # разбиваем "Текущее сосотояние" на тип и дату
+                elif key == 'Текущее состояние':
+                    # проверяем, есть ли тип и дата, если только тип, оставляем дату пустой строкой
+                    if ', ' in content_dict['Текущее состояние']:
+                        result_type, result_date = content_dict['Текущее состояние'].split(', ')
+                    else:
+                        result_type, result_date = content_dict['Текущее состояние'], ''
+                    # записываем тип и дату в финальный словарь
+                    case_info['result_type'], case_info['result_date'] = result_type, result_date
+
+                else:
+                    case_info[dict_names[key]] = content_dict[key]
+            else:
+                print ('не вошло в финальный словарь:', key)
+        case_info['defenses'] = [defense]
+
+        # выгружаем данные из таблиц "судебные заседания" и "судебные акты"
+        table = page.findAll('table', class_="custom_table mainTable")
+
+        # выгружаем информацию о судебных заседаниях по делу
+        events = []
+        # какие параметры нам нужны, их имена на сайте и в итоговом словаре
+        event_names = {'Стадия': 'type', 'date': 'date', 'time': 'time', 'courtroom': 'courtroom',
+                       'Результат': 'result', 'Основание': 'reason'}
+        # выгружаем таблицу с прошедшими заседаниями (центральная нижняя)
+        heads = [head.string.strip() for head in table[0].findAll('th')]
+        results = [result.string.strip() for result in table[0].findAll('td')]
+
+        num = len(results) // len(heads)
+        for i in range(num):
+            event = dict(zip(heads, results[(i * len(heads)):((i + 1) * len(heads))]))
+
+            # разбиваем дату и время на дату и время
+            if 'Дата и время' in event.keys():
+                date, time = event['Дата и время'].split(' ')
+                event['date'] = date
+                event['time'] = time
+
+            # убираем лишние слова из "зала"
+            if 'Зал' in event.keys():
+                if ' - ' in event['Зал']:
+                    courtroom = event['Зал'].split(' - ')[0]
+                else:
+                    courtroom = event['Зал']
+                event['courtroom'] = courtroom
+
+            # оставляем нужные нам параметры, меняем имена
+            event_fin = {}
+            for key in event_names.keys():
+                if key in event.keys():
+                    event_fin[event_names[key]] = event[key]
+
+            # добавляем строку события в итоговыйсписок словарей
+            events.append(event_fin)
+        case_info['events'] = events
+
+        # ищем ссылку на текст решения
+        links = []
+        decision_urls = []
+
+        for i in table:
+            link = i.findAll('a')
+            if link != []:
+                links.append(link[0])
+        if len(links) == 0:
+            print ('нет неопубликованных документов')
+        else:
+            for link in links:
+                decision_url = 'https://www.mos-gorsud.ru' + link['href']
+                decision_urls.append(decision_url)
+        print(decision_urls)
+
+        # выгружаем текст по ссылке на файл
+        if decision_urls != []:
+            case_info['result_text'] = url_to_str(decision_urls[0])
 
         # return case_info = {'case_number':'',
         #      'url':'',

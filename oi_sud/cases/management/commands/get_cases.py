@@ -37,6 +37,6 @@ class Command(BaseCommand):
             limit = options['limit']
         if options.get('entry_date_from'): #DD.MM.YYYY
             entry_date_from = options['entry_date_from']
-        courts_ids = courts.values_list('id', flat=True)
+        courts_ids = [141,]#№#courts.values_list('id', flat=True)
 
         RFCasesGetter(codex=codex).get_cases(instance, courts_ids=courts_ids, courts_limit=limit, entry_date_from=entry_date_from)

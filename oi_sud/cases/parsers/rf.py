@@ -135,12 +135,16 @@ class RFCourtSiteParser(CourtSiteParser):
             if 'ФИО' in tr_text or 'Фамилия' in tr_text or 'статей' in tr_text:
                 title_tr = tr
                 title_tr_index = index
+                print(title_tr, 'tile_tr')
+                print(title_tr_index, 'title_tr_index')
 
         if not title_tr:
             title_tds = el.findAll('td', attrs={'align': 'center'})
             if not title_tds:
-                title_tds = el.findAll('td', attrs={'style': 'text-align:center;'})
-            title_tr_index = 2
+                title_tds = el.findAll('td', {'style': 'text-align:center'})
+            if not title_tds:
+                title_tds = el.findAll('td', {'style': 'text-align:center;'})
+
         else:
             title_tds = title_tr.findAll('td')
 
@@ -151,9 +155,11 @@ class RFCourtSiteParser(CourtSiteParser):
             if 'статей' in td_text:
                 codex_articles_index = index
 
-        for tr in trs[title_tr_index:]:
-            if 'ФИО' in tr.text or 'статей' in tr.text or 'Фамилия' in tr.text or 'Информация скрыта' in tr.text:
+        for tr in trs:
+
+            if 'ФИО' in tr.text or 'статей' in tr.text or 'Фамилия' in tr.text or 'Информация скрыта' in tr.text or 'Адвокат' in tr.text  or 'Прокурор'  in tr.text:
                 continue
+
             tds = tr.findAll('td')
             if len(tds) >= defendant_index and len(tds) >= codex_articles_index:
                 defendant = tds[defendant_index].text.strip()
@@ -194,6 +200,8 @@ class FirstParser(RFCourtSiteParser):
 
     def get_result_text_url(self, page):
         # получаем урл на текст решения
+        if not self.court:
+            return
         ths = page.find('div', id='cont1').findAll('th')
         for th in ths:
             a = th.find('a')

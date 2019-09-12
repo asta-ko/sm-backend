@@ -19,3 +19,4 @@ django-jet
 requests-futures
 pymorphy2
 editdistance
+docx2txt

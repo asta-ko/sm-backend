@@ -1,6 +1,7 @@
 
 import datetime
 import requests
+import re
 from requests import Request, Session
 from requests.packages.urllib3.util.retry import Retry
 from requests_futures.sessions import FuturesSession
@@ -29,7 +30,7 @@ class CommonParser(object):
                 resp = r.result()
                 print(resp)
 
-    def send_get_request(self, url, gen_useragent=False):
+    def send_get_request(self, url, gen_useragent=False, extended=False):
         """accessory function for sending requests"""
         import urllib3
         urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -45,4 +46,16 @@ class CommonParser(object):
         prepped.headers['User-Agent'] = generate_user_agent()
 
         r = session.send(prepped, verify=False)
+        if extended:
+
+            try:
+                pattern = re.compile(r"filename\*?=.*\.([a-z0-9]+)")
+                txt = r.headers['Content-Disposition']
+                exten = pattern.search(txt, re.UNICODE).group(1)
+            except Exception:
+                txt = ''
+                exten = ''
+
+            return r, r.status_code, r.content, exten
+
         return r.text, r.status_code
