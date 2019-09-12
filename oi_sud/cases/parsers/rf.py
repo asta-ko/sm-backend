@@ -40,7 +40,6 @@ class RFCourtSiteParser(CourtSiteParser):
         for n in range(1, self.court.servers_num+1):
             new_params = f'srv_num={str(n)}&case__num_build={str(n)}'
             url = self.url.replace('srv_num=1', new_params)
-            print(url, 'URL', n)
             all_urls+=self.get_cases_urls(url=url)
         return all_urls
 
@@ -135,8 +134,6 @@ class RFCourtSiteParser(CourtSiteParser):
             if 'ФИО' in tr_text or 'Фамилия' in tr_text or 'статей' in tr_text:
                 title_tr = tr
                 title_tr_index = index
-                print(title_tr, 'tile_tr')
-                print(title_tr_index, 'title_tr_index')
 
         if not title_tr:
             title_tds = el.findAll('td', attrs={'align': 'center'})
@@ -144,7 +141,6 @@ class RFCourtSiteParser(CourtSiteParser):
                 title_tds = el.findAll('td', {'style': 'text-align:center'})
             if not title_tds:
                 title_tds = el.findAll('td', {'style': 'text-align:center;'})
-
         else:
             title_tds = title_tr.findAll('td')
 
@@ -327,7 +323,6 @@ class SecondParser(RFCourtSiteParser):
 
     def get_cases_urls_from_list(self, page):
         # получаем урлы карточек дел из страницы поиска
-        print('okay...')
         urls = []
 
         a_cases = page.findAll('a', class_='open-lawcase')
@@ -439,7 +434,6 @@ class RFCasesGetter(CommonParser):
         params_string = self.generate_params(string, params_dict, params)
         if instance == 2:
             params_string = params_string.replace('adm', 'adm1').replace('adm11', 'adm1')
-        print(court.url + params_string)
         return court.url + params_string
 
     def get_cases(self, instance, courts_ids=None, courts_limit=None, entry_date_from=None):
@@ -460,7 +454,6 @@ class RFCasesGetter(CommonParser):
             url = self.generate_url(court, params, instance)
             if court.site_type == 2:
                 url = url.replace('XXX', court.vn_kod)
-                print(url, "WTF")
                 SecondParser(court=court, stage=instance, codex=self.codex, url=url).save_cases()
             elif court.site_type == 1:
                 FirstParser(court=court, stage=instance, codex=self.codex, url=url).save_cases()
