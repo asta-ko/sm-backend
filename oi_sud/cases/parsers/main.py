@@ -84,8 +84,8 @@ class CourtSiteParser(CommonParser):
 
         for attribute in ['case_number', 'case_uid', 'protocol_number', 'result_text']:
             result['case'][attribute] = case_info.get(attribute)
-
-        result['case']['entry_date'] = self.normalize_date(case_info['entry_date']).date()
+        if case_info.get('entry_date'):
+            result['case']['entry_date'] = self.normalize_date(case_info['entry_date']).date()
         if case_info.get('result_date'):
             result['case']['result_date'] = self.normalize_date(case_info['result_date']).date()
         if case_info.get('result_published'):
