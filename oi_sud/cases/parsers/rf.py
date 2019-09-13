@@ -164,8 +164,6 @@ class RFCourtSiteParser(CourtSiteParser):
 
             tds = tr.findAll('td')
             if len(tds) > defendant_index and len(tds) > codex_articles_index:
-                print(tds, codex_articles_index, 'tds', 'cdxartins')
-
                 defendant = tds[defendant_index].text.strip()
                 codex_articles = tds[codex_articles_index].text.strip()
                 print(defendant, codex_articles)
