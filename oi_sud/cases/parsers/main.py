@@ -105,6 +105,8 @@ class CourtSiteParser(CommonParser):
         if case_info.get('result_type'):
             result['case']['result_type'] = result_types_dict[case_info['result_type'].strip()]
         result['case']['url'] = case_info['url'].replace('&nc=1', '')
+        if case_info.get('defendants_hidden'):
+            result['case']['defendant_hidden'] = True
         if self.court:
             result['case']['court'] = self.court
         elif case_info.get('court'):
@@ -150,6 +152,7 @@ class CourtSiteParser(CommonParser):
             item['defendant'] = defendant
 
         result['defenses'] = case_info['defenses']
+
         result['codex_articles'] = CodexArticle.objects.filter(pk__in=all_articles_ids)
 
         if case_info.get('judge'):
