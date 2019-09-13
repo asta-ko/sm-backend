@@ -231,7 +231,7 @@ class FirstParser(RFCourtSiteParser):
         def events_table(tag):
             return tag.name == 'table' and 'ДВИЖЕНИЕ ДЕЛА' in tag.text
         def defendants_table(tag):
-            return tag.name == 'table' and ('СТОРОНЫ ПО ДЕЛУ' in tag.text or 'СВЕДЕНИЯ О ЛИЦЕ' in  tag.text)
+            return tag.name == 'table' and ('СТОРОНЫ ПО ДЕЛУ' in tag.text or 'СВЕДЕНИЯ О ЛИЦЕ' in  tag.text or 'ЛИЦА' in tag.text)
         def appeal_table(tag):
             return tag.name == 'table' and 'Дата рассмотрения жалобы' in tag.text
         tabs = {'delo':page.find('div', id='cont1').find('table'),
