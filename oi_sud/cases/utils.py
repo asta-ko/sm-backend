@@ -3,11 +3,12 @@ import pymorphy2
 morph = pymorphy2.MorphAnalyzer()
 
 def normalize_name(name):
-    name = name.replace('ё','е')
+    name = name.replace('ё','е').replace('  ', ' ')
     lowername = name.lower()
     name_list = lowername.split(' ')
     if len(name_list) != 3 or '"' in lowername:
         return name
+
     if name_list[1][-1] != '.':
         name_list[1] = name_list[1][0].upper() + '.'
     if name_list[2][-1] != '.':

@@ -213,7 +213,10 @@ class FirstParser(RFCourtSiteParser):
             return None
         page = BeautifulSoup(txt, 'html.parser')
         result_text_span = page.find('span')
-        return strip_tags(result_text_span.text)
+        if result_text_span:
+            return strip_tags(result_text_span.text)
+        else:
+            return ''
 
 
     def get_tabs(self, page):
@@ -367,25 +370,26 @@ class SecondParser(RFCourtSiteParser):
                 case_info['result_date'] = val
             if 'Результат рассмотрения' in tr_text:
                 case_info['result_type'] = val
-
-        events_trs = page.find('div', id='tab_content_EventList').findAll('tr')[1:]
-        tr_head = [x.text for x in page.find('div', id='tab_content_EventList').findAll('td')]
         events = []
-        for tr in events_trs:
-            event = {}
-            tds = tr.findAll('td')
-            event['type'] = tds[0].text.replace('\xa0', '')
-            event['date'] = tds[1].text.replace('\xa0', '')
-            if 'Время' in tr_head:
-                index = tr_head.index('Время')
-                event['time'] = tds[index].text.replace('\xa0', '')
-            if 'Зал судебного заседания' in tr_head:
-                index = tr_head.index('Зал судебного заседания')
-                event['courtroom'] = tds[index].text.replace('\xa0', '')
-            if 'Результат события' in tr_head:
-                index = tr_head.index('Результат события')
-                event['result'] = tds[index].text.replace('\xa0', '').strip()
-            events.append(event)
+        if page.find('div', id='tab_content_EventList'):
+            events_trs = page.find('div', id='tab_content_EventList').findAll('tr')[1:]
+            tr_head = [x.text for x in page.find('div', id='tab_content_EventList').findAll('td')]
+
+            for tr in events_trs:
+                event = {}
+                tds = tr.findAll('td')
+                event['type'] = tds[0].text.replace('\xa0', '')
+                event['date'] = tds[1].text.replace('\xa0', '')
+                if 'Время' in tr_head:
+                    index = tr_head.index('Время')
+                    event['time'] = tds[index].text.replace('\xa0', '')
+                if 'Зал судебного заседания' in tr_head:
+                    index = tr_head.index('Зал судебного заседания')
+                    event['courtroom'] = tds[index].text.replace('\xa0', '')
+                if 'Результат события' in tr_head:
+                    index = tr_head.index('Результат события')
+                    event['result'] = tds[index].text.replace('\xa0', '').strip()
+                events.append(event)
         case_info['events'] = events
 
         # defendant_tds = page.find('div', id='tab_content_PersonList').findAll('tr')[1].findAll('td')
