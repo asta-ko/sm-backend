@@ -452,14 +452,21 @@ class RFCasesGetter(CommonParser):
             courts = courts[:courts_limit]
 
         for court in courts:
-            params = {'articles': article_string}
-            if entry_date_from:
-                params['entry_date_from'] = entry_date_from  # DD.MM.YYYY
-            url = self.generate_url(court, params, instance)
-            if court.site_type == 2:
-                url = url.replace('XXX', court.vn_kod)
-                SecondParser(court=court, stage=instance, codex=self.codex, url=url).save_cases()
-            elif court.site_type == 1:
-                FirstParser(court=court, stage=instance, codex=self.codex, url=url).save_cases()
+            try:
+                params = {'articles': article_string}
+                if entry_date_from:
+                    params['entry_date_from'] = entry_date_from  # DD.MM.YYYY
+                url = self.generate_url(court, params, instance)
+                if court.site_type == 2:
+                    url = url.replace('XXX', court.vn_kod)
+                    SecondParser(court=court, stage=instance, codex=self.codex, url=url).save_cases()
+                elif court.site_type == 1:
+                    FirstParser(court=court, stage=instance, codex=self.codex, url=url).save_cases()
+            except Exception as e:
+                print(e)
+                print(traceback.format_exc())
+                court.not_available = True
+                court.save()
+
         print("--- %s seconds ---" % (time.time() - start_time))
 
