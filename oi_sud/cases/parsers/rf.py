@@ -170,7 +170,7 @@ class RFCourtSiteParser(CourtSiteParser):
                 print(defendant, codex_articles)
                 defenses.append({'defendant': defendant, 'codex_articles': codex_articles})
 
-        return defenses, defendants_hidden
+        return (defenses, defendants_hidden)
 
 
 
