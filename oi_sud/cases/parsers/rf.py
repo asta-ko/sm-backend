@@ -293,7 +293,9 @@ class FirstParser(RFCourtSiteParser):
                     event['courtroom'] = tds[index].text.replace('\xa0', '')
                 if 'Результат события' in tr_head:
                     index = tr_head.index('Результат события')
-                    event['result'] = tds[index].text.replace('\xa0', '').strip()
+                    result = tds[index].text.replace('\xa0', '').strip()
+                    if result != event['type']:
+                        event['result'] = result
                 case_info['events'].append(event)
 
         case_info['defenses'] = []
@@ -395,7 +397,9 @@ class SecondParser(RFCourtSiteParser):
                     event['courtroom'] = tds[index].text.replace('\xa0', '')
                 if 'Результат события' in tr_head:
                     index = tr_head.index('Результат события')
-                    event['result'] = tds[index].text.replace('\xa0', '').strip()
+                    result = tds[index].text.replace('\xa0', '').strip()
+                    if result != event['type']:
+                        event['result'] = result
                 events.append(event)
         case_info['events'] = events
 
