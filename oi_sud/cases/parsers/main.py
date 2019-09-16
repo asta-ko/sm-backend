@@ -106,7 +106,7 @@ class CourtSiteParser(CommonParser):
             result['case']['result_type'] = result_types_dict[case_info['result_type'].strip()]
         result['case']['url'] = case_info['url'].replace('&nc=1', '')
         if case_info.get('defendants_hidden'):
-            result['case']['defendant_hidden'] = True
+            result['case']['defendants_hidden'] = True
         if self.court:
             result['case']['court'] = self.court
         elif case_info.get('court'):
