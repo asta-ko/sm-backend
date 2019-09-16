@@ -101,7 +101,7 @@ services:
     celery_main:
         container_name: sudmonster_celery_main
         <<: *oi_sud
-        command: ["celery", "-A", "oi_sud", "worker", "-l", "info", "-Q", "main", "-c", "1", "-n", "main" ]
+        command: ["celery", "-A", "oi_sud", "worker", "-l", "info", "-Q", "main", "-c", "1", "-n", "main", "--max-tasks-per-child=1" ]
         labels:
           job: celery
           instance: sudmonster
@@ -109,7 +109,7 @@ services:
     celery_other:
         container_name: sudmonster_celery_other
         <<: *oi_sud
-        command: ["celery", "-A", "oi_sud", "worker", "-l", "info", "-Q", "other", "-c", "8", "-n", "other" ]
+        command: ["celery", "-A", "oi_sud", "worker", "-l", "info", "-Q", "other", "-c", "8", "-n", "other", "--max-tasks-per-child=1" ]
         labels:
           job: celery
           instance: sudmonster
