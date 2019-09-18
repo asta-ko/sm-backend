@@ -34,6 +34,6 @@ app.conf.ONCE = {
   'backend': 'celery_once.backends.Redis',
   'settings': {
     'url': 'redis://redis:6379/0',
-    'default_timeout': 60 * 60 * 24 * 2
+    'default_timeout': 60 * 60 * 24 * 5
   }
 }
