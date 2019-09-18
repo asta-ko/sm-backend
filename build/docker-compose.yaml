@@ -21,7 +21,7 @@ x-projectname: &oi_sud
     logging:
       driver: loki
       options:
-        loki-url: "http://95.216.217.126:3100/api/prom/push"
+        loki-url: "https://loki.ovdinfo.org/api/prom/push"
         labels: "instance,job"
 
 
