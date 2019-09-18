@@ -1,4 +1,5 @@
 import re
+import pytz
 import requests
 import traceback
 from bs4 import BeautifulSoup
@@ -36,8 +37,6 @@ class CourtSiteParser(CommonParser):
     def save_cases(self, urls=None):
         # Берем список урлов дел данного суда данной инстанции и сохраняем дела в базу. Это самый главный метод
 
-        print(self.court)
-
         if not urls:
             urls = self.get_all_cases_urls()
 
@@ -73,8 +72,12 @@ class CourtSiteParser(CommonParser):
 
 
     def normalize_date(self, datetime):
+        if not self.court:
+            timezone = pytz.timezone('Europe/Moscow')
+        else:
+            timezone = self.court.get_timezone()
 
-        local_dt = self.court.get_timezone().localize(dateparser.parse(datetime, date_formats=['%d.%m.%Y']))
+        local_dt = timezone.localize(dateparser.parse(datetime, date_formats=['%d.%m.%Y']))
         return utc.normalize(local_dt.astimezone(utc))
 
     def serialize_data(self, case_info):
@@ -121,6 +124,8 @@ class CourtSiteParser(CommonParser):
 
         all_articles_ids = []
 
+        court = self.court or case_info.get('court')
+
         for item in case_info['events']:
             result_item = {}
             if item.get('courtroom'):
@@ -131,7 +136,11 @@ class CourtSiteParser(CommonParser):
             if item.get('date'):
                 d = dateparser.parse(f'{item.get("date")} {item.get("time")}')
                 if d:
-                    local_dt = self.court.get_timezone().localize(d)
+                    if court:
+                        timezone = court.get_timezone()
+                    else:
+                        timezone = pytz.timezone('Europe/Moscow')
+                    local_dt = timezone.localize(d)
                     result_item['date'] = utc.normalize(local_dt.astimezone(utc))
             if item.get('result'):
                 result_item['result'] = event_result_types_dict[item['result'].strip()]
@@ -148,7 +157,7 @@ class CourtSiteParser(CommonParser):
                     if article.id not in all_articles_ids:
                         all_articles_ids.append(article.id)
             defendant_name = item['defendant']
-            defendant = Defendant.objects.create_from_name(name=defendant_name, region=self.court.region)
+            defendant = Defendant.objects.create_from_name(name=defendant_name, region=court.region)
             item['defendant'] = defendant
 
         result['defenses'] = case_info['defenses']
@@ -156,7 +165,7 @@ class CourtSiteParser(CommonParser):
         result['codex_articles'] = CodexArticle.objects.filter(pk__in=all_articles_ids)
 
         if case_info.get('judge'):
-            judge, created = Judge.objects.get_or_create(name=case_info['judge'], court=self.court)
+            judge, created = Judge.objects.get_or_create(name=case_info['judge'], court=court)
             result['case']['judge'] = judge
 
         return result

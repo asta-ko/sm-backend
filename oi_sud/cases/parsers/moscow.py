@@ -13,6 +13,7 @@ from oi_sud.codex.models import CodexArticle
 from oi_sud.core.parser import CommonParser
 from oi_sud.cases.parsers.main import CourtSiteParser
 from oi_sud.core.utils import get_query_key
+from oi_sud.core.textract import DocParser, DocXParser
 from oi_sud.cases.utils import normalize_name
 from oi_sud.courts.models import Court, Judge
 from oi_sud.cases.consts import site_types_by_codex, EVENT_TYPES, EVENT_RESULT_TYPES, RESULT_TYPES, APPEAL_RESULT_TYPES, instances_dict, moscow_params_dict
@@ -38,6 +39,7 @@ class MoscowParser(CourtSiteParser):
         # получаем суд из урла карточки
 
         url = url.split('/services')[0]
+        print(url, 'URL')
         court = Court.objects.filter(url=url).first()
         print(court, 'court')
         return court
@@ -60,7 +62,7 @@ class MoscowParser(CourtSiteParser):
         events = page.tbody.findAll('tr')
         for ev in events:
             ev_cols = ev.findAll('td')
-            href = 'https://www.mos-gorsud.ru'+ev_cols[0]('a')[0]['href']
+            href = 'https://mos-gorsud.ru'+ev_cols[0]('a')[0]['href']
             if Case.objects.filter(url=href).exists():
                 continue
             urls.append(href)
@@ -99,11 +101,9 @@ class MoscowParser(CourtSiteParser):
         for page in all_pages:
             try:
                 urls = self.get_cases_urls_from_list(page)
-                print(urls, 'urls0')
-                #urls = [self.url.replace('/modules.php', '').split('?')[0] + u for u in urls]
                 all_cases_urls += urls
             except AttributeError:
-                pass
+                print('error')
 
         if all_cases_urls == []:
             print('...Got no cases urls')
@@ -112,42 +112,23 @@ class MoscowParser(CourtSiteParser):
 
         return all_cases_urls
 
-    def getText(filename):
-        ''' конвертирует doc или docx в строку'''
-        doc = docx.Document(filename)
-        fullText = []
-        for para in doc.paragraphs:
-            fullText.append(para.text)
-        return '\n'.join(fullText)
-
-    def doc_to_str(self, doc_name):
-        ''' конвертирует doc или docx в строку'''
-
-        text_bytes = textract.process(doc_name)
-        text_str = text_bytes.decode("utf-8")
-        return text_str.strip()
-
     def url_to_str(self, url):
         ''' выгружает текст из файла doc / docx, загружаемого по ссылке'''
         file_res, status, content, extension = self.send_get_request(url, extended=True)
-        bytes0 = file_res[2]
-        exten = file_res[3]
+        bytes0 = content#file_res#[2]
+        exten = extension
         filename = "txt." + exten
         f = open(filename, 'wb')
         f.write(bytes0)
         f.close()
         try:
-            return self.doc_to_str(filename)
-        except Exception:
+            if exten == 'doc':
+                return DocParser().process(filename, 'utf-8')
+            elif exten == 'docx':
+                return DocXParser().process(filename, 'utf-8')
+        except:
             return ''
-            # try:
-            #     return getText(filename)
-            # except Exception:
-            #     print ('ОШИБКА: текст не найден')
-            #     return ''
 
-
-    def get_result_text(self, url):
 
     def get_raw_case_information(self, url):
 
@@ -162,11 +143,16 @@ class MoscowParser(CourtSiteParser):
         case_info = {}
 
         case_info['court'] = self.get_court_from_url(url)
+        case_info['url'] = url
 
         # выгружаем информацию из центральной таблицы на странице
 
         content_dict = {}
         content = page.findAll('div', class_="row_card")
+
+        results_dict = {'Вступило в силу':'Вынесено постановление о назначении административного наказания',
+                        'Обжаловано':'Вынесено постановление о назначении административного наказания'}
+
         # добавляем каждую строку в словарь
         for row in content:
             row_left = row.find('div', class_='left')
@@ -180,7 +166,7 @@ class MoscowParser(CourtSiteParser):
         # словарь с названиями параметров, которые мы будем записывать в финальный словарь
         dict_names = {'Номер дела': 'case_number', 'Уникальный идентификатор дела': 'case_uid',
                       'Дата регистрации': 'entry_date', 'Cудья': 'judge',
-                      'Привлекаемое лицо': 'defendant', 'Статья КоАП РФ': 'codex_articles'}
+                      'Привлекаемое лицо': 'defendant', 'Статья КоАП РФ': 'codex_articles','Текущее состояние':'result_type'}
         defense = {}
         for key in content_dict.keys():
             if key in dict_names.keys():
@@ -198,89 +184,80 @@ class MoscowParser(CourtSiteParser):
                         result_type, result_date = content_dict['Текущее состояние'], ''
                     # записываем тип и дату в финальный словарь
                     case_info['result_type'], case_info['result_date'] = result_type, result_date
+                    if case_info['result_type'] in results_dict:
+                        case_info['result_type'] = results_dict[case_info['result_type']]
 
                 else:
                     case_info[dict_names[key]] = content_dict[key]
             else:
-                print ('не вошло в финальный словарь:', key)
+                print ('не вошло в финальный словарь:', key,  content_dict[key])
         case_info['defenses'] = [defense]
 
         # выгружаем данные из таблиц "судебные заседания" и "судебные акты"
         table = page.findAll('table', class_="custom_table mainTable")
 
+        table_sessions = None
+        table_acts = None
+
+        div_sessions = page.find('div', id='sessions')
+        if div_sessions:
+            table_sessions = div_sessions.find('table')
+
+        div_acts = page.find('div', id='act-documents')
+        if div_acts:
+            table_acts = div_acts.find('table')
+
         # выгружаем информацию о судебных заседаниях по делу
         events = []
-        # какие параметры нам нужны, их имена на сайте и в итоговом словаре
-        event_names = {'Стадия': 'type', 'date': 'date', 'time': 'time', 'courtroom': 'courtroom',
-                       'Результат': 'result', 'Основание': 'reason'}
-        # выгружаем таблицу с прошедшими заседаниями (центральная нижняя)
-        heads = [head.string.strip() for head in table[0].findAll('th')]
-        results = [result.string.strip() for result in table[0].findAll('td')]
 
-        num = len(results) // len(heads)
-        for i in range(num):
-            event = dict(zip(heads, results[(i * len(heads)):((i + 1) * len(heads))]))
+        if table_sessions:
+            # какие параметры нам нужны, их имена на сайте и в итоговом словаре
+            event_names = {'Стадия': 'type', 'date': 'date', 'time': 'time', 'courtroom': 'courtroom',
+                           'Результат': 'result', 'Основание': 'reason'}
+            # выгружаем таблицу с прошедшими заседаниями (центральная нижняя)
+            heads = [head.string.strip() for head in table[0].findAll('th')]
+            results = [result.string.strip() for result in table[0].findAll('td')]
 
-            # разбиваем дату и время на дату и время
-            if 'Дата и время' in event.keys():
-                date, time = event['Дата и время'].split(' ')
-                event['date'] = date
-                event['time'] = time
+            num = len(results) // len(heads)
+            for i in range(num):
+                event = dict(zip(heads, results[(i * len(heads)):((i + 1) * len(heads))]))
 
-            # убираем лишние слова из "зала"
-            if 'Зал' in event.keys():
-                if ' - ' in event['Зал']:
-                    courtroom = event['Зал'].split(' - ')[0]
-                else:
-                    courtroom = event['Зал']
-                event['courtroom'] = courtroom
+                # разбиваем дату и время на дату и время
+                if 'Дата и время' in event.keys():
+                    date, time = event['Дата и время'].split(' ')
+                    event['date'] = date
+                    event['time'] = time
 
-            # оставляем нужные нам параметры, меняем имена
-            event_fin = {}
-            for key in event_names.keys():
-                if key in event.keys():
-                    event_fin[event_names[key]] = event[key]
+                # убираем лишние слова из "зала"
+                if 'Зал' in event.keys():
+                    if ' - ' in event['Зал']:
+                        courtroom = event['Зал'].split(' - ')[0]
+                    else:
+                        courtroom = event['Зал']
+                    event['courtroom'] = courtroom
 
-            # добавляем строку события в итоговыйсписок словарей
-            events.append(event_fin)
+                # оставляем нужные нам параметры, меняем имена
+                event_fin = {}
+                for key in event_names.keys():
+                    if key in event.keys():
+                        event_fin[event_names[key]] = event[key]
+
+                # добавляем строку события в итоговыйсписок словарей
+                events.append(event_fin)
         case_info['events'] = events
 
         # ищем ссылку на текст решения
         links = []
         decision_urls = []
 
-        for i in table:
-            link = i.findAll('a')
-            if link != []:
-                links.append(link[0])
-        if len(links) == 0:
-            print ('нет неопубликованных документов')
-        else:
-            for link in links:
-                decision_url = 'https://www.mos-gorsud.ru' + link['href']
-                decision_urls.append(decision_url)
-        print(decision_urls)
+        if table_acts:
+            links = ['https://www.mos-gorsud.ru' + x['href'] for x in table_acts.findAll('a')]
+            if len(links):
+                text = self.url_to_str(links[0])
+                case_info['result_text'] = text
 
-        # выгружаем текст по ссылке на файл
-        if decision_urls != []:
-            case_info['result_text'] = url_to_str(decision_urls[0])
+        return case_info
 
-        # return case_info = {'case_number':'',
-        #      'url':'',
-        #      'result_text':'',
-        #      'case_uid':'',
-        #      'entry_date':'',
-        #      'protocol_number':'',
-        #      'judge':'',
-        #      'result_date':'',
-        #      'result_type':'',
-        #      'events':[{'type':'','date':'', 'time':'','courtroom':'','result':''}, {...}, {...}],
-        #      'defenses':[{'defendant': defendant, 'codex_articles': codex_articles'}, {...}, {...}],
-        #      'forwarding_to_higher_court_date':'',
-        #      'appeal_date':'',
-        #      'appeal_result':'',
-        #      'forwarding_to_lower_court_date':''}
-        raise NotImplementedError
 
     def get_result_text_url(self, page):
         # return url
@@ -329,7 +306,7 @@ class MoscowCasesGetter(CommonParser):
         processType = '3' if codex == 'koap' else '6'  # 3 for koap, 6 for uk
 
         if articles_list:
-            articles = CodexArticle.objects.get_from_list(articles_list).filter(codex=codex)
+            articles = CodexArticle.objects.get_from_list(articles_list, codex=codex)
         else:
             articles = CodexArticle.objects.filter(codex=codex)
 
@@ -342,5 +319,6 @@ class MoscowCasesGetter(CommonParser):
             if entry_date_from:
                 params['entry_date_from'] = entry_date_from  # DD.MM.YYYY
             url = self.generate_params('https://mos-gorsud.ru/mgs/search?courtAlias=', params)
+            print(url)
 
-            MoscowParser(url=url, stage=instance).save_cases()
+            MoscowParser(url=url, stage=instance, codex=codex).save_cases()

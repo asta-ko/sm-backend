@@ -11,31 +11,7 @@ from  oi_sud.cases.parsers.moscow import MoscowParser
 dateparse_settings.TIMEZONE = str(get_current_timezone())
 dateparse_settings.RETURN_AS_TIMEZONE_AWARE = False
 
-
-
-class CasesUpdater(object):
-
-    def __init__(self, codex=None):
-        self.codex = codex
-
-    def update_cases(self):
-        for case in Case.objects.filter(type=self.codex):
-            try:
-                if case.court.site_type == 1:
-                    p = FirstParser(court=case.court, stage=1, type=self.codex)
-                elif case.court.site_type == 2:
-                    p = SecondParser(court=case.court, stage=1, type=self.codex)
-                elif case.court.site_type == 3:
-                    p = MoscowParser(stage=1, type=self.codex)
-                url = case.url + '&nc=1'
-                # print(url)
-                raw_data = p.get_raw_case_information(url)
-                fresh_data = {i: j for i, j in p.serialize_data(raw_data).items() if j != None}
-                case.update_if_needed(fresh_data)
-            except:
-                print('error: ', case.url)
-                print(traceback.format_exc())
-
+class CasesGrouper(object):
     def get_first_cases(self, case):
         params = {'stage': 1, 'defendants__in': case.defendants.all()}
         other_params_list = []
@@ -130,3 +106,7 @@ class CasesUpdater(object):
         #
         # for case in second_instance_cases_not_found:
         #     print(case.defendants.all())
+
+
+grouper = CasesGrouper()
+

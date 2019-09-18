@@ -7,7 +7,6 @@ import six
 import chardet
 import docx2txt
 
-from .. import exceptions
 
 
 class BaseParser(object):
@@ -41,7 +40,8 @@ class BaseParser(object):
         # http://nedbatchelder.com/text/unipain/unipain.html#35
         byte_string = self.extract(filename, **kwargs)
         unicode_string = self.decode(byte_string)
-        return self.encode(unicode_string, encoding)
+        text = self.encode(unicode_string, encoding)
+        return str(text, 'utf-8')
 
     def decode(self, text):
         """Decode ``text`` using the `chardet
@@ -83,9 +83,7 @@ class ShellParser(BaseParser):
             if e.errno == errno.ENOENT:
                 # File not found.
                 # This is equivalent to getting exitcode 127 from sh
-                raise exceptions.ShellError(
-                    ' '.join(args), 127, '', '',
-                )
+                raise Exception('Shellerror')
 
         # pipe.wait() ends up hanging on large files. using
         # pipe.communicate appears to avoid this issue
@@ -93,9 +91,7 @@ class ShellParser(BaseParser):
 
         # if pipe is busted, raise an error (unlike Fabric)
         if pipe.returncode != 0:
-            raise exceptions.ShellError(
-                ' '.join(args), pipe.returncode, stdout, stderr,
-            )
+            raise Exception('Shellerror')
 
         return stdout, stderr
 
@@ -126,3 +122,4 @@ class DocXParser(BaseParser):
 
     def extract(self, filename, **kwargs):
         return docx2txt.process(filename)
+

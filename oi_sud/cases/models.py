@@ -108,6 +108,35 @@ class Case(models.Model):
     def autocomplete_search_fields():
         return 'case_number',
 
+    def update_case(self):
+
+        try:
+
+            if self.type == 1:
+                codex = 'koap'
+            elif self.type == 2:
+                codex = 'uk'
+            if self.court.site_type == 1:
+                from oi_sud.cases.parsers.rf import FirstParser
+                parser = FirstParser(court=self.court, stage=self.stage,codex=codex)
+            elif self.court.site_type == 2:
+                from oi_sud.cases.parsers.rf import SecondParser
+                parser = SecondParser(court=self.court, stage=self.stage, codex=codex)
+            elif self.court.site_type == 3:
+                from oi_sud.cases.parsers.moscow import MoscowParser
+                parser = MoscowParser(stage=self.stage, codex=codex)
+
+            url = self.url
+            if self.court.site_type != 3:
+                url = url + '&nc=1'
+            # print(url)
+            raw_data = parser.get_raw_case_information(url)
+            fresh_data = {i: j for i, j in parser.serialize_data(raw_data).items() if j != None}
+            self.update_if_needed(fresh_data)
+        except:
+            print('error: ', self.url)
+            print(traceback.format_exc())
+
     def update_if_needed(self, fresh_data):
 
         old_data = self.serialize()

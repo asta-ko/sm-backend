@@ -9,7 +9,7 @@ CODEX_CHOICES = (
 
 
 class ArticlesManager(models.Manager):
-    def get_from_list(self, articles_list):
+    def get_from_list(self, articles_list, codex=None):
         articles = []
         for item in articles_list:  # ['19.3 ч.1',] -- для тестирования
             item_list = item.split(' ч.')
@@ -18,7 +18,12 @@ class ArticlesManager(models.Manager):
                 part = item_list[1]
             else:
                 part = None
-            a = super().get_queryset().filter(article_number=article, part=part).first()
+
+            params = {'article_number':article, 'part':part}
+            if codex:
+                params['codex'] = codex
+
+            a = super().get_queryset().filter(**params).first()
             if a:
                 articles.append(a)
         return articles
