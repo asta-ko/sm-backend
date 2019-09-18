@@ -6,6 +6,7 @@ from oi_sud.cases.parsers.rf import RFCasesGetter
 from oi_sud.cases.grouper import grouper
 from oi_sud.core.utils import chunks
 from oi_sud.courts.models import Court
+from oi_sud.cases.models import Case
 from oi_sud.core.consts import region_choices
 
 
@@ -17,7 +18,8 @@ def main_get_cases():
 @shared_task
 def get_cases_from_region(region):
     region_courts = Court.objects.filter(region=region)
-    chunked_courts = chunks(region_courts, 10)
+    chunked_courts = chunks(region_courts.values_list('id', flat=True), 10)
+
     for chunk in chunked_courts:
         get_koap_cases_first.s(chunk).apply_async(queue='other')
         get_koap_cases_second.s(chunk).apply_async(queue='other')
@@ -32,16 +34,6 @@ def update_cases(court_id):
     cases = Case.objects.filter(court = court)
     for case in cases:
         case.update_case()
-
-
-#
-# @shared_task(base=QueueOnce, once={'graceful': True})
-# def main_get_uk_cases():
-#     chunked_courts = chunks(Court.objects.all().order_by('region').values_list('id', flat=True), 10)
-#     for chunk in chunked_courts:
-#         get_uk_cases_first.s(chunk).apply_async(queue='other')
-#         get_uk_cases_second.s(chunk).apply_async(queue='other')
-
 
 @shared_task
 def get_koap_cases_first(courts):
