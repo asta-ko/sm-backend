@@ -267,7 +267,7 @@ class FirstParser(RFCourtSiteParser):
                 case_info['entry_date'] = val
             if 'Номер протокола об АП' in tr_text:
                 case_info['protocol_number'] = val
-            if 'Судья' in tr_text or 'Передано в производство судье' in tr_text:
+            if 'Судья' in tr_text or 'Передано в производство судье' in tr_text or 'Дело находится в производстве судьи' in tr_text:
                 case_info['judge'] = val
             if 'Дата рассмотрения' in tr_text or 'Дата вынесения постановления (определения) по делу' in tr_text:
                 case_info['result_date'] = val
@@ -372,7 +372,7 @@ class SecondParser(RFCourtSiteParser):
                 case_info['entry_date'] = val
             if 'Номер протокола об АП' in tr_text:
                 case_info['protocol_number'] = val
-            if 'Судья' in tr_text or 'Передано в производство судье' in tr_text:
+            if 'Судья' in tr_text or 'Передано в производство судье' in tr_text or 'Дело находится в производстве судьи' in tr_text:
                 case_info['judge'] = val
             if 'Дата рассмотрения' in tr_text or 'Дата вынесения постановления (определения) по делу' in tr_text:
                 case_info['result_date'] = val
