@@ -42,6 +42,9 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'celery_progress',
+    'django_celery_results',
+    'django_celery_beat',
     'oi_sud.core',
     'oi_sud.courts.apps.CourtsConfig',
     'oi_sud.codex.apps.CodexConfig',
@@ -59,11 +62,12 @@ MIDDLEWARE = [
 ]
 
 ROOT_URLCONF = 'oi_sud.urls'
+TEMP_DIR = os.path.join(BASE_DIR, 'templates')
 
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [TEMP_DIR],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -134,7 +138,7 @@ STATIC_ROOT = '/var/www/static'
 # CELERY
 
 CELERY_BROKER_URL = os.environ.get('BROKER_URL', 'redis://redis:6379/0')
-CELERY_RESULT_BACKEND = os.environ.get('BROKER_URL', 'redis://redis:6379/0')
+#CELERY_RESULT_BACKEND = os.environ.get('BROKER_URL', 'redis://redis:6379/0')
 CELERY_ACCEPT_CONTENT = ['application/json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
@@ -143,6 +147,10 @@ CELERY_TASK_DEFAULT_QUEUE = 'main'
 CELERY_IMPORTS = ('oi_sud.cases.tasks')
 
 CELERYD_MAX_TASKS_PER_CHILD = 1
+
+CELERY_RESULT_BACKEND = 'django-db'
+
+CELERY_CACHE_BACKEND = 'django-cache'
 
 CELERY_ROUTES = {
                     'oi_sud.cases.tasks.main_get_cases': {
@@ -164,16 +172,47 @@ CELERY_ROUTES = {
                 }
 
 
-CELERY_BEAT_SCHEDULE = {
-    'get-cases': {
-        'task': 'oi_sud.cases.tasks.main_get_cases',
-        'schedule': crontab(minute='*/1')
-    },
-
-}
+# CELERY_BEAT_SCHEDULE = {
+#     'get-cases': {
+#         'task': 'oi_sud.cases.tasks.main_get_cases',
+#         'schedule': crontab(minute='*/1')
+#     },
+#
+# }
 
 JET_THEME = 'light-gray'
 
 JET_SIDE_MENU_COMPACT = True
 
 TEST_MODE = False
+
+JET_SIDE_MENU_ITEMS = [
+
+    {'app_label': 'codex', 'items': [
+        {'name': 'koapcodexarticle'},
+        {'name': 'ukcodexarticle'},
+    ]},
+    {'app_label': 'cases', 'items': [
+        {'name': 'koapcase'},
+        {'name': 'ukcase'},
+        {'name': 'defendant'},
+    ]},
+    {'app_label': 'courts', 'items': [
+        {'name': 'court'},
+        {'name': 'judge'},
+    ]},
+
+    {'app_label': 'django_celery_results', 'items': [
+        {'name': 'taskresult'},
+        {'label': 'Running tasks', 'url': '/admin/active_celery_tasks', 'url_blank': True},
+    ]},
+    {'app_label': 'django_celery_beat', 'items': [
+        {'name': 'intervalschedule'},
+        {'name': 'periodictask'},
+
+    ]},
+
+
+]
+
+

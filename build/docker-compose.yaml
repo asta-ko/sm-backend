@@ -109,7 +109,8 @@ services:
     celery_other:
         container_name: sudmonster_celery_other
         <<: *oi_sud
-        command: ["celery", "-A", "oi_sud", "worker", "-l", "info", "-Q", "other", "-c", "8", "-n", "other", "--max-tasks-per-child=1" ]
+        command: ["celery", "-A", "oi_sud", "worker", "-l", "info", "-Q", "other", "-c", "8", "-n", "other",
+        ]
         labels:
           job: celery
           instance: sudmonster
@@ -117,7 +118,7 @@ services:
     celerybeat:
         container_name: sudmonster_celerybeat
         <<: *oi_sud
-        command: ["celery", "-A", "oi_sud", "beat", "-l", "info", "--pidfile", "/tmp/celerybeat.pid", "--schedule", "/tmp/celerybeat-schedule"]
+        command: ["celery", "-A", "oi_sud", "beat", "-l", "info", "--scheduler", "django_celery_beat.schedulers:DatabaseScheduler", "--pidfile", "/tmp/celerybeat.pid", "--schedule", "/tmp/celerybeat-schedule"]
 
         labels:
           job: celery
