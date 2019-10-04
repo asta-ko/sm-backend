@@ -35,6 +35,7 @@ class CodexArticle(models.Model):
     parent_title = models.TextField(verbose_name='Родительская статья', **nullable)
     full_text = models.TextField(verbose_name='Текст статьи', **nullable)
     codex = models.CharField(max_length=4, verbose_name='Кодекс', choices=CODEX_CHOICES)
+    active = models.BooleanField(default=True, verbose_name='Дела по статье собираются')
     objects = ArticlesManager()
 
     class Meta:

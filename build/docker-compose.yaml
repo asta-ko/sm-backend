@@ -56,6 +56,12 @@ services:
         image: redis:4.0.11
         volumes:
             - ./.docker/redis/data:/var/redis
+            - ./build/redis/redis.conf:/usr/local/etc/redis/redis.conf
+        command:
+            - /usr/local/etc/redis/redis.conf
+        sysctls:
+          net.core.somaxconn: '511'
+
         restart: always
         logging:
           driver: loki

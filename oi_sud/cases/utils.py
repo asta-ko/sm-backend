@@ -14,7 +14,7 @@ def normalize_name(name):
     if name_list[2][-1] != '.':
         name_list[2] = name_list[2][0].upper() + '.'
     normalized_name = f'{name_list[0].capitalize()} {name_list[1]}{name_list[2]}'
-    return normalized_name
+    return normalized_name[:149]
 
 def parse_name_and_get_gender(name):
 

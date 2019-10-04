@@ -308,7 +308,7 @@ class MoscowCasesGetter(CommonParser):
         if articles_list:
             articles = CodexArticle.objects.get_from_list(articles_list, codex=codex)
         else:
-            articles = CodexArticle.objects.filter(codex=codex)
+            articles = CodexArticle.objects.filter(codex=codex, active=True)
 
         for article in articles:
             if article.part:

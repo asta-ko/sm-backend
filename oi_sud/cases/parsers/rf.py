@@ -283,9 +283,11 @@ class FirstParser(RFCourtSiteParser):
                 event = {}
                 tds = tr.findAll('td')
                 event['type'] = tds[0].text.replace('\xa0', '')
-                event['date'] = tds[1].text.replace('\xa0', '')
+                if 'Дата' in tr_head:
+                    index = tr_head.index('Дата') or tr_head.index('Дата события')
+                    event['date'] = tds[index].text.replace('\xa0', '')
                 if 'Время' in tr_head:
-                    index = tr_head.index('Время')
+                    index = tr_head.index('Время') or tr_head.index('Время события')
                     event['time'] = tds[index].text.replace('\xa0', '')
                 if 'Зал судебного заседания' in tr_head:
                     index = tr_head.index('Зал судебного заседания')
@@ -387,9 +389,11 @@ class SecondParser(RFCourtSiteParser):
                 event = {}
                 tds = tr.findAll('td')
                 event['type'] = tds[0].text.replace('\xa0', '')
-                event['date'] = tds[1].text.replace('\xa0', '')
+                if 'Дата' in tr_head:
+                    index = tr_head.index('Дата') or tr_head.index('Дата события')
+                    event['date'] = tds[index].text.replace('\xa0', '')
                 if 'Время' in tr_head:
-                    index = tr_head.index('Время')
+                    index = tr_head.index('Время') or tr_head.index('Время события')
                     event['time'] = tds[index].text.replace('\xa0', '')
                 if 'Зал судебного заседания' in tr_head:
                     index = tr_head.index('Зал судебного заседания')
@@ -452,7 +456,7 @@ class RFCasesGetter(CommonParser):
 
     def get_cases(self, instance, courts_ids=None, courts_limit=None, entry_date_from=None):
         start_time = time.time()
-        articles = CodexArticle.objects.filter(codex=self.codex)
+        articles = CodexArticle.objects.filter(codex=self.codex, active=True)
         article_string = self.generate_articles_string(articles)
         if not courts_ids:
             courts = Court.objects.all()
@@ -461,7 +465,10 @@ class RFCasesGetter(CommonParser):
         if courts_limit:
             courts = courts[:courts_limit]
 
+        all_results = {}
+
         for court in courts:
+
             try:
                 params = {'articles': article_string}
                 if entry_date_from:
@@ -469,14 +476,20 @@ class RFCasesGetter(CommonParser):
                 url = self.generate_url(court, params, instance)
                 if court.site_type == 2:
                     url = url.replace('XXX', court.vn_kod)
-                    SecondParser(court=court, stage=instance, codex=self.codex, url=url).save_cases()
+                    result = SecondParser(court=court, stage=instance, codex=self.codex, url=url).save_cases()
+                    all_results[court.title] = result
                 elif court.site_type == 1:
-                    FirstParser(court=court, stage=instance, codex=self.codex, url=url).save_cases()
+                    result = FirstParser(court=court, stage=instance, codex=self.codex, url=url).save_cases()
+                    all_results[court.title] = result
+
             except Exception as e:
                 print(e)
-                print(traceback.format_exc())
+
                 court.not_available = True
                 court.save()
+                all_results[court.title] = 'error'
 
         print("--- %s seconds ---" % (time.time() - start_time))
+        print(all_results)
+        return all_results
 

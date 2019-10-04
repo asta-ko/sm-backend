@@ -41,10 +41,16 @@ class CourtSiteParser(CommonParser):
             urls = self.get_all_cases_urls()
 
         if not urls:
-            return
+            return {'found':0}
 
         if settings.TEST_MODE:
             urls = urls[:2]
+
+        result = {}
+        result['found'] = len(urls)
+        result['errors'] = 0
+        result['proccessed'] = 0
+        result['error_urls'] = []
 
         for case_url in urls:
             try:
@@ -59,15 +65,23 @@ class CourtSiteParser(CommonParser):
                 if self.court and self.court.not_available:
                     self.court.not_available = False
                     self.court.save()
+
+                result['proccessed'] +=1
+
             except requests.exceptions.RequestException as e:
                 if self.court:
                     self.court.not_available = True
                     self.court.save()
                 print('requests error: ', case_url)
                 print(traceback.format_exc())
+                result['errors'] +=1
+                result['error_urls'].append(case_url)
             except:
                 print('error: ', case_url)
                 print(traceback.format_exc())
+                result['errors'] +=1
+                result['error_urls'].append(case_url)
+        return result
 
 
 
