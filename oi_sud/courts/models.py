@@ -48,6 +48,9 @@ class Judge(models.Model):
         return 'name',
 
 
+def new_array():
+    return []
+
 class Court(models.Model):
     title = models.CharField(max_length=100, verbose_name='Название', db_index=True)
     phone_numbers = ArrayField(models.CharField(max_length=25, blank=True), verbose_name='Телефоны')
@@ -62,6 +65,7 @@ class Court(models.Model):
     email = models.CharField(verbose_name='Email', max_length=40, **nullable)
     not_available = models.BooleanField(default=False)
     servers_num = models.IntegerField(verbose_name='Количество серверов', null=True, blank=True, default=1)
+    unprocessed_cases_urls = ArrayField(models.CharField(max_length=200), default=new_array, blank=True, verbose_name='Дела для обработки')
 
     class Meta:
         verbose_name = 'Суд'

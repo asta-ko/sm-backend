@@ -34,7 +34,7 @@ class CourtSiteParser(CommonParser):
         self.codex = codex
         self.stage = stage
 
-    def save_cases(self, urls=None):
+    def save_cases(self, urls=None, retrying=False):
         # Берем список урлов дел данного суда данной инстанции и сохраняем дела в базу. Это самый главный метод
 
         if not urls:
@@ -51,36 +51,39 @@ class CourtSiteParser(CommonParser):
         result['errors'] = 0
         result['proccessed'] = 0
         result['error_urls'] = []
+        result['exist'] = 0
+        result['new'] = 0
 
         for case_url in urls:
             try:
                 u = case_url.replace('&nc=1', '')
                 if Case.objects.filter(url=u).exists():
+                    result['exist'] += 1
                     continue
                 raw_case_data = self.get_raw_case_information(case_url)
                 if not raw_case_data:
+                    result['errors'] += 1
+                    result['error_urls'].append(case_url)
                     continue
                 serialized_case_data = self.serialize_data(raw_case_data)
                 Case.objects.create_case_from_data(serialized_case_data)
-                if self.court and self.court.not_available:
-                    self.court.not_available = False
+                if self.court and case_url in self.court.unprocessed_cases_urls:
+                    self.court.unprocessed_cases.pop(case_url)
                     self.court.save()
-
                 result['proccessed'] +=1
-
-            except requests.exceptions.RequestException as e:
-                if self.court:
-                    self.court.not_available = True
-                    self.court.save()
-                print('requests error: ', case_url)
-                print(traceback.format_exc())
-                result['errors'] +=1
-                result['error_urls'].append(case_url)
+                result['new'] +=1
             except:
                 print('error: ', case_url)
                 print(traceback.format_exc())
                 result['errors'] +=1
                 result['error_urls'].append(case_url)
+
+        if self.court:
+            for error_url in result['error_urls']:
+                if error_url not in self.court.unprocessed_cases_urls:
+                    self.court.unprocessed_cases_urls.append(error_url)
+            self.court.save()
+
         return result
 
 
