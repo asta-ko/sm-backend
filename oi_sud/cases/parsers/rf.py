@@ -118,6 +118,48 @@ class RFCourtSiteParser(CourtSiteParser):
                 codex_articles.append(codex_article)
         return codex_articles
 
+
+    def parse_events(self, events_trs, tr_head):
+
+        events = []
+
+        indeces = {'Наименование события':None,
+                         'Дата':None,
+                         'Дата события':None,
+                         'Время':None,
+                         'Время события':None,
+                         'Зал судебного заседания':None,
+                         'Результат':None,
+                         'Результат события':None}
+
+        types = {'type':['Наименование события'],
+                 'date': ['Дата','Дата события'],
+                 'time':['Время','Время события'],
+                 'courtroom':['Зал судебного заседания', 'Зал'],
+                 'result':['Результат события', 'Результат']}
+
+        for item in indeces.keys():
+            if item in tr_head:
+                indeces[item] = tr_head.index(item)
+
+        for tr in events_trs:
+            event = {}
+            tds = tr.findAll('td')
+
+            for k, v in types.items():
+                print(k,v,'k,v')
+                for item in v:
+                    print(item, 'itemv')
+                    if indeces.get(item) is not None:
+                        print(indeces.get(item), 'index')
+                        event[k] = tds[indeces.get(item)].text.replace('\xa0', '').strip()
+                        if event[k]:
+                            break
+            print(event)
+            events.append(event)
+
+        return events
+
     def parse_defenses(self, el):
         # Получаем имя обвиняемого и статьи (может быть несколько)
 
@@ -279,25 +321,8 @@ class FirstParser(RFCourtSiteParser):
             tr_head = [x.text for x in tables['events'].findAll('td')][1:]
             trs = tables['events'].findAll('tr')[2:-1]
 
-            for tr in trs:
-                event = {}
-                tds = tr.findAll('td')
-                event['type'] = tds[0].text.replace('\xa0', '')
-                if 'Дата' in tr_head:
-                    index = tr_head.index('Дата') or tr_head.index('Дата события')
-                    event['date'] = tds[index].text.replace('\xa0', '')
-                if 'Время' in tr_head:
-                    index = tr_head.index('Время') or tr_head.index('Время события')
-                    event['time'] = tds[index].text.replace('\xa0', '')
-                if 'Зал судебного заседания' in tr_head:
-                    index = tr_head.index('Зал судебного заседания')
-                    event['courtroom'] = tds[index].text.replace('\xa0', '')
-                if 'Результат события' in tr_head:
-                    index = tr_head.index('Результат события')
-                    result = tds[index].text.replace('\xa0', '').strip()
-                    if result != event['type']:
-                        event['result'] = result
-                case_info['events'].append(event)
+            case_info['events'] = self.parse_events(trs, tr_head)
+
 
         case_info['defenses'] = []
         if tables.get('defendants'):
@@ -380,31 +405,12 @@ class SecondParser(RFCourtSiteParser):
                 case_info['result_date'] = val
             if 'Результат рассмотрения' in tr_text:
                 case_info['result_type'] = val
-        events = []
+        case_info['events'] = []
         if page.find('div', id='tab_content_EventList'):
             events_trs = page.find('div', id='tab_content_EventList').findAll('tr')[1:]
             tr_head = [x.text for x in page.find('div', id='tab_content_EventList').findAll('td')]
+            case_info['events'] = self.parse_events(events_trs, tr_head)
 
-            for tr in events_trs:
-                event = {}
-                tds = tr.findAll('td')
-                event['type'] = tds[0].text.replace('\xa0', '')
-                if 'Дата' in tr_head:
-                    index = tr_head.index('Дата') or tr_head.index('Дата события')
-                    event['date'] = tds[index].text.replace('\xa0', '')
-                if 'Время' in tr_head:
-                    index = tr_head.index('Время') or tr_head.index('Время события')
-                    event['time'] = tds[index].text.replace('\xa0', '')
-                if 'Зал судебного заседания' in tr_head:
-                    index = tr_head.index('Зал судебного заседания')
-                    event['courtroom'] = tds[index].text.replace('\xa0', '')
-                if 'Результат события' in tr_head:
-                    index = tr_head.index('Результат события')
-                    result = tds[index].text.replace('\xa0', '').strip()
-                    if result != event['type']:
-                        event['result'] = result
-                events.append(event)
-        case_info['events'] = events
 
         # defendant_tds = page.find('div', id='tab_content_PersonList').findAll('tr')[1].findAll('td')
         defenses = []
