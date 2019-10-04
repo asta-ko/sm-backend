@@ -147,15 +147,11 @@ class RFCourtSiteParser(CourtSiteParser):
             tds = tr.findAll('td')
 
             for k, v in types.items():
-                print(k,v,'k,v')
                 for item in v:
-                    print(item, 'itemv')
                     if indeces.get(item) is not None:
-                        print(indeces.get(item), 'index')
                         event[k] = tds[indeces.get(item)].text.replace('\xa0', '').strip()
                         if event[k]:
                             break
-            print(event)
             events.append(event)
 
         return events
