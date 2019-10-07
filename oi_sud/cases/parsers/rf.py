@@ -314,7 +314,12 @@ class FirstParser(RFCourtSiteParser):
         case_info['events'] = []
         if tables.get('events'):
 
-            tr_head = [x.text for x in tables['events'].findAll('td')][1:]
+            tr_head = [x.text for x in tables['events'].findAll('td')][:10]
+            for td in tr_head:
+                if td == 'Наименование события':
+                    break
+                else:
+                    tr_head.pop(td)
             trs = tables['events'].findAll('tr')[2:-1]
 
             case_info['events'] = self.parse_events(trs, tr_head)
@@ -404,7 +409,13 @@ class SecondParser(RFCourtSiteParser):
         case_info['events'] = []
         if page.find('div', id='tab_content_EventList'):
             events_trs = page.find('div', id='tab_content_EventList').findAll('tr')[1:]
-            tr_head = [x.text for x in page.find('div', id='tab_content_EventList').findAll('td')]
+            tr_head = [x.text for x in page.find('div', id='tab_content_EventList').findAll('td')][:10]
+            for td in tr_head:
+                if td == 'Наименование события':
+                    break
+                else:
+                    tr_head.pop(td)
+
             case_info['events'] = self.parse_events(events_trs, tr_head)
 
 
