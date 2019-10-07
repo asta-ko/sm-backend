@@ -138,6 +138,10 @@ class RFCourtSiteParser(CourtSiteParser):
                  'courtroom':['Зал судебного заседания', 'Зал'],
                  'result':['Результат события', 'Результат']}
 
+
+        while tr_head[0] != 'Наименование события':
+            tr_head = tr_head[1:]
+
         for item in indeces.keys():
             if item in tr_head:
                 indeces[item] = tr_head.index(item)
@@ -148,10 +152,12 @@ class RFCourtSiteParser(CourtSiteParser):
 
             for k, v in types.items():
                 for item in v:
-                    if indeces.get(item) is not None:
-                        event[k] = tds[indeces.get(item)].text.replace('\xa0', '').strip()
-                        if event[k]:
-                            break
+                    if indeces.get(item) is not None and len(tds) > indeces.get(item):
+                        text = tds[indeces.get(item)].text.replace('\xa0', '').strip()
+                        if text:
+                            event[k] = text
+                            continue
+
             if event.get('type'):
                 events.append(event)
 
@@ -316,11 +322,7 @@ class FirstParser(RFCourtSiteParser):
         if tables.get('events'):
 
             tr_head = [x.text for x in tables['events'].findAll('td')][:10]
-            for td in tr_head:
-                if td == 'Наименование события':
-                    break
-                else:
-                    tr_head.remove(td)
+
             trs = tables['events'].findAll('tr')[2:]
 
             case_info['events'] = self.parse_events(trs, tr_head)
@@ -411,12 +413,6 @@ class SecondParser(RFCourtSiteParser):
         if page.find('div', id='tab_content_EventList'):
             events_trs = page.find('div', id='tab_content_EventList').findAll('tr')[1:]
             tr_head = [x.text for x in page.find('div', id='tab_content_EventList').findAll('td')][:10]
-            for td in tr_head:
-                if td == 'Наименование события':
-                    break
-                else:
-                    tr_head.remove(td)
-
             case_info['events'] = self.parse_events(events_trs, tr_head)
 
 
