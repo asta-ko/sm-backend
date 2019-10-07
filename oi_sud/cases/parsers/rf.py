@@ -320,7 +320,7 @@ class FirstParser(RFCourtSiteParser):
                 if td == 'Наименование события':
                     break
                 else:
-                    tr_head.pop(td)
+                    tr_head.remove(td)
             trs = tables['events'].findAll('tr')[2:]
 
             case_info['events'] = self.parse_events(trs, tr_head)
