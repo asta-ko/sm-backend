@@ -415,7 +415,7 @@ class SecondParser(RFCourtSiteParser):
                 if td == 'Наименование события':
                     break
                 else:
-                    tr_head.pop(td)
+                    tr_head.remove(td)
 
             case_info['events'] = self.parse_events(events_trs, tr_head)
 

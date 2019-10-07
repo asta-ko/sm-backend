@@ -68,7 +68,7 @@ class CourtSiteParser(CommonParser):
                 serialized_case_data = self.serialize_data(raw_case_data)
                 Case.objects.create_case_from_data(serialized_case_data)
                 if self.court and case_url in self.court.unprocessed_cases_urls:
-                    self.court.unprocessed_cases.pop(case_url)
+                    self.court.unprocessed_cases_urls.remove(case_url)
                     self.court.save()
                 result['proccessed'] +=1
                 result['new'] +=1
