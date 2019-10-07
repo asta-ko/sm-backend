@@ -152,7 +152,8 @@ class RFCourtSiteParser(CourtSiteParser):
                         event[k] = tds[indeces.get(item)].text.replace('\xa0', '').strip()
                         if event[k]:
                             break
-            events.append(event)
+            if event.get('type'):
+                events.append(event)
 
         return events
 
@@ -320,7 +321,7 @@ class FirstParser(RFCourtSiteParser):
                     break
                 else:
                     tr_head.pop(td)
-            trs = tables['events'].findAll('tr')[2:-1]
+            trs = tables['events'].findAll('tr')[2:]
 
             case_info['events'] = self.parse_events(trs, tr_head)
 
