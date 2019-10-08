@@ -69,7 +69,6 @@ class CaseAdmin(admin.ModelAdmin):
     list_display = ('__str__', 'judge',  'result_type', 'entry_date', 'result_date', 'has_result_text_icon', 'has_linked_cases')
     search_fields = ('case_number', 'protocol_number', 'result_text')
 
-
     def has_linked_cases(self, obj):
         if obj.get_2_instance_case():
             second_instance_case = obj.get_2_instance_case()
@@ -120,13 +119,33 @@ class DefendantAdmin(admin.ModelAdmin):
         if obj.cases.first():
             return obj.cases.first().court.site_type
 
+    def get_queryset(self, request):
+        qs = self.model.objects.all()
+
+        if request.user.is_superuser:
+            return qs
+        regions = request.user.regions
+        qs = qs.filter(region__in=regions)
+        return qs
+
 class UKCaseAdmin(CaseAdmin):
     def get_queryset(self, request):
-        return self.model.objects.filter(type=2)
+        qs = self.model.objects.filter(type=2)
+
+        if request.user.is_superuser:
+            return qs
+        regions = request.user.regions
+        qs = qs.filter(court__region__in=regions)
+        return qs
 
 class KoapCaseAdmin(CaseAdmin):
     def get_queryset(self, request):
-        return self.model.objects.filter(type=1)
+        qs = self.model.objects.filter(type=1)
+        if request.user.is_superuser:
+            return qs
+        regions = request.user.regions
+        qs = qs.filter(court__region__in=regions)
+        return qs
 
 
 admin.site.register(UKCase, UKCaseAdmin)

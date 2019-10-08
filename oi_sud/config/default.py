@@ -48,7 +48,8 @@ INSTALLED_APPS = [
     'oi_sud.core',
     'oi_sud.courts.apps.CourtsConfig',
     'oi_sud.codex.apps.CodexConfig',
-    'oi_sud.cases.apps.CasesConfig'
+    'oi_sud.cases.apps.CasesConfig',
+    'oi_sud.users.apps.UsersConfig',
 ]
 
 MIDDLEWARE = [
@@ -113,6 +114,8 @@ AUTH_PASSWORD_VALIDATORS = [
         'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
     },
 ]
+
+AUTH_USER_MODEL = 'users.CustomUser'
 
 # Internationalization
 # https://docs.djangoproject.com/en/2.1/topics/i18n/
@@ -186,33 +189,33 @@ JET_SIDE_MENU_COMPACT = True
 
 TEST_MODE = False
 
-JET_SIDE_MENU_ITEMS = [
-
-    {'app_label': 'codex', 'items': [
-        {'name': 'koapcodexarticle'},
-        {'name': 'ukcodexarticle'},
-    ]},
-    {'app_label': 'cases', 'items': [
-        {'name': 'koapcase'},
-        {'name': 'ukcase'},
-        {'name': 'defendant'},
-    ]},
-    {'app_label': 'courts', 'items': [
-        {'name': 'court'},
-        {'name': 'judge'},
-    ]},
-
-    {'app_label': 'django_celery_results', 'items': [
-        {'name': 'taskresult'},
-        {'label': 'Running tasks', 'url': '/admin/active_celery_tasks', 'url_blank': True},
-    ]},
-    {'app_label': 'django_celery_beat', 'items': [
-        {'name': 'intervalschedule'},
-        {'name': 'periodictask'},
-
-    ]},
-
-
-]
+# JET_SIDE_MENU_ITEMS = [
+#
+#     {'app_label': 'codex', 'items': [
+#         {'name': 'koapcodexarticle'},
+#         {'name': 'ukcodexarticle'},
+#     ]},
+#     {'app_label': 'cases', 'items': [
+#         {'name': 'koapcase'},
+#         {'name': 'ukcase'},
+#         {'name': 'defendant'},
+#     ]},
+#     {'app_label': 'courts', 'items': [
+#         {'name': 'court'},
+#         {'name': 'judge'},
+#     ]},
+#
+#     {'app_label': 'django_celery_results', 'items': [
+#         {'name': 'taskresult'},
+#         {'label': 'Running tasks', 'url': '/admin/active_celery_tasks', 'url_blank': True},
+#     ]},
+#     {'app_label': 'django_celery_beat', 'items': [
+#         {'name': 'intervalschedule'},
+#         {'name': 'periodictask'},
+#
+#     ]},
+#
+#
+# ]
 
 

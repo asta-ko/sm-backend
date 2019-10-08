@@ -31,8 +31,8 @@ def admin_celery_view(request):
     return render(request, template, context)
 
 
-admin.site.unregister(User)
-admin.site.unregister(Group)
+#admin.site.unregister(User)
+#admin.site.unregister(Group)
 
 import json
 from django.http import HttpResponse
