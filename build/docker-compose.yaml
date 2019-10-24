@@ -23,6 +23,7 @@ x-projectname: &oi_sud
       options:
         loki-url: "https://loki.ovdinfo.org/api/prom/push"
         labels: "instance,job"
+        max-size: "1m"
 
 
 
