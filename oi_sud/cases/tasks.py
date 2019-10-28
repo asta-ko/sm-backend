@@ -9,6 +9,15 @@ from oi_sud.core.consts import region_choices
 from oi_sud.core.utils import chunks
 from oi_sud.courts.models import Court
 
+weekday_regions = [ #Except SPb and Moscow
+    [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13],
+    [14, 15, 16, 17, 18, 19, 21, 22, 23, 24, 25, 26, 27],
+    [28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40],
+    [41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53],
+    [54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66],
+    [67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 79],
+    [82, 83, 86, 87, 89, 92, 94, 95]
+]
 
 
 def get_start_date(delta_days):
@@ -21,7 +30,26 @@ def main_get_cases(newest=False):
         get_cases_from_region.s(region=region[0], newest=False).apply_async(queue='main')
 
 
-@shared_task(bind=True)
+@shared_task
+def get_cases_by_week_day():
+
+    today_week_day = datetime.today().weekday()
+    regions = weekday_regions[today_week_day]
+
+    for region in regions:
+        get_cases_from_region.s(region=region, newest=True).apply_async(queue='main')
+
+@shared_task
+def update_cases_by_week_day():
+    today_week_day = datetime.today().weekday()
+    regions = weekday_regions[today_week_day]
+
+    for region in regions:
+        update_cases_by_region.s(region, newest=True).apply_async(queue='other')
+
+
+
+@shared_task#(bind=True)
 def get_cases_from_region(self, region=78, newest=False):
     # progress_recorder = ProgressRecorder(self)
     callback = group_by_region.si(region=region).set(queue="other")
