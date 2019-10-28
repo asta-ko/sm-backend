@@ -5,6 +5,7 @@ from datetime import timedelta, datetime
 from oi_sud.cases.grouper import grouper
 from oi_sud.cases.models import Case
 from oi_sud.cases.parsers.rf import RFCasesGetter
+from oi_sud.cases.parsers.moscow import MoscowCasesGetter
 from oi_sud.core.consts import region_choices
 from oi_sud.core.utils import chunks
 from oi_sud.courts.models import Court
@@ -50,7 +51,7 @@ def update_cases_by_week_day():
 
 
 @shared_task#(bind=True)
-def get_cases_from_region(self, region=78, newest=False):
+def get_cases_from_region(region=78, newest=False):
     # progress_recorder = ProgressRecorder(self)
     callback = group_by_region.si(region=region).set(queue="other")
     header = []
@@ -99,6 +100,27 @@ def update_cases_by_region(region, newest=False, delta_days=3*30):
 
     for case in cases:
         case.update_case()
+
+
+@shared_task
+def get_moscow_koap_cases_first(newest=False):
+    entry_date = get_start_date(30 * 6) if newest else None
+    return MoscowCasesGetter().get_cases(1, 'koap', entry_date_from=entry_date)
+
+@shared_task
+def get_moscow_koap_cases_second(newest=False):
+    entry_date = get_start_date(30 * 6) if newest else None
+    return MoscowCasesGetter().get_cases(2, 'koap', entry_date_from=entry_date)
+
+@shared_task
+def get_moscow_uk_cases_first(newest=False):
+    entry_date = get_start_date(30 * 6) if newest else None
+    return MoscowCasesGetter().get_cases(1, 'uk', entry_date_from=entry_date)
+
+@shared_task
+def get_moscow_uk_cases_second(newest=False):
+    entry_date = get_start_date(30 * 6) if newest else None
+    return MoscowCasesGetter().get_cases(2, 'uk', entry_date_from=entry_date)
 
 
 

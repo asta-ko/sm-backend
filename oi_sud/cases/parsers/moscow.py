@@ -253,19 +253,10 @@ class MoscowParser(CourtSiteParser):
         if table_acts:
             links = ['https://www.mos-gorsud.ru' + x['href'] for x in table_acts.findAll('a')]
             if len(links):
-                text = self.url_to_str(links[0])
+                text = self.url_to_str(links[0]) # перепроверить вот это
                 case_info['result_text'] = text
 
         return case_info
-
-
-    def get_result_text_url(self, page):
-        # return url
-        raise NotImplementedError
-
-    def get_result_text(self, url):
-        # return text
-        raise NotImplementedError
 
 
     def get_koap_article(self, raw_string):
