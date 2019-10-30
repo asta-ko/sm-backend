@@ -108,10 +108,10 @@ class CourtSiteParser(CommonParser):
             result['case']['entry_date'] = self.normalize_date(case_info['entry_date']).date()
         if case_info.get('result_date'):
             result['case']['result_date'] = self.normalize_date(case_info['result_date']).date()
-        if case_info.get('result_published'):
-            result['case']['result_published'] = self.normalize_date(case_info['result_published']).date()
-        if case_info.get('result_valid'):
-            result['case']['result_valid'] = self.normalize_date(case_info['result_valid']).date()
+        if case_info.get('result_published_date'):
+            result['case']['result_published_date'] = self.normalize_date(case_info['result_published_date']).date()
+        if case_info.get('result_valid_date'):
+            result['case']['result_valid_date'] = self.normalize_date(case_info['result_valid_date']).date()
         if case_info.get('forwarding_to_higher_court_date'):
             result['case']['forwarding_to_higher_court_date'] = self.normalize_date(
                 case_info['forwarding_to_higher_court_date']).date()
@@ -151,7 +151,10 @@ class CourtSiteParser(CommonParser):
                     result_item['courtroom'] = int(courtroom_string)
             result_item['type'] = event_types_dict[item['type'].strip()]
             if item.get('date'):
-                d = dateparser.parse(f'{item.get("date")} {item.get("time")}')
+                if item.get('time'):
+                    d = dateparser.parse(f'{item.get("date")} {item.get("time")}')
+                else:
+                    d = dateparser.parse(f'{item.get("date")}')
                 if d:
                     if court:
                         timezone = court.get_timezone()

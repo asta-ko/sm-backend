@@ -54,8 +54,8 @@ class Case(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     entry_date = models.DateField(verbose_name='Дата поступления', db_index=True)  # поступление в суд
     result_date = models.DateField(verbose_name='Дата решения', **nullable)  # рассмотрение
-    result_published = models.DateField(verbose_name='Дата публикации решения', **nullable)  # публикация решения
-    result_valid = models.DateField(verbose_name='Решение вступило в силу', **nullable)  # решение вступило в силу
+    result_published_date = models.DateField(verbose_name='Дата публикации решения', **nullable)  # публикация решения
+    result_valid_date = models.DateField(verbose_name='Решение вступило в силу', **nullable)  # решение вступило в силу
     forwarding_to_higher_court_date = models.DateField(verbose_name='Дата направления в вышестоящий суд', **nullable)
     appeal_date = models.DateField(verbose_name='Дата рассмотрения жалобы', **nullable)
     appeal_result = models.IntegerField(verbose_name='Результат обжалования', choices=APPEAL_RESULT_TYPES, **nullable)
