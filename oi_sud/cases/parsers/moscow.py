@@ -17,43 +17,7 @@ from oi_sud.courts.models import Court
 dateparse_settings.TIMEZONE = str(get_current_timezone())
 dateparse_settings.RETURN_AS_TIMEZONE_AWARE = False
 
-event_types_dict = {y: x for x, y in dict(EVENT_TYPES).items()}
-event_result_types_dict = {y: x for x, y in dict(EVENT_RESULT_TYPES).items()}
-result_types_dict = {y: x for x, y in dict(RESULT_TYPES).items()}
-appeal_result_types_dict = {y: x for x, y in dict(APPEAL_RESULT_TYPES).items()}
 
-moscow_events_to_rf_results_dict = {'Вынесено определение суда апелляционной инстанции': 0,
-                                    'Вынесено постановление суда апелляционной инстанции': 0,
-                                    'Отменить определение (постановление), дело возвратить прокурору, в орган следствия': 1,
-                                    'Вынесен приговор': 2,
-                                    'Другое постановление с изменением решения': 3,
-                                    'Другое постановление с отменой решения': 3,
-                                    'Передано по подсудности': 4,
-                                    'Отозвано': 6,
-                                    'Принудительные меры к невменяемому': 7,
-                                    'Принудительные меры к невменяемым': 7,
-                                    'Отменено': 10,
-                                    'Оставлено без изменений': 15,
-                                    'Оставлено без изменения': 15,
-                                    'Отменить определение (постановление), дело прекратить': 16,
-                                    'Оставлено без рассмотрения': 17,
-                                    'Отменить определение (постановление) полностью, дело вернуть на новое рассмотрение': 18,
-                                    'Отменить определение (постановление) частично, дело вернуть на новое рассмотрение': 18,
-                                    'Отменить постановление (решение), дело вернуть на новое рассмотрение': 18,
-                                    'Отменить судебное постановление частично, дело направить на новое рассмотрение': 18,
-                                    'Прекращено': 20,
-                                    'Изменено': 21,
-                                    'Отменить постановление (решение), дело направить на рассмотрение по подведомственности': 22,
-                                    'Отменить судебное постановление частично, дело направить по подведомственности': 22,
-                                    'Иное определение не по существу дела (районный суд)': 23,
-                                    'Отменить определение (постановление) полностью, вынести решение по существу': 23,
-                                    'Отменить определение (постановление) частично, вынести решение по существу': 23,
-                                    'Передано по подведомственности': 24,
-                                    'Передано в другой орган': 26,
-                                    'Передано в иной орган': 26,
-                                    'Присоединено': 27,
-                                    'Завершено':13,
-                                    }
 
 
 class MoscowParser(CourtSiteParser):
@@ -62,11 +26,9 @@ class MoscowParser(CourtSiteParser):
         # получаем суд из урла карточки
 
         url = url.split('/services')[0]
-        print(url, 'URL')
         court = Court.objects.filter(url=url).first()
         if not court:
             court = Court.objects.filter(region=77, type=2).first() #мосгорсуд
-        print(court, 'court')
         return court
 
     def get_pages_number(self, page):
@@ -157,6 +119,8 @@ class MoscowParser(CourtSiteParser):
 
         # парсим карточку дела
 
+        print(url, 'case url')
+
         txt, status_code = self.send_get_request(url)
         if status_code != 200:
             print("GET error: ", status_code)
@@ -177,7 +141,22 @@ class MoscowParser(CourtSiteParser):
             left = row_left.string.strip()
             row_right = row.find('div', class_='right')
             right = row_right.text.strip()
-            content_dict[left] = right
+
+
+
+            if 'Номер дела в суде вышестоящей инстанции' in left or 'Номер дела в суде нижестоящей инстанции' in left:
+
+                links = row_right.findAll('a')
+                if len(links):
+                    hrefs = ['https://mos-gorsud.ru'+x['href'] for x in links]
+                    nums = [x.text for x in links]
+                    content_dict['Ссылка на связанное дело'] = hrefs
+
+                else:
+                    nums = [x.strip() for x in row_right.text.strip().split(',')]
+                content_dict[left] = nums
+            else:
+                content_dict[left] = right
 
         # записываем данные из первой таблицы в финальный словарь
 
@@ -185,14 +164,21 @@ class MoscowParser(CourtSiteParser):
         dict_names = {'Номер дела': 'case_number', 'Уникальный идентификатор дела': 'case_uid',
                       'Дата регистрации': 'entry_date',
                       'Дата поступления': 'entry_date',
+                      'Дата поступления дела в апелляционную инстанцию': 'entry_date',
                       'Дата вступления в силу': 'result_valid_date',
                       'Дата вступления решения в силу': 'result_valid_date',
                       'Номер дела ~ материала': 'case_number',
                       'Cудья': 'judge',
                       'Привлекаемое лицо': 'defendant', 'Статья КоАП РФ': 'codex_articles',
-                      'Текущее состояние': 'current_state',
+                      #'Текущее состояние': 'current_state',
                       'Дата рассмотрения дела в первой инстанции': 'result_date',
-                      'Осужденный (оправданный, обвиняемый)': 'uk_defense', 'Подсудимый': 'uk_defense'}
+                      'Дата окончания':'result_date',
+                      'Номер дела в суде вышестоящей инстанции': 'linked_case_number',
+                      'Номер дела в суде нижестоящей инстанции': 'linked_case_number',
+                      'Ссылка на связанное дело': 'linked_case_url',
+                      'Осужденный (оправданный, обвиняемый)': 'uk_defense',
+                      'Лицо': 'uk_defense',
+                      'Подсудимый': 'uk_defense'}
 
         for key in content_dict.keys():
             if key in dict_names.keys():
@@ -203,23 +189,8 @@ class MoscowParser(CourtSiteParser):
                     defense[dict_names[key]] = content_dict[key]
                     case_info['defenses'] = [defense]
 
-                elif key in ['Осужденный (оправданный, обвиняемый)', 'Подсудимый']:
+                elif key in ['Осужденный (оправданный, обвиняемый)', 'Подсудимый', 'Лицо']:
                     case_info['defenses'] = self.get_uk_defenses(content_dict[key])
-
-
-                # разбиваем "Текущее сосотояние" на тип и дату
-                elif key == 'Текущее состояние':
-                    event_type = content_dict[key].split(',')[0]
-                    result_number = moscow_events_to_rf_results_dict.get(event_type)
-                    result_type = dict(RESULT_TYPES).get(result_number)
-                    if result_type:
-                        case_info['result_type'] = result_type
-                    elif event_type == 'Вступило в силу' and self.codex == 'koap':
-                        case_info['result_type'] = dict(RESULT_TYPES).get(13)
-                    elif event_type == 'Вступило в силу' and self.codex == 'uk':
-                        case_info['result_type'] = dict(RESULT_TYPES).get(2)
-                    else:
-                        print(event_type, 'ТЕКУЩЕЕ СОСТОЯНИЕ')
 
                 else:
                     case_info[dict_names[key]] = content_dict[key]
@@ -336,7 +307,9 @@ class MoscowParser(CourtSiteParser):
         for d in defenses_arr:
             d = re.sub('\(отм\. \d{2}\.\d{2}\.\d{4}\) ', '', d)
             defendant = d.split('(')[0].strip()
-            articles_str = d.split('(')[1].strip(')')
+            articles_str = ''
+            if len(d.split('(')) > 1:
+                articles_str = d.split('(')[1].strip(')')
             defense = {'defendant': defendant, 'codex_articles': articles_str}
             defenses.append(defense)
         return defenses

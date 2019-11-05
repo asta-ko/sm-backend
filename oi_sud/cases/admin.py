@@ -65,7 +65,7 @@ class LinkedCases(CompactInline):
 class CaseAdmin(admin.ModelAdmin):
 
     inlines = (DefendantsInline, CaseEventsInline, LinkedCases)
-    list_filter = (('codex_articles',ArticlesRelatedFieldAjaxListFilter), ('court', RelatedFieldAjaxListFilter), ('judge', RelatedFieldAjaxListFilter), 'court__region', 'stage',  'result_type')
+    list_filter = (('codex_articles',ArticlesRelatedFieldAjaxListFilter), ('court', RelatedFieldAjaxListFilter), ('judge', RelatedFieldAjaxListFilter), 'court__region', 'stage', )
     list_display = ('__str__', 'judge',  'result_type', 'entry_date', 'result_date', 'has_result_text_icon', 'has_linked_cases')
     search_fields = ('case_number', 'protocol_number', 'result_text')
 
@@ -84,7 +84,7 @@ class CaseAdmin(admin.ModelAdmin):
     def has_result_text_icon(self, obj):
         if obj.result_text:
             return format_html(
-            '<i class="fas fa-file-alt"></i>')
+            f'<a href="{obj.get_result_text_url()}" download><i class="fas fa-file-alt"></i></a>')
 
     has_result_text_icon.short_description = 'Есть текст'
 

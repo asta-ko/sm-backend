@@ -102,8 +102,11 @@ class CourtSiteParser(CommonParser):
 
         result = {'case': {}, 'defenses': [], 'events': [], 'codex_articles': []}
 
-        for attribute in ['case_number', 'case_uid', 'protocol_number', 'result_text']:
+        for attribute in ['case_number', 'case_uid', 'protocol_number', 'result_text', 'linked_case_number', 'linked_case_url']:
             result['case'][attribute] = case_info.get(attribute)
+        for attribute in  ['case_number', 'case_uid', 'protocol_number']:
+            if result['case'][attribute]:
+                result['case'][attribute] = result['case'][attribute].replace(' ','').replace('\n','')
         if case_info.get('entry_date'):
             result['case']['entry_date'] = self.normalize_date(case_info['entry_date']).date()
         if case_info.get('result_date'):
@@ -121,9 +124,9 @@ class CourtSiteParser(CommonParser):
         if case_info.get('appeal_date'):
             result['case']['appeal_date'] = self.normalize_date(case_info['appeal_date']).date()
         if case_info.get('appeal_result'):
-            result['case']['appeal_result'] = appeal_result_types_dict[case_info['appeal_result']]
+            result['case']['appeal_result'] = case_info['appeal_result'].strip()
         if case_info.get('result_type'):
-            result['case']['result_type'] = result_types_dict[case_info['result_type'].strip()]
+            result['case']['result_type'] = case_info['result_type'].strip()
         result['case']['url'] = case_info['url'].replace('&nc=1', '')
         if case_info.get('defendants_hidden'):
             result['case']['defendants_hidden'] = True
@@ -137,6 +140,8 @@ class CourtSiteParser(CommonParser):
         elif self.codex == 'uk':
             result['case']['type'] = 2
 
+
+
         result['case']['stage'] = self.stage
 
         all_articles_ids = []
@@ -149,7 +154,7 @@ class CourtSiteParser(CommonParser):
                 courtroom_string = ''.join(filter(str.isdigit, item['courtroom']))
                 if courtroom_string:
                     result_item['courtroom'] = int(courtroom_string)
-            result_item['type'] = event_types_dict[item['type'].strip()]
+            result_item['type'] = item['type'].strip()
             if item.get('date'):
                 if item.get('time'):
                     d = dateparser.parse(f'{item.get("date")} {item.get("time")}')
@@ -163,7 +168,7 @@ class CourtSiteParser(CommonParser):
                     local_dt = timezone.localize(d)
                     result_item['date'] = utc.normalize(local_dt.astimezone(utc))
             if item.get('result'):
-                result_item['result'] = event_result_types_dict[item['result'].strip()]
+                result_item['result'] = item['result'].strip()
             result['events'].append(result_item)
 
         for item in case_info['defenses']:

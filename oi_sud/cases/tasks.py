@@ -80,6 +80,11 @@ def group_by_region(region=None):
         grouper.group_cases(region=region)
     return True
 
+@shared_task
+def group_moscow_cases():
+    grouper.group_moscow_cases()
+    return True
+
 
 @shared_task
 def update_cases_by_court(court_id, newest=False, delta_days=3*30):
@@ -122,7 +127,20 @@ def get_moscow_uk_cases_second(newest=False):
     entry_date = get_start_date(30 * 6) if newest else None
     return MoscowCasesGetter().get_cases(2, 'uk', entry_date_from=entry_date)
 
+@shared_task
+def get_moscow_cases(newest=False):
+    callback = group_moscow_cases.si().set(queue="other")
+    header = []
 
+    header += [get_moscow_koap_cases_first.si(newest=newest).set(queue="other"),
+               get_moscow_koap_cases_second.si(newest=newest).set(queue="other"),
+               get_moscow_uk_cases_first.si(newest=newest).set(queue="other"),
+               get_moscow_uk_cases_second.si(newest=newest).set(queue="other")
+               ]
+
+    result = chord(header)(callback)
+    with allow_join_result():
+        result.get()
 
 
 @shared_task

@@ -2,6 +2,7 @@ import editdistance
 import traceback
 from django.db import models
 from django.urls import reverse
+from django.contrib.postgres.fields import ArrayField
 
 from oi_sud.cases.consts import RESULT_TYPES, EVENT_TYPES, EVENT_RESULT_TYPES, APPEAL_RESULT_TYPES
 from oi_sud.core.utils import nullable
@@ -58,7 +59,7 @@ class Case(models.Model):
     result_valid_date = models.DateField(verbose_name='Решение вступило в силу', **nullable)  # решение вступило в силу
     forwarding_to_higher_court_date = models.DateField(verbose_name='Дата направления в вышестоящий суд', **nullable)
     appeal_date = models.DateField(verbose_name='Дата рассмотрения жалобы', **nullable)
-    appeal_result = models.IntegerField(verbose_name='Результат обжалования', choices=APPEAL_RESULT_TYPES, **nullable)
+    appeal_result = models.CharField(max_length=120, verbose_name='Результат обжалования', **nullable)
     forwarding_to_lower_court_date = models.DateField(verbose_name='Дата направления в нижестоящий суд', **nullable)
     judge = models.ForeignKey('courts.Judge', verbose_name='Судья', on_delete=models.CASCADE, **nullable)
     court = models.ForeignKey('courts.Court', verbose_name='Cуд', on_delete=models.CASCADE)
@@ -70,7 +71,7 @@ class Case(models.Model):
     protocol_number = models.CharField(max_length=50, verbose_name='Номер протокола',
                                        **nullable)  # номер протокола (для дел об АП)
     codex_articles = models.ManyToManyField('codex.CodexArticle', verbose_name='Статьи')
-    result_type = models.IntegerField(choices=RESULT_TYPES, verbose_name='Решение по делу', **nullable)
+    result_type = models.CharField(max_length=200, verbose_name='Решение по делу', **nullable)
     result_text = models.TextField(verbose_name='Текст решения', **nullable)  # Текст решения
     type = models.IntegerField(choices=CASE_TYPES, verbose_name='Тип судопроизводства')  # тип судопроизводства
     stage = models.IntegerField(choices=CASE_STAGES,
@@ -78,6 +79,10 @@ class Case(models.Model):
     #group = models.ForeignKey('CaseGroup', on_delete=models.CASCADE, related_name='group_cases',**nullable)  # ссылки на аппеляции и пересмотры
     url = models.URLField(verbose_name='URL', unique=True, **nullable)
     linked_cases = models.ManyToManyField("self", symmetrical=True)
+
+    linked_case_number = ArrayField(models.CharField(max_length=50), verbose_name='Номер связанного дела', **nullable) #Москва
+    linked_case_url = ArrayField(models.URLField(), verbose_name='Ссылка на связанное дело', **nullable) #Москва
+
     objects = CaseManager()
 
     class Meta:
@@ -88,6 +93,8 @@ class Case(models.Model):
 
         articles_list = ','.join([str(x) for x in self.codex_articles.all()])
         return f'{self.case_number} {articles_list} {self.court}'
+
+
 
     def get_codex_type(self):
         if self.type == 1:
@@ -103,6 +110,9 @@ class Case(models.Model):
 
     def get_admin_url(self):
         return f'/admin/cases/{self.get_codex_type()}case/{self.pk}/change/'
+
+    def get_result_text_url(self):
+        return reverse('case_result_text', kwargs={'case_id': self.pk})
 
     @staticmethod
     def autocomplete_search_fields():
@@ -225,13 +235,14 @@ class LinkedCasesProxy(Case.linked_cases.through):
 class CaseEvent(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     date = models.DateTimeField(verbose_name='Дата', **nullable)
-    type = models.IntegerField(choices=EVENT_TYPES, verbose_name='Тип')
-    result = models.IntegerField(choices=EVENT_RESULT_TYPES, verbose_name='Результат', **nullable)
+    type = models.CharField(max_length=200, verbose_name='Тип')
+    result = models.CharField(max_length=200, verbose_name='Результат', **nullable)
     courtroom = models.IntegerField(verbose_name='Зал суда', **nullable)
-    case = models.ForeignKey('Case', on_delete=models.CASCADE)
+    case = models.ForeignKey('Case', on_delete=models.CASCADE, related_name='events')
 
     def __str__(self):
-        return f'{self.get_type_display()}'
+        return f'{self.type}'
+
 
     class Meta:
         verbose_name = 'Событие в деле'
