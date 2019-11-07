@@ -179,13 +179,11 @@ class MoscowParser(CourtSiteParser):
                       'Осужденный (оправданный, обвиняемый)': 'uk_defense',
                       'Лицо': 'uk_defense',
                       'Подсудимый': 'uk_defense'}
-
+        defense = {}
         for key in content_dict.keys():
             if key in dict_names.keys():
-
                 # закидываем привлекаемое лицо и статью во внутренний список словарей
                 if key in ['Привлекаемое лицо', 'Статья КоАП РФ']:
-                    defense = {}
                     defense[dict_names[key]] = content_dict[key]
                     case_info['defenses'] = [defense]
 
