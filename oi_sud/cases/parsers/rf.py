@@ -46,6 +46,9 @@ class RFCourtSiteParser(CourtSiteParser):
     def get_cases_urls(self, url = None):
         # Получаем все урлы дел в данном суде
 
+
+        print(url, 'url')
+
         if not url:
             url = self.url
         txt, status_code = self.send_get_request(url)
@@ -58,7 +61,10 @@ class RFCourtSiteParser(CourtSiteParser):
         all_pages = [first_page, ]
 
         if pages_number != 1:
-            pages_urls = [f'{url}&page={p}' for p in range(2, pages_number + 1)]
+            if self.court.site_type == 2:
+                pages_urls = [f'{url}&_page={p}' for p in range(2, pages_number + 1)]
+            elif self.court.site_type == 1:
+                pages_urls = [f'{url}&page={p}' for p in range(2, pages_number + 1)]
 
             for url in pages_urls:
                 txt, status_code = self.send_get_request(url)
@@ -357,7 +363,7 @@ class SecondParser(RFCourtSiteParser):
         # получаем число страниц с делами
         pagination = page.find('ul', class_='pagination')
         if pagination:
-            last_page_href = pagination.findAll('li')[-1].find('a')['href']
+            last_page_href = pagination.findAll('li')[-2].find('a')['href']
             pages_number = int(get_query_key(last_page_href, '_page'))
             return pages_number
         else:
@@ -486,6 +492,7 @@ class RFCasesGetter(CommonParser):
                 url = self.generate_url(court, params, instance)
                 if court.site_type == 2:
                     url = url.replace('XXX', court.vn_kod)
+                    print(url, 'urlll')
                     result = SecondParser(court=court, stage=instance, codex=self.codex, url=url).save_cases()
                     all_results[court.title] = result
                 elif court.site_type == 1:
