@@ -3,6 +3,7 @@ import traceback
 from django.db import models
 from django.urls import reverse
 from django.contrib.postgres.fields import ArrayField
+from django.utils import timezone
 
 from oi_sud.cases.consts import RESULT_TYPES, EVENT_TYPES, EVENT_RESULT_TYPES, APPEAL_RESULT_TYPES
 from oi_sud.core.utils import nullable
@@ -151,6 +152,9 @@ class Case(models.Model):
 
         old_data = self.serialize()
         #print(old_data, fresh_data)
+        if not old_data.result_text and fresh_data.result_text:
+            fresh_data['case']['result_published_date'] = timezone.now()
+
         if fresh_data['case'] != old_data['case']:
             print(f'Updating case... {self}')
             Case.objects.filter(pk=self.id).update(**fresh_data['case'])
@@ -210,6 +214,7 @@ class UKCase(Case):
         proxy = True
         verbose_name = 'Дело (УК)'
         verbose_name_plural = 'Дела (УК)'
+        ordering = ['-entry_date',]
 
 
 class KoapCase(Case):
@@ -217,6 +222,7 @@ class KoapCase(Case):
         proxy = True
         verbose_name = 'Дело (КОАП)'
         verbose_name_plural = 'Дела (КОАП)'
+        ordering = ['-entry_date', ]
 
 
 class LinkedCasesProxy(Case.linked_cases.through):

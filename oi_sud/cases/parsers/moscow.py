@@ -130,7 +130,7 @@ class MoscowParser(CourtSiteParser):
         case_info = {}
 
         case_info['court'] = self.get_court_from_url(url)
-        case_info['url'] = url
+        case_info['url'] = url.split('?')[0]
 
         content_dict = {}
         content = page.findAll('div', class_="row_card")
