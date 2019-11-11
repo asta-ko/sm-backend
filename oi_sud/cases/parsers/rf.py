@@ -365,6 +365,7 @@ class SecondParser(RFCourtSiteParser):
         if pagination:
             last_page_href = pagination.findAll('li')[-2].find('a')['href']
             pages_number = int(get_query_key(last_page_href, '_page'))
+
             return pages_number
         else:
             return 1
@@ -390,7 +391,7 @@ class SecondParser(RFCourtSiteParser):
             print("GET error: ", status_code)
             return None
         page = BeautifulSoup(txt, 'html.parser')
-        case_info['case_number'] = page.find('div', class_='case-num').text.replace('дело № ', '')
+        case_info['case_number'] = page.find('div', class_='case-num').text.replace('дело № ', '').replace('ДЕЛО № ', '')
         case_info['url'] = url
         case_result_text_div = page.find('div', id='tab_content_Document1')
         if case_result_text_div:
