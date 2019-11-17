@@ -382,6 +382,9 @@ moscow_params_dict = {'last_name': 'participant',
                            'processType':'processType',
                            }
 
+
+msudrf_params_dict = {}
+
 site_type_dict = {
     '1': {'koap': {'string': adm_type_one_params_string, 'params_dict': adm_type_one_params_dict},
           'uk': {'string': cr_type_one_params_string, 'params_dict': cr_type_one_params_dict}},
