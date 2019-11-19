@@ -16,7 +16,8 @@ COURT_TYPES = (
     (5, 'Гарнизонный военный суд'),
     (6, 'Окружной военный (флотский) суд'),
     (7, 'Суд автономного округа'),
-    (8, 'Суд автономной области')
+    (8, 'Суд автономной области'),
+    (9, 'Участок мирового судьи')
 )
 
 COURT_INSTANCE_TYPES = (
@@ -27,7 +28,8 @@ COURT_INSTANCE_TYPES = (
 SITE_TYPES = (
     (1, 'Первый тип сайта'),
     (2, 'Второй тип сайта'),
-    (3, 'Московский тип сайта')
+    (3, 'Московский тип сайта'),
+    (4, 'Мировой суд - тип msudrf')
 )
 
 
@@ -61,10 +63,10 @@ class Court(models.Model):
     type = models.IntegerField(verbose_name='Тип суда', choices=COURT_TYPES)  # районный/областной/военный/городской
     instance = models.IntegerField(verbose_name='Тип суда по инстанции', choices=COURT_INSTANCE_TYPES, default=1)
     site_type = models.IntegerField(verbose_name='Тип сайта суда', choices=SITE_TYPES, default=1)  # тип сайта для парсинга
-    vn_kod = models.CharField(verbose_name='VN код', max_length=25, **nullable)
+    vn_kod = models.CharField(verbose_name='VN код', max_length=25, **nullable) #для 2 типа сайтов
     email = models.CharField(verbose_name='Email', max_length=40, **nullable)
     not_available = models.BooleanField(default=False)
-    servers_num = models.IntegerField(verbose_name='Количество серверов', null=True, blank=True, default=1)
+    servers_num = models.IntegerField(verbose_name='Количество серверов', null=True, blank=True, default=1) #для 1 и 2 типа сайтов
     unprocessed_cases_urls = ArrayField(models.CharField(max_length=200), default=new_array, blank=True, verbose_name='Дела для обработки')
 
     class Meta:

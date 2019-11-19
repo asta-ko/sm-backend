@@ -4,6 +4,7 @@ from django.db import models
 from django.urls import reverse
 from django.contrib.postgres.fields import ArrayField
 from django.utils import timezone
+from django.conf import settings
 
 from oi_sud.cases.consts import RESULT_TYPES, EVENT_TYPES, EVENT_RESULT_TYPES, APPEAL_RESULT_TYPES
 from oi_sud.core.utils import nullable
@@ -71,7 +72,7 @@ class Case(models.Model):
     case_uid = models.CharField(max_length=50, verbose_name='ID в sudrf', **nullable)  # Уникальный id в системе sudrf
     protocol_number = models.CharField(max_length=50, verbose_name='Номер протокола',
                                        **nullable)  # номер протокола (для дел об АП)
-    codex_articles = models.ManyToManyField('codex.CodexArticle', verbose_name='Статьи')
+    codex_articles = models.ManyToManyField('codex.CodexArticle', verbose_name='Статьи', related_name='cases')
     result_type = models.CharField(max_length=200, verbose_name='Решение по делу', **nullable)
     result_text = models.TextField(verbose_name='Текст решения', **nullable)  # Текст решения
     type = models.IntegerField(choices=CASE_TYPES, verbose_name='Тип судопроизводства')  # тип судопроизводства
@@ -96,7 +97,6 @@ class Case(models.Model):
         return f'{self.case_number} {articles_list} {self.court}'
 
 
-
     def get_codex_type(self):
         if self.type == 1:
             return 'koap'
@@ -110,10 +110,10 @@ class Case(models.Model):
         return self.linked_cases.filter(stage=1).first()
 
     def get_admin_url(self):
-        return f'/admin/cases/{self.get_codex_type()}case/{self.pk}/change/'
+        return f'{settings.BASE_URL}/admin/cases/{self.get_codex_type()}case/{self.pk}/change/'
 
     def get_result_text_url(self):
-        return reverse('case_result_text', kwargs={'case_id': self.pk})
+        return f"{settings.BASE_URL}{reverse('case-result-text', kwargs={'case_id': self.pk})}"
 
     @staticmethod
     def autocomplete_search_fields():
@@ -253,6 +253,7 @@ class CaseEvent(models.Model):
     class Meta:
         verbose_name = 'Событие в деле'
         verbose_name_plural = 'События в деле'
+        ordering = ['date',]
 
 
 class Advocate(models.Model):

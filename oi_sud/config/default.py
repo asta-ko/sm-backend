@@ -28,8 +28,10 @@ DEBUG = True
 
 DEBUG_REQUESTS = False
 
-ALLOWED_HOSTS = ['oi_sud.ovdinfo.org']
+ALLOWED_HOSTS = ['sudmonster.ovdinfo.org']
 
+
+BASE_URL = 'https://sudmonster.ovdinfo.org'
 # Application definition
 
 INSTALLED_APPS = [
@@ -43,6 +45,8 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'celery_progress',
+    'rest_framework',
+    'django_filters',
     'django_celery_results',
     'django_celery_beat',
     'oi_sud.core',
@@ -218,4 +222,16 @@ TEST_MODE = False
 #
 # ]
 
+
+REST_FRAMEWORK = {
+    'DEFAULT_FILTER_BACKENDS': ['django_filters.rest_framework.DjangoFilterBackend'],
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'DATETIME_FORMAT': "%Y-%m-%d %H:%M",
+    'PAGE_SIZE': 5,
+    'DEFAULT_RENDERER_CLASSES': [
+        'rest_framework.renderers.JSONRenderer',
+        'rest_framework.renderers.BrowsableAPIRenderer',
+        'rest_framework.renderers.AdminRenderer'
+    ]
+}
 

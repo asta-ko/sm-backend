@@ -22,3 +22,6 @@ editdistance
 docx2txt
 django-celery-beat
 django-celery-results
+djangorestframework
+markdown
+django-filter
