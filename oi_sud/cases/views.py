@@ -40,10 +40,10 @@ class CaseFilter(django_filters.FilterSet):
     result_type =  django_filters.CharFilter(field_name="result_type", lookup_expr='icontains', label="Решение по делу")
     result_text_contains = django_filters.CharFilter(field_name="result_text", lookup_expr='icontains', label="Текст решения содержит")
     date_range = django_filters.DateRangeFilter(field_name="entry_date")#, widget=RangeWidget(attrs={'placeholder': 'YYYY/MM/DD'}))
-    is_in_future = django_filters.BooleanFilter(field_name='events', method='get_future', label='Еще не рассмотрено')
+    #is_in_future = django_filters.BooleanFilter(field_name='events', method='get_future', label='Еще не рассмотрено')
 
-    def get_future(self, queryset, name, value):
-            return queryset.filter(Q(events__date__gt=timezone.now())|Q(events__isnull=True, result_date__isnull=True))
+    # def get_future(self, queryset, name, value):
+    #         return queryset.filter(Q(result_date__gt=timezone.now())|Q(events__isnull=True, result_date__isnull=True))
 
 
     class Meta:

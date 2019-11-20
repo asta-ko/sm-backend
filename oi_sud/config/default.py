@@ -193,34 +193,40 @@ JET_SIDE_MENU_COMPACT = True
 
 TEST_MODE = False
 
-# JET_SIDE_MENU_ITEMS = [
-#
-#     {'app_label': 'codex', 'items': [
-#         {'name': 'koapcodexarticle'},
-#         {'name': 'ukcodexarticle'},
-#     ]},
-#     {'app_label': 'cases', 'items': [
-#         {'name': 'koapcase'},
-#         {'name': 'ukcase'},
-#         {'name': 'defendant'},
-#     ]},
-#     {'app_label': 'courts', 'items': [
-#         {'name': 'court'},
-#         {'name': 'judge'},
-#     ]},
-#
-#     {'app_label': 'django_celery_results', 'items': [
-#         {'name': 'taskresult'},
-#         {'label': 'Running tasks', 'url': '/admin/active_celery_tasks', 'url_blank': True},
-#     ]},
-#     {'app_label': 'django_celery_beat', 'items': [
-#         {'name': 'intervalschedule'},
-#         {'name': 'periodictask'},
-#
-#     ]},
-#
-#
-# ]
+JET_SIDE_MENU_ITEMS = [
+
+    {'app_label': 'codex', 'items': [
+        {'name': 'koapcodexarticle'},
+        {'name': 'ukcodexarticle'},
+    ]},
+    {'app_label': 'cases', 'items': [
+        {'name': 'koapcase'},
+        {'name': 'ukcase'},
+        {'name': 'defendant'},
+    ]},
+    {'app_label': 'courts', 'items': [
+        {'name': 'court'},
+        {'name': 'judge'},
+    ]},
+
+    {'app_label': 'django_celery_results', 'items': [
+        {'name': 'taskresult'},
+        # {'label': 'Running tasks', 'url': '/admin/active_celery_tasks', 'url_blank': True},
+    ]},
+    {'app_label': 'django_celery_beat', 'items': [
+        {'name': 'intervalschedule'},
+        {'name': 'periodictask'},
+
+    ]},
+
+    {'app_label': 'API', 'items': [
+        {'label': 'Cases count', 'url':'/api/v1/countcases'},
+        {'label': 'Cases', 'url':'/api/v1/cases'},
+
+    ]},
+
+
+]
 
 
 REST_FRAMEWORK = {
