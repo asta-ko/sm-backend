@@ -152,7 +152,7 @@ class Case(models.Model):
 
         old_data = self.serialize()
         #print(old_data, fresh_data)
-        if not old_data.result_text and fresh_data.result_text:
+        if not old_data.get('result_text') and fresh_data.get('result_text'):
             fresh_data['case']['result_published_date'] = timezone.now()
 
         if fresh_data['case'] != old_data['case']:

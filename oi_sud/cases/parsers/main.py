@@ -61,12 +61,16 @@ class CourtSiteParser(CommonParser):
                     result['exist'] += 1
                     continue
                 raw_case_data = self.get_raw_case_information(case_url)
+
                 if not raw_case_data:
                     result['errors'] += 1
                     result['error_urls'].append(case_url)
                     continue
                 serialized_case_data = self.serialize_data(raw_case_data)
-                Case.objects.create_case_from_data(serialized_case_data)
+                new_case = Case.objects.create_case_from_data(serialized_case_data)
+
+                if Case.objects.exclude(id=new_case.id).filter(case_uid=raw_case_data.get('case_uid'), court=self.court, case_number=raw_case_data.get('case_number')).exists():
+                    Case.objects.exclude(id=new_case.id).filter(case_uid=raw_case_data.get('case_uid'), court=self.court, case_number=raw_case_data.get('case_number')).delete()
                 if self.court and case_url in self.court.unprocessed_cases_urls:
                     self.court.unprocessed_cases_urls.remove(case_url)
                     self.court.save()
