@@ -106,6 +106,7 @@ class CountCasesView(APIView):
             return Response([])
 
 class CasesView(ListAPIView):
+    permission_classes = (permissions.IsAdminUser,)
     serializer_class = CaseSerializer
     filter_backends = [CaseFilterBackend, filters.OrderingFilter]
     filterset_class = CaseArticleFilter
@@ -117,6 +118,8 @@ class CasesView(ListAPIView):
 
 
 class CaseView(RetrieveAPIView):
+    permission_classes = (permissions.IsAdminUser,)
     serializer_class = CaseFullSerializer
     queryset = Case.objects.prefetch_related(Prefetch('events',
         queryset=CaseEvent.objects.order_by('date')), 'defendants', 'court', 'judge', 'codex_articles')
+
