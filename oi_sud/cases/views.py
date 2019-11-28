@@ -95,12 +95,28 @@ class CountCasesView(APIView):
             data = {'all': count_all, 'koap': {'count': koap_qs.count(), 'articles': {}},
                     'uk': {'count': uk_qs.count(), 'articles': {}}}
 
-            for article in KoapCodexArticle.objects.filter(active=True):
-                if koap_qs.filter(codex_articles__in=[article]).count():
-                    data['koap']['articles'][article.__str__()] = koap_qs.filter(codex_articles__in=[article]).count()
-            for article in UKCodexArticle.objects.filter(active=True):
-                if uk_qs.filter(codex_articles__in=[article]).count():
-                    data['uk']['articles'][article.__str__()] = uk_qs.filter(codex_articles__in=[article]).count()
+            for article_number in KoapCodexArticle.objects.filter(active=True).values_list('article_number', flat=True).distinct():
+                #if koap_qs.filter(codex_articles__artile_number=article_number).count():
+
+                data['koap']['articles'][article_number] = {'all':koap_qs.filter(codex_articles__article_number=article_number).count()}
+                if KoapCodexArticle.objects.filter(article_number=article_number).count() > 1:
+                    for article in KoapCodexArticle.objects.filter(article_number=article_number):
+                        if koap_qs.filter(codex_articles__in=[article]).count():
+                            data['koap']['articles'][article_number][article.__str__()] = koap_qs.filter(codex_articles__in=[article]).count()
+            for article_number in UKCodexArticle.objects.filter(active=True).values_list('article_number',
+                                                                                           flat=True).distinct():
+                # if koap_qs.filter(codex_articles__artile_number=article_number).count():
+                data['uk']['articles'][article_number] = {
+                    'all': uk_qs.filter(codex_articles__article_number=article_number).count()}
+                if UKCodexArticle.objects.filter(article_number=article_number).count() > 1:
+                    for article in UKCodexArticle.objects.filter(article_number=article_number):
+                        if uk_qs.filter(codex_articles__in=[article]).count():
+                            data['uk']['articles'][article_number][article.__str__()] = uk_qs.filter(
+                                codex_articles__in=[article]).count()
+
+            # for article in UKCodexArticle.objects.filter(active=True):
+            #     if uk_qs.filter(codex_articles__in=[article]).count():
+            #         data['uk']['articles'][article.__str__()] = uk_qs.filter(codex_articles__in=[article]).count()
             return Response([data])
         else:
             return Response([])
