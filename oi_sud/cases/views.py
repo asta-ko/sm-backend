@@ -5,6 +5,7 @@ from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django_filters.rest_framework import DjangoFilterBackend
+from django_filters.widgets import RangeWidget
 from rest_framework import filters
 from rest_framework import permissions
 from rest_framework.generics import ListAPIView
@@ -39,9 +40,13 @@ class CaseFilter(django_filters.FilterSet):
     defendant = django_filters.CharFilter(field_name="defendants__last_name", lookup_expr='icontains', label="Ответчик")
     result_type =  django_filters.CharFilter(field_name="result_type", lookup_expr='icontains', label="Решение по делу")
     result_text_contains = django_filters.CharFilter(field_name="result_text", lookup_expr='icontains', label="Текст решения содержит")
-    date_range = django_filters.DateRangeFilter(field_name="entry_date")#, widget=RangeWidget(attrs={'placeholder': 'YYYY/MM/DD'}))
+    date_range = django_filters.DateFromToRangeFilter(field_name="entry_date", widget=RangeWidget(attrs={'placeholder': 'YYYY-MM-DD'}))
     #is_in_future = django_filters.BooleanFilter(field_name='events', method='get_future', label='Еще не рассмотрено')
+    has_result_text = django_filters.BooleanFilter(field_name='result_text', method='filter_result_text')
 
+    def filter_result_text(self, queryset, name, value):
+        # construct the full lookup expression.
+        return queryset.filter(result_text__isnull=False)
     # def get_future(self, queryset, name, value):
     #         return queryset.filter(Q(result_date__gt=timezone.now())|Q(events__isnull=True, result_date__isnull=True))
 
