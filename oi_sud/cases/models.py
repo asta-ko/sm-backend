@@ -47,9 +47,12 @@ class CaseManager(models.Manager):
             for event in item['events']:
                 event['case'] = case
                 case_event = CaseEvent.objects.create(**event)
+
             print('saved case ', case)
+            return case
         except Exception as e:
             print(traceback.format_exc())
+
 
 
 class Case(models.Model):
