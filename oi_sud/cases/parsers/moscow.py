@@ -22,6 +22,18 @@ dateparse_settings.RETURN_AS_TIMEZONE_AWARE = False
 
 class MoscowParser(CourtSiteParser):
 
+    def get_article_string(self):
+
+        koap_uk_space = ''
+        if self.article.codex == 'uk':
+            koap_uk_space = ' '
+
+        if self.article.part:
+            article_string = f'Ст. {self.article.article_number}, Ч.{koap_uk_space}{self.article.part}'
+        else:
+            article_string = f'Ст. {self.article.article_number}'
+        return article_string
+
     def get_court_from_url(self, url):
         # получаем суд из урла карточки
 
@@ -49,6 +61,9 @@ class MoscowParser(CourtSiteParser):
         for ev in events:
             ev_cols = ev.findAll('td')
             href = 'https://mos-gorsud.ru' + ev_cols[0]('a')[0]['href']
+            if ev_cols[4].text.strip() != self.get_article_string(): # проверка на точное соотстветствие, иначе смешает например ч.6 и ч.6.1
+                continue
+
             if Case.objects.filter(url=href).exists():
                 continue
             urls.append(href)
@@ -383,4 +398,4 @@ class MoscowCasesGetter(CommonParser):
             url = self.generate_params('https://mos-gorsud.ru/mgs/search?courtAlias=', params)
             print(url)
 
-            MoscowParser(url=url, stage=instance, codex=codex).save_cases()
+            MoscowParser(url=url, stage=instance, codex=codex, article=article).save_cases()

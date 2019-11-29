@@ -28,11 +28,12 @@ from pytz import utc
 
 class CourtSiteParser(CommonParser):
 
-    def __init__(self, court=None, url=None, codex=None, stage=None):
+    def __init__(self, court=None, url=None, codex=None, stage=None, article=None):
         self.court = court
         self.url = url
         self.codex = codex
         self.stage = stage
+        self.article = article
 
     def save_cases(self, urls=None, retrying=False):
         # Берем список урлов дел данного суда данной инстанции и сохраняем дела в базу. Это самый главный метод
