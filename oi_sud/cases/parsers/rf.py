@@ -476,7 +476,7 @@ class RFCasesGetter(CommonParser):
         articles = CodexArticle.objects.filter(codex=self.codex, active=True)
         article_string = self.generate_articles_string(articles)
         if not courts_ids:
-            courts = Court.objects.all()
+            courts = Court.objects.exclude(type=9)
         else:
             courts = Court.objects.filter(pk__in=courts_ids)
         if courts_limit:

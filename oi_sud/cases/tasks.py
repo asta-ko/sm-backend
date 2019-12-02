@@ -56,7 +56,7 @@ def get_cases_from_region(region=78, newest=False):
     callback = group_by_region.si(region=region).set(queue="other")
     header = []
 
-    region_courts = Court.objects.filter(region=region)
+    region_courts = Court.objects.exclude(type=9).filter(region=region)
     chunked_courts = chunks(region_courts.values_list('id', flat=True), 10)
 
     for chunk in chunked_courts:
