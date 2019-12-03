@@ -25,3 +25,4 @@ django-celery-results
 djangorestframework
 markdown
 django-filter
+django-elasticsearch-dsl-drf

@@ -6,7 +6,7 @@ x-global-environment: &global-environment
 
 x-projectname: &oi_sud
     env_file: .env
-    image: __C_PROJECT_NAME__-virtualenv:latest
+    image: __C_PROJECT_NAME__-virtualenv-test:latest
     environment:
         <<: *global-environment
     volumes:
@@ -52,22 +52,44 @@ services:
           DJANGO_SETTINGS_MODULE: 'oi_sud.config.test'
         command: ["echo", "'test'"]
 
-#    celery_main:
-#        <<: *oi_sud
-#        command: ["celery", "-A", "oi_sud", "worker", "-l", "info", "-Q", "main", "-c", "1", "-n", "main" ]
-#
-#    celery_other:
-#        <<: *oi_sud
-#        command: ["celery", "-A", "oi_sud", "worker", "-l", "info", "-Q", "other", "-c", "8", "-n", "other" ]
-#
-#    celerybeat:
-#        <<: *oi_sud
-#        command: ["celery", "-A", "oi_sud", "beat", "-l", "info", "--pidfile", "/tmp/celerybeat12.pid", "--schedule", "/tmp/celerybeat-schedule"]
-#
-#    flower:
-#      image: mher/flower
-#      command: ["flower", "--broker=redis://redis:6379/0", "--port=8888"]
-#      ports:
-#         - 8888:8888
+
+    elasticsearch:
+      container_name: django_elasticsearch_dsl_drf_elasticsearch
+#      build:
+#        context: .
+#        dockerfile: ./docker/elasticsearch/Dockerfile
+      image: docker.elastic.co/elasticsearch/elasticsearch:7.3.0
+      volumes:
+      - esdata:/usr/share/elasticsearch/data
+      ports:
+      - 9200:9200
+      - 9300:9300
+      environment:
+  #    - bootstrap.memory_lock=true
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+      - cluster.routing.allocation.disk.watermark.low=97%
+      - cluster.routing.allocation.disk.watermark.high=98%
+      - cluster.routing.allocation.disk.watermark.flood_stage=99%
+
+    celery_main:
+        <<: *oi_sud
+        command: ["celery", "-A", "oi_sud", "worker", "-l", "info", "-Q", "main", "-c", "1", "-n", "main" ]
+
+    celery_other:
+        <<: *oi_sud
+        command: ["celery", "-A", "oi_sud", "worker", "-l", "info", "-Q", "other", "-c", "8", "-n", "other" ]
+
+    celerybeat:
+        <<: *oi_sud
+        command: ["celery", "-A", "oi_sud", "beat", "--scheduler", "django_celery_beat.schedulers:DatabaseScheduler", "-l", "info", "--pidfile", "/tmp/celerybeat123324.pid", "--schedule", "/tmp/celerybeat-schedule"]
+
+    flower:
+      image: mher/flower
+      command: ["flower", "--broker=redis://redis:6379/0", "--port=8888"]
+      ports:
+         - 8888:8888
 volumes:
   db-data:
+  esdata:
