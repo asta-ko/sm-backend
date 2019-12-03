@@ -87,6 +87,10 @@ class Case(models.Model):
 
     linked_case_number = ArrayField(models.CharField(max_length=50), verbose_name='Номер связанного дела', **nullable) #Москва
     linked_case_url = ArrayField(models.URLField(), verbose_name='Ссылка на связанное дело', **nullable) #Москва
+    koap_money_sum = models.IntegerField(verbose_name='Штраф', **nullable)
+    koap_detention_days = models.IntegerField(verbose_name='Арест (дни)', **nullable)
+    koap_public_work_hours = models.IntegerField(verbose_name='Общественные работы (часы)', **nullable)
+
 
     objects = CaseManager()
 
@@ -221,6 +225,9 @@ class UKCase(Case):
 
 
 class KoapCase(Case):
+
+
+
     class Meta:
         proxy = True
         verbose_name = 'Дело (КОАП)'
