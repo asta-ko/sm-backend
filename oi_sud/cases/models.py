@@ -83,7 +83,7 @@ class Case(models.Model):
                                 verbose_name='Инстанция')  # первая инстанция, обжалование, пересмотр, кассация
     #group = models.ForeignKey('CaseGroup', on_delete=models.CASCADE, related_name='group_cases',**nullable)  # ссылки на аппеляции и пересмотры
     url = models.URLField(verbose_name='URL', unique=True, **nullable)
-    linked_cases = models.ManyToManyField("self", symmetrical=True)
+    linked_cases = models.ManyToManyField("self", symmetrical=True, **nullable)
 
     linked_case_number = ArrayField(models.CharField(max_length=50), verbose_name='Номер связанного дела', **nullable) #Москва
     linked_case_url = ArrayField(models.URLField(), verbose_name='Ссылка на связанное дело', **nullable) #Москва
@@ -93,6 +93,8 @@ class Case(models.Model):
 
 
     objects = CaseManager()
+
+
 
     class Meta:
         verbose_name = 'Дело'
@@ -217,6 +219,7 @@ class Case(models.Model):
 
 
 class UKCase(Case):
+
     class Meta:
         proxy = True
         verbose_name = 'Дело (УК)'
@@ -225,8 +228,6 @@ class UKCase(Case):
 
 
 class KoapCase(Case):
-
-
 
     class Meta:
         proxy = True
