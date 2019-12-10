@@ -18,7 +18,7 @@ from django.contrib.postgres.search import SearchQuery
 from oi_sud.cases.models import Case, CaseEvent
 from oi_sud.cases.serializers import CaseSerializer, CaseFullSerializer
 from oi_sud.codex.models import KoapCodexArticle, UKCodexArticle
-from oi_sud.search_indexes.cases import CaseDocument
+
 
 
 
