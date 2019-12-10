@@ -39,7 +39,7 @@ class CaseSerializer(SkipNullValuesMixin, serializers.ModelSerializer):
 
     class Meta:
         model = Case
-        exclude = ['result_text',  'advocates']
+        exclude = ['result_text',  'advocates', 'text_search']
 
     def get_judge(self, obj):
         return str(obj.judge)

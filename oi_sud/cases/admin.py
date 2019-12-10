@@ -89,9 +89,9 @@ class CaseAdmin(admin.ModelAdmin):
     has_result_text_icon.short_description = 'Есть текст'
 
     def get_form(self, request, obj=None, **kwargs):
-        exclude = []
+        exclude = ['text_search',]
         for field in Case._meta.get_fields():
-            if field.name in ['caseevent', 'casedefense']:
+            if field.name in ['caseevent', 'casedefense', ]:
                 continue
             if getattr(obj, field.name) is None:
                 exclude.append(field.name)
