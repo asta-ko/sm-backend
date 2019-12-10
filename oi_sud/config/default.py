@@ -49,6 +49,7 @@ INSTALLED_APPS = [
     'django_filters',
     'django_celery_results',
     'django_celery_beat',
+    'django.contrib.postgres',
     'oi_sud.core',
     'oi_sud.courts.apps.CourtsConfig',
     'oi_sud.codex.apps.CodexConfig',
@@ -240,4 +241,3 @@ REST_FRAMEWORK = {
         'rest_framework.renderers.AdminRenderer'
     ]
 }
-

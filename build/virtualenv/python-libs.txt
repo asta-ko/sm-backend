@@ -1,6 +1,6 @@
 gunicorn==19.9.0
 raven[flask]==6.9.0
-django
+django==2.2.8
 beautifulsoup4
 airtable
 redis==3.2.0
@@ -25,4 +25,4 @@ django-celery-results
 djangorestframework
 markdown
 django-filter
-django-elasticsearch-dsl-drf
+

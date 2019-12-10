@@ -13,9 +13,13 @@ from rest_framework.generics import RetrieveAPIView
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from django.contrib.postgres.search import SearchQuery
+
 from oi_sud.cases.models import Case, CaseEvent
 from oi_sud.cases.serializers import CaseSerializer, CaseFullSerializer
 from oi_sud.codex.models import KoapCodexArticle, UKCodexArticle
+from oi_sud.search_indexes.cases import CaseDocument
+
 
 
 def get_result_text(request, case_id):
@@ -39,14 +43,20 @@ class CaseFilter(django_filters.FilterSet):
     court_city = django_filters.CharFilter(field_name="court__city", lookup_expr='icontains', label="Город/Населенный пункт")
     defendant = django_filters.CharFilter(field_name="defendants__last_name", lookup_expr='icontains', label="Ответчик")
     result_type =  django_filters.CharFilter(field_name="result_type", lookup_expr='icontains', label="Решение по делу")
-    result_text_contains = django_filters.CharFilter(field_name="result_text", lookup_expr='icontains', label="Текст решения содержит")
     date_range = django_filters.DateFromToRangeFilter(field_name="entry_date", widget=RangeWidget(attrs={'placeholder': 'YYYY-MM-DD'}))
     #is_in_future = django_filters.BooleanFilter(field_name='events', method='get_future', label='Еще не рассмотрено')
-    has_result_text = django_filters.BooleanFilter(field_name='result_text', method='filter_result_text')
+    has_result_text = django_filters.BooleanFilter(field_name='result_text', method='filter_has_result_text', label="Есть текст решения")
+    result_text_search = django_filters.CharFilter(field_name="result_text", method='filter_result_search', label="Текст решения содержит")
 
-    def filter_result_text(self, queryset, name, value):
+    def filter_has_result_text(self, queryset, name, value):
         # construct the full lookup expression.
-        return queryset.filter(result_text__isnull=False)
+        lookup = '__'.join([name, 'isnull'])
+        return queryset.filter(**{lookup: False})
+
+    def filter_result_search(self, queryset, name, value):
+
+        return queryset.filter(text_search=SearchQuery(value, config='russian'))
+
     # def get_future(self, queryset, name, value):
     #         return queryset.filter(Q(result_date__gt=timezone.now())|Q(events__isnull=True, result_date__isnull=True))
 
@@ -134,7 +144,6 @@ class CasesView(ListAPIView):
     queryset = Case.objects.prefetch_related(Prefetch('events',
         queryset=CaseEvent.objects.order_by('date')), 'defendants', 'court', 'judge', 'codex_articles')
 
-    # search_fields = ['defendants__last_name', 'judge__name']
     ordering_fields = ['entry_date',]
 
 

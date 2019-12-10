@@ -6,6 +6,11 @@ from django.contrib.postgres.fields import ArrayField
 from django.utils import timezone
 from django.conf import settings
 
+from django.contrib.postgres.indexes import GinIndex
+from django.contrib.postgres.search import SearchVectorField
+
+
+
 from oi_sud.cases.consts import RESULT_TYPES, EVENT_TYPES, EVENT_RESULT_TYPES, APPEAL_RESULT_TYPES
 from oi_sud.core.utils import nullable
 from oi_sud.cases.utils import normalize_name, parse_name_and_get_gender
@@ -90,7 +95,7 @@ class Case(models.Model):
     koap_money_sum = models.IntegerField(verbose_name='Штраф', **nullable)
     koap_detention_days = models.IntegerField(verbose_name='Арест (дни)', **nullable)
     koap_public_work_hours = models.IntegerField(verbose_name='Общественные работы (часы)', **nullable)
-
+    text_search = SearchVectorField(null=True)
 
     objects = CaseManager()
 
@@ -99,7 +104,9 @@ class Case(models.Model):
     class Meta:
         verbose_name = 'Дело'
         verbose_name_plural = 'Все дела'
-
+        indexes = [
+            GinIndex(fields=['text_search'])
+        ]
     def __str__(self):
 
         articles_list = ','.join([str(x) for x in self.codex_articles.all()])
