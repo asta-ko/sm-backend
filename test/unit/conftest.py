@@ -23,9 +23,12 @@ def moscow_courts():
 @pytest.fixture()
 def rf_courts():
     court_dicts = [
-        #{'url': 'https://musliumovsky--tat.sudrf.ru', 'title': 'Муслимовский районный суд', 'phone_numbers': ['-'],'region': 78,'site_type': 1, 'type': 2},
-         {'url':'https://krv--spb.sudrf.ru', 'title':'Кировский районный суд', 'phone_numbers':['-'], 'region':78, 'site_type':1, 'type':2},
-         {'url':'https://bezhecky--twr.sudrf.ru', 'title':'Бежецкий районный суд', 'phone_numbers':['-'], 'region':1, 'site_type':2, 'type':0, 'vn_kod':'69RS0002'}
+        # {'url': 'https://musliumovsky--tat.sudrf.ru', 'title': 'Муслимовский районный суд',
+        # 'phone_numbers': ['-'],'region': 78,'site_type': 1, 'type': 2},
+        {'url': 'https://krv--spb.sudrf.ru', 'title': 'Кировский районный суд', 'phone_numbers': ['-'], 'region': 78,
+         'site_type': 1, 'type': 2},
+        {'url': 'https://bezhecky--twr.sudrf.ru', 'title': 'Бежецкий районный суд', 'phone_numbers': ['-'], 'region': 1,
+         'site_type': 2, 'type': 0, 'vn_kod': '69RS0002'}
     ]
     for d in court_dicts:
         courts_parser.save_court(d)

@@ -18,11 +18,13 @@ dateparse_settings.TIMEZONE = str(get_current_timezone())
 dateparse_settings.RETURN_AS_TIMEZONE_AWARE = False
 
 
-
-
 class MoscowParser(CourtSiteParser):
 
     def get_article_string(self):
+
+        if not self.article:
+            print('no self article')
+            return None
 
         koap_uk_space = ''
         if self.article.codex == 'uk':
@@ -40,7 +42,7 @@ class MoscowParser(CourtSiteParser):
         url = url.split('/services')[0]
         court = Court.objects.filter(url=url).first()
         if not court:
-            court = Court.objects.filter(region=77, type=2).first() #мосгорсуд
+            court = Court.objects.filter(region=77, type=2).first()  # мосгорсуд
         return court
 
     def get_pages_number(self, page):
@@ -61,7 +63,9 @@ class MoscowParser(CourtSiteParser):
         for ev in events:
             ev_cols = ev.findAll('td')
             href = 'https://mos-gorsud.ru' + ev_cols[0]('a')[0]['href']
-            if ev_cols[4].text.strip() != self.get_article_string(): # проверка на точное соотстветствие, иначе смешает например ч.6 и ч.6.1
+            # проверка на точное соотстветствие, иначе смешает, например, ч.6 и ч.6.1
+            if ev_cols[4].text.strip() != self.get_article_string():
+                print('article string went wrong')
                 continue
 
             if Case.objects.filter(url=href).exists():
@@ -106,7 +110,7 @@ class MoscowParser(CourtSiteParser):
             except AttributeError:
                 print('error')
 
-        if all_cases_urls == []:
+        if not all_cases_urls:
             print('...Got no cases urls')
         else:
             print('...Got all cases urls')
@@ -114,11 +118,10 @@ class MoscowParser(CourtSiteParser):
         return all_cases_urls
 
     def url_to_str(self, url):
-        ''' выгружает текст из файла doc / docx, загружаемого по ссылке'''
+        """ выгружает текст из файла doc / docx, загружаемого по ссылке """
         file_res, status, content, extension = self.send_get_request(url, extended=True)
         bytes0 = content  # file_res#[2]
-        exten = extension
-        filename = "txt." + exten
+        filename = "txt." + extension
         f = open(filename, 'wb')
         f.write(bytes0)
         f.close()
@@ -142,10 +145,7 @@ class MoscowParser(CourtSiteParser):
             return
         page = BeautifulSoup(txt, 'html.parser')
 
-        case_info = {}
-
-        case_info['court'] = self.get_court_from_url(url)
-        case_info['url'] = url.split('?')[0]
+        case_info = {'court': self.get_court_from_url(url), 'url': url.split('?')[0]}
 
         content_dict = {}
         content = page.findAll('div', class_="row_card")
@@ -157,13 +157,11 @@ class MoscowParser(CourtSiteParser):
             row_right = row.find('div', class_='right')
             right = row_right.text.strip()
 
-
-
             if 'Номер дела в суде вышестоящей инстанции' in left or 'Номер дела в суде нижестоящей инстанции' in left:
 
                 links = row_right.findAll('a')
                 if len(links):
-                    hrefs = ['https://mos-gorsud.ru'+x['href'] for x in links]
+                    hrefs = ['https://mos-gorsud.ru' + x['href'] for x in links]
                     nums = [x.text for x in links]
                     content_dict['Ссылка на связанное дело'] = hrefs
 
@@ -185,9 +183,9 @@ class MoscowParser(CourtSiteParser):
                       'Номер дела ~ материала': 'case_number',
                       'Cудья': 'judge',
                       'Привлекаемое лицо': 'defendant', 'Статья КоАП РФ': 'codex_articles',
-                      #'Текущее состояние': 'current_state',
+                      # 'Текущее состояние': 'current_state',
                       'Дата рассмотрения дела в первой инстанции': 'result_date',
-                      'Дата окончания':'result_date',
+                      'Дата окончания': 'result_date',
                       'Номер дела в суде вышестоящей инстанции': 'linked_case_number',
                       'Номер дела в суде нижестоящей инстанции': 'linked_case_number',
                       'Ссылка на связанное дело': 'linked_case_url',
@@ -208,7 +206,7 @@ class MoscowParser(CourtSiteParser):
                 else:
                     case_info[dict_names[key]] = content_dict[key]
             else:
-                print ('не вошло в финальный словарь:', key, content_dict[key])
+                print('не вошло в финальный словарь:', key, content_dict[key])
 
         # выгружаем данные из таблиц "судебные заседания" и "судебные акты"
         table = page.findAll('table', class_="custom_table mainTable")
@@ -281,9 +279,8 @@ class MoscowParser(CourtSiteParser):
                     if tds[1] == 'Рассмотрение':
                         continue
 
-                    if tds[0].text.strip()  and tds[1].text.strip():
-                        events.append({'type': tds[1].text.strip(), 'date':tds[0].text.strip()})
-
+                    if tds[0].text.strip() and tds[1].text.strip():
+                        events.append({'type': tds[1].text.strip(), 'date': tds[0].text.strip()})
 
         # if table_case_location:  TODO: ДАТЫ
         #     for tr in table_case_location.findAll('tr'):
@@ -311,7 +308,6 @@ class MoscowParser(CourtSiteParser):
                 case_info['result_text'] = text
 
         return case_info
-
 
     def get_uk_defenses(self, defenses_string):
 
@@ -348,7 +344,7 @@ class MoscowParser(CourtSiteParser):
         codex_articles = []
         arr = raw_string.split('; ')
         for item in arr:
-            codex_article = None
+
             item = item.strip()
             m = re.search(r'Ст\. ([[0-9\.]+)\s?,?\s?Ч?\.?\s?([0-9\.]*)', item)
             if m:
@@ -377,7 +373,7 @@ class MoscowCasesGetter(CommonParser):
 
     def get_cases(self, instance, codex, entry_date_from=None, articles_list=None):
         # получаем дела по инстанции, типу производства
-        processType = '3' if codex == 'koap' else '6'  # 3 for koap, 6 for uk
+        process_type = '3' if codex == 'koap' else '6'  # 3 for koap, 6 for uk
 
         if articles_list:
             articles = CodexArticle.objects.get_from_list(articles_list, codex=codex)
@@ -392,7 +388,7 @@ class MoscowCasesGetter(CommonParser):
                 article_string = f'Ст.%20{article.article_number},%20Ч.{koap_uk_space}{article.part}'
             else:
                 article_string = f'Ст.%20{article.article_number}'
-            params = {'articles': article_string, 'instance': instance, 'processType': processType}
+            params = {'articles': article_string, 'instance': instance, 'processType': process_type}
             if entry_date_from:
                 params['entry_date_from'] = entry_date_from  # DD.MM.YYYY
             url = self.generate_params('https://mos-gorsud.ru/mgs/search?courtAlias=', params)

@@ -4,7 +4,7 @@ from oi_sud.core.utils import nullable
 
 CODEX_CHOICES = (
     ('uk', 'УК'),
-    ('koap', 'КОАП'), #TODO: КАС и ГПК
+    ('koap', 'КОАП'),  # TODO: КАС и ГПК
 )
 
 
@@ -19,7 +19,7 @@ class ArticlesManager(models.Manager):
             else:
                 part = None
 
-            params = {'article_number':article, 'part':part}
+            params = {'article_number': article, 'part': part}
             if codex:
                 params['codex'] = codex
 
@@ -27,6 +27,7 @@ class ArticlesManager(models.Manager):
             if a:
                 articles.append(a)
         return articles
+
 
 class CodexArticle(models.Model):
     article_number = models.CharField(max_length=10, verbose_name='Номер cтатьи')
@@ -42,19 +43,15 @@ class CodexArticle(models.Model):
         verbose_name = 'Статья'
         verbose_name_plural = 'Статьи'
 
-
     def __str__(self):
         if self.part:
             return f'{self.article_number} ч.{self.part} {self.get_codex_display()}'
         else:
             return f'{self.article_number} {self.get_codex_display()}'
 
-
     @staticmethod
     def autocomplete_search_fields():
         return 'article_number', 'short_title'
-
-
 
 
 class KoapManager(ArticlesManager):
@@ -71,6 +68,7 @@ class UKManager(ArticlesManager):
 
 class UKCodexArticle(CodexArticle):
     objects = UKManager()
+
     class Meta:
         proxy = True
         verbose_name = 'Статья УК'
@@ -79,6 +77,7 @@ class UKCodexArticle(CodexArticle):
 
 class KoapCodexArticle(CodexArticle):
     objects = KoapManager()
+
     class Meta:
         proxy = True
         verbose_name = 'Статья КОАП'

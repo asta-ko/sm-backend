@@ -17,6 +17,8 @@ class ArticlesRelatedFieldAjaxListFilter(RelatedFieldAjaxListFilter):
         model = field.remote_field.model if hasattr(field, 'remote_field') else field.related_field.model
         app_label = model._meta.app_label
 
+        model_name = None
+
         if model_admin.__class__.__name__ == 'KoapCaseAdmin':
             model_name = 'KoapCodexArticle'
         elif model_admin.__class__.__name__ == 'UKCaseAdmin':
@@ -44,10 +46,12 @@ class DefendantsInline(CompactInline):
     show_change_link = True
     extra = 0
 
+
 class CaseEventsInline(CompactInline):
     model = CaseEvent
     show_change_link = True
     extra = 0
+
 
 class LinkedCases(CompactInline):
     model = LinkedCasesProxy
@@ -59,14 +63,16 @@ class LinkedCases(CompactInline):
     exclude = ['to_case']
 
     def admin_link(self, instance):
-        return format_html(f'<a href="/admin/cases/{instance.get_codex_type()}case/{instance.get_pk()}/change/">Link</a>') #str(instance)#.objects
+        return format_html(
+            f'<a href="/admin/cases/{instance.get_codex_type()}case/{instance.get_pk()}/change/">Link</a>')
 
 
 class CaseAdmin(admin.ModelAdmin):
-
     inlines = (DefendantsInline, CaseEventsInline, LinkedCases)
-    list_filter = (('codex_articles',ArticlesRelatedFieldAjaxListFilter), ('court', RelatedFieldAjaxListFilter), ('judge', RelatedFieldAjaxListFilter), 'court__region', 'stage', )
-    list_display = ('__str__', 'judge',  'result_type', 'entry_date', 'result_date', 'has_result_text_icon', 'has_linked_cases')
+    list_filter = (('codex_articles', ArticlesRelatedFieldAjaxListFilter), ('court', RelatedFieldAjaxListFilter),
+                   ('judge', RelatedFieldAjaxListFilter), 'court__region', 'stage',)
+    list_display = (
+        '__str__', 'judge', 'result_type', 'entry_date', 'result_date', 'has_result_text_icon', 'has_linked_cases')
     search_fields = ('case_number', 'protocol_number', 'result_text')
 
     def has_linked_cases(self, obj):
@@ -84,12 +90,12 @@ class CaseAdmin(admin.ModelAdmin):
     def has_result_text_icon(self, obj):
         if obj.result_text:
             return format_html(
-            f'<a href="{obj.get_result_text_url()}" download><i class="fas fa-file-alt"></i></a>')
+                f'<a href="{obj.get_result_text_url()}" download><i class="fas fa-file-alt"></i></a>')
 
     has_result_text_icon.short_description = 'Есть текст'
 
     def get_form(self, request, obj=None, **kwargs):
-        exclude = ['text_search',]
+        exclude = ['text_search', ]
         for field in Case._meta.get_fields():
             if field.name in ['caseevent', 'casedefense', ]:
                 continue
@@ -106,15 +112,17 @@ class CaseAdmin(admin.ModelAdmin):
 
 
 class DefendantAdmin(admin.ModelAdmin):
-
-    list_display = ('__str__', 'get_case_court', 'get_case_link','get_site_type')
+    list_display = ('__str__', 'get_case_court', 'get_case_link', 'get_site_type')
     search_fields = ('name_normalized',)
+
     def get_case_court(self, obj):
         if obj.cases.first():
             return obj.cases.first().court
+
     def get_case_link(self, obj):
         if obj.cases.first():
             return obj.cases.first().url
+
     def get_site_type(self, obj):
         if obj.cases.first():
             return obj.cases.first().court.site_type
@@ -128,6 +136,7 @@ class DefendantAdmin(admin.ModelAdmin):
         qs = qs.filter(region__in=regions)
         return qs
 
+
 class UKCaseAdmin(CaseAdmin):
     def get_queryset(self, request):
         qs = self.model.objects.filter(type=2)
@@ -137,6 +146,7 @@ class UKCaseAdmin(CaseAdmin):
         regions = request.user.regions
         qs = qs.filter(court__region__in=regions)
         return qs
+
 
 class KoapCaseAdmin(CaseAdmin):
     def get_queryset(self, request):

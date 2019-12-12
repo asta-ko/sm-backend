@@ -1,13 +1,11 @@
-import re
-import pytz
-import requests
 import traceback
-from bs4 import BeautifulSoup
 
 import dateparser
+import pytz
+from pytz import utc
 from dateparser.conf import settings as dateparse_settings
-from django.utils.timezone import get_current_timezone
 from django.conf import settings
+from django.utils.timezone import get_current_timezone
 
 from oi_sud.cases.consts import EVENT_TYPES, EVENT_RESULT_TYPES, RESULT_TYPES, APPEAL_RESULT_TYPES
 from oi_sud.cases.models import Case, Defendant
@@ -23,7 +21,7 @@ event_result_types_dict = {y: x for x, y in dict(EVENT_RESULT_TYPES).items()}
 result_types_dict = {y: x for x, y in dict(RESULT_TYPES).items()}
 appeal_result_types_dict = {y: x for x, y in dict(APPEAL_RESULT_TYPES).items()}
 
-from pytz import utc
+
 
 
 class CourtSiteParser(CommonParser):
@@ -35,25 +33,19 @@ class CourtSiteParser(CommonParser):
         self.stage = stage
         self.article = article
 
-    def save_cases(self, urls=None, retrying=False):
+    def save_cases(self, urls=None):
         # Берем список урлов дел данного суда данной инстанции и сохраняем дела в базу. Это самый главный метод
 
         if not urls:
             urls = self.get_all_cases_urls()
 
         if not urls:
-            return {'found':0}
+            return {'found': 0}
 
         if settings.TEST_MODE:
             urls = urls[:2]
 
-        result = {}
-        result['found'] = len(urls)
-        result['errors'] = 0
-        result['proccessed'] = 0
-        result['error_urls'] = []
-        result['exist'] = 0
-        result['new'] = 0
+        result = {'found': len(urls), 'errors': 0, 'proccessed': 0, 'error_urls': [], 'exist': 0, 'new': 0}
 
         for case_url in urls:
             try:
@@ -70,17 +62,22 @@ class CourtSiteParser(CommonParser):
                 serialized_case_data = self.serialize_data(raw_case_data)
                 new_case = Case.objects.create_case_from_data(serialized_case_data)
 
-                if new_case and Case.objects.exclude(id=new_case.id).filter(case_uid=raw_case_data.get('case_uid'), court=self.court, case_number=raw_case_data.get('case_number')).exists():
-                    Case.objects.exclude(id=new_case.id).filter(case_uid=raw_case_data.get('case_uid'), court=self.court, case_number=raw_case_data.get('case_number')).delete()
+                if new_case and Case.objects.exclude(id=new_case.id).filter(case_uid=raw_case_data.get('case_uid'),
+                                                                            court=self.court,
+                                                                            case_number=raw_case_data.get(
+                                                                                'case_number')).exists():
+                    Case.objects.exclude(id=new_case.id).filter(case_uid=raw_case_data.get('case_uid'),
+                                                                court=self.court,
+                                                                case_number=raw_case_data.get('case_number')).delete()
                 if self.court and case_url in self.court.unprocessed_cases_urls:
                     self.court.unprocessed_cases_urls.remove(case_url)
                     self.court.save()
-                result['proccessed'] +=1
-                result['new'] +=1
+                result['proccessed'] += 1
+                result['new'] += 1
             except:
                 print('error: ', case_url)
                 print(traceback.format_exc())
-                result['errors'] +=1
+                result['errors'] += 1
                 result['error_urls'].append(case_url)
 
         if self.court:
@@ -90,8 +87,6 @@ class CourtSiteParser(CommonParser):
             self.court.save()
 
         return result
-
-
 
     def normalize_date(self, datetime):
         if not self.court:
@@ -107,11 +102,12 @@ class CourtSiteParser(CommonParser):
 
         result = {'case': {}, 'defenses': [], 'events': [], 'codex_articles': []}
 
-        for attribute in ['case_number', 'case_uid', 'protocol_number', 'result_text', 'linked_case_number', 'linked_case_url']:
+        for attribute in ['case_number', 'case_uid', 'protocol_number', 'result_text', 'linked_case_number',
+                          'linked_case_url']:
             result['case'][attribute] = case_info.get(attribute)
-        for attribute in  ['case_number', 'case_uid', 'protocol_number']:
+        for attribute in ['case_number', 'case_uid', 'protocol_number']:
             if result['case'][attribute]:
-                result['case'][attribute] = result['case'][attribute].replace(' ','').replace('\n','')
+                result['case'][attribute] = result['case'][attribute].replace(' ', '').replace('\n', '')
         if case_info.get('entry_date'):
             result['case']['entry_date'] = self.normalize_date(case_info['entry_date']).date()
         if case_info.get('result_date'):
@@ -144,8 +140,6 @@ class CourtSiteParser(CommonParser):
             result['case']['type'] = 1
         elif self.codex == 'uk':
             result['case']['type'] = 2
-
-
 
         result['case']['stage'] = self.stage
 

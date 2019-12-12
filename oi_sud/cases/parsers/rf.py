@@ -8,8 +8,7 @@ from dateparser.conf import settings as dateparse_settings
 from django.utils.html import strip_tags
 from django.utils.timezone import get_current_timezone
 
-from oi_sud.cases.consts import site_types_by_codex, EVENT_TYPES, EVENT_RESULT_TYPES, RESULT_TYPES, APPEAL_RESULT_TYPES, \
-    instances_dict
+from oi_sud.cases.consts import *
 from oi_sud.cases.models import Case
 from oi_sud.cases.parsers.main import CourtSiteParser
 from oi_sud.codex.models import CodexArticle
@@ -28,7 +27,6 @@ appeal_result_types_dict = {y: x for x, y in dict(APPEAL_RESULT_TYPES).items()}
 
 class RFCourtSiteParser(CourtSiteParser):
 
-
     def get_all_cases_urls(self):
         if self.court.servers_num == 1:
             return self.get_cases_urls()
@@ -37,15 +35,14 @@ class RFCourtSiteParser(CourtSiteParser):
 
     def get_all_cases_from_multiple_servers(self):
         all_urls = []
-        for n in range(1, self.court.servers_num+1):
+        for n in range(1, self.court.servers_num + 1):
             new_params = f'srv_num={str(n)}&case__num_build={str(n)}'
             url = self.url.replace('srv_num=1', new_params)
-            all_urls+=self.get_cases_urls(url=url)
+            all_urls += self.get_cases_urls(url=url)
         return all_urls
 
-    def get_cases_urls(self, url = None):
+    def get_cases_urls(self, url=None):
         # Получаем все урлы дел в данном суде
-
 
         print(url, 'url')
 
@@ -59,6 +56,7 @@ class RFCourtSiteParser(CourtSiteParser):
         first_page = BeautifulSoup(txt, 'html.parser')
         pages_number = self.get_pages_number(first_page)  # TODO CHANGE
         all_pages = [first_page, ]
+        pages_urls = None
 
         if pages_number != 1:
             if self.court.site_type == 2:
@@ -124,26 +122,24 @@ class RFCourtSiteParser(CourtSiteParser):
                 codex_articles.append(codex_article)
         return codex_articles
 
-
     def parse_events(self, events_trs, tr_head):
 
         events = []
 
-        indeces = {'Наименование события':None,
-                         'Дата':None,
-                         'Дата события':None,
-                         'Время':None,
-                         'Время события':None,
-                         'Зал судебного заседания':None,
-                         'Результат':None,
-                         'Результат события':None}
+        indeces = {'Наименование события': None,
+                   'Дата': None,
+                   'Дата события': None,
+                   'Время': None,
+                   'Время события': None,
+                   'Зал судебного заседания': None,
+                   'Результат': None,
+                   'Результат события': None}
 
-        types = {'type':['Наименование события'],
-                 'date': ['Дата','Дата события'],
-                 'time':['Время','Время события'],
-                 'courtroom':['Зал судебного заседания', 'Зал'],
-                 'result':['Результат события', 'Результат']}
-
+        types = {'type': ['Наименование события'],
+                 'date': ['Дата', 'Дата события'],
+                 'time': ['Время', 'Время события'],
+                 'courtroom': ['Зал судебного заседания', 'Зал'],
+                 'result': ['Результат события', 'Результат']}
 
         while tr_head[0] != 'Наименование события':
             tr_head = tr_head[1:]
@@ -175,8 +171,6 @@ class RFCourtSiteParser(CourtSiteParser):
         defenses = []
         defendants_hidden = False
         title_tr = None
-        title_tr_index = None
-        title_tds = []
         defendant_index = None
         codex_articles_index = None
         trs = el.findAll('tr')
@@ -187,7 +181,6 @@ class RFCourtSiteParser(CourtSiteParser):
 
             if 'ФИО' in tr_text or 'Фамилия' in tr_text or 'статей' in tr_text:
                 title_tr = tr
-                title_tr_index = index
 
         if not title_tr:
             title_tds = el.findAll('td', attrs={'align': 'center'})
@@ -210,7 +203,11 @@ class RFCourtSiteParser(CourtSiteParser):
                 defendants_hidden = True
                 print(defendants_hidden, 'hidden')
 
-            if 'ФИО' in tr.text or 'статей' in tr.text or 'Фамилия' in tr.text or 'Информация скрыта' in tr.text or 'Адвокат' in tr.text  or 'Прокурор'  in tr.text:
+            if 'ФИО' in tr.text or 'статей' in tr.text \
+                    or 'Фамилия' in tr.text \
+                    or 'Информация скрыта' in tr.text \
+                    or 'Адвокат' in tr.text \
+                    or 'Прокурор' in tr.text:
                 continue
 
             tds = tr.findAll('td')
@@ -220,8 +217,7 @@ class RFCourtSiteParser(CourtSiteParser):
                 print(defendant, codex_articles)
                 defenses.append({'defendant': defendant, 'codex_articles': codex_articles})
 
-        return (defenses, defendants_hidden)
-
+        return defenses, defendants_hidden
 
 
 class FirstParser(RFCourtSiteParser):
@@ -275,19 +271,22 @@ class FirstParser(RFCourtSiteParser):
         else:
             return ''
 
-
     def get_tabs(self, page):
 
         def events_table(tag):
             return tag.name == 'table' and 'ДВИЖЕНИЕ ДЕЛА' in tag.text
+
         def defendants_table(tag):
-            return tag.name == 'table' and ('СТОРОНЫ ПО ДЕЛУ' in tag.text or 'СВЕДЕНИЯ О ЛИЦЕ' in  tag.text or 'ЛИЦА' in tag.text)
+            return tag.name == 'table' and (
+                        'СТОРОНЫ ПО ДЕЛУ' in tag.text or 'СВЕДЕНИЯ О ЛИЦЕ' in tag.text or 'ЛИЦА' in tag.text)
+
         def appeal_table(tag):
             return tag.name == 'table' and 'Дата рассмотрения жалобы' in tag.text
-        tabs = {'delo':page.find('div', id='cont1').find('table'),
-                'events':page.find(events_table),
+
+        tabs = {'delo': page.find('div', id='cont1').find('table'),
+                'events': page.find(events_table),
                 'defendants': page.find(defendants_table),
-                'appeal':page.find(appeal_table)}
+                'appeal': page.find(appeal_table)}
         return tabs
 
     def get_raw_case_information(self, url):
@@ -326,17 +325,14 @@ class FirstParser(RFCourtSiteParser):
                 case_info['result_type'] = val
         case_info['events'] = []
         if tables.get('events'):
-
             tr_head = [x.text for x in tables['events'].findAll('td')][:10]
 
             trs = tables['events'].findAll('tr')[2:]
 
             case_info['events'] = self.parse_events(trs, tr_head)
 
-
         case_info['defenses'] = []
         if tables.get('defendants'):
-
             # trs = page.find('div', id='cont3').findAll('tr')
             case_info['defenses'], case_info['defendants_hidden'] = self.parse_defenses(tables['defendants'])
         if tables.get('appeal'):
@@ -384,14 +380,14 @@ class SecondParser(RFCourtSiteParser):
 
     def get_raw_case_information(self, url):
 
-        #парсим карточку дела
+        # парсим карточку дела
         case_info = {}
         txt, status_code = self.send_get_request(url)
         if status_code != 200:
             print("GET error: ", status_code)
             return None
         page = BeautifulSoup(txt, 'html.parser')
-        case_info['case_number'] = page.find('div', class_='case-num').text.replace('дело № ', '').replace('ДЕЛО № ', '')
+        case_info['case_number'] = page.find('div', class_='case-num').text.replace('дело № ', '').replace('ДЕЛО № ','')
         case_info['url'] = url
         case_result_text_div = page.find('div', id='tab_content_Document1')
         if case_result_text_div:
@@ -410,7 +406,9 @@ class SecondParser(RFCourtSiteParser):
                 case_info['entry_date'] = val
             if 'Номер протокола об АП' in tr_text:
                 case_info['protocol_number'] = val
-            if 'Судья' in tr_text or 'Передано в производство судье' in tr_text or 'Дело находится в производстве судьи' in tr_text:
+            if 'Судья' in tr_text \
+                    or 'Передано в производство судье' in tr_text \
+                    or 'Дело находится в производстве судьи' in tr_text:
                 case_info['judge'] = val
             if 'Дата рассмотрения' in tr_text or 'Дата вынесения постановления (определения) по делу' in tr_text:
                 case_info['result_date'] = val
@@ -421,11 +419,6 @@ class SecondParser(RFCourtSiteParser):
             events_trs = page.find('div', id='tab_content_EventList').findAll('tr')[1:]
             tr_head = [x.text for x in page.find('div', id='tab_content_EventList').findAll('td')][:10]
             case_info['events'] = self.parse_events(events_trs, tr_head)
-
-
-        # defendant_tds = page.find('div', id='tab_content_PersonList').findAll('tr')[1].findAll('td')
-        defenses = []
-        # trs = page.find('div', id='tab_content_PersonList').find('table', class_='none-mobile').findAll('tr')
 
         defense_table = page.find('div', id='tab_content_PersonList').find('table', class_='none-mobile')
 
@@ -510,4 +503,3 @@ class RFCasesGetter(CommonParser):
         print("--- %s seconds ---" % (time.time() - start_time))
         print(all_results)
         return all_results
-

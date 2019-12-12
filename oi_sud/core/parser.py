@@ -30,7 +30,7 @@ class CommonParser(object):
                 resp = r.result()
                 print(resp)
 
-    def send_get_request(self, url, gen_useragent=False, extended=False):
+    def send_get_request(self, url, gen_useragent=True, extended=False):
         """accessory function for sending requests"""
         import urllib3
         urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -42,8 +42,8 @@ class CommonParser(object):
         req = Request('GET', url)
         prepped = req.prepare()
 
-        #if gen_useragent:
-        prepped.headers['User-Agent'] = generate_user_agent()
+        if gen_useragent:
+            prepped.headers['User-Agent'] = generate_user_agent()
 
         r = session.send(prepped, verify=False)
         if extended:

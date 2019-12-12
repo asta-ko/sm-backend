@@ -5,17 +5,15 @@
 
 # coding=utf-8
 import re
-from bs4 import BeautifulSoup
 
+from bs4 import BeautifulSoup
 from dateparser.conf import settings as dateparse_settings
 from django.utils.timezone import get_current_timezone
 
 from oi_sud.cases.consts import msudrf_params_dict
-from oi_sud.cases.models import Case
 from oi_sud.cases.parsers.main import CourtSiteParser
 from oi_sud.codex.models import CodexArticle
 from oi_sud.core.parser import CommonParser
-from oi_sud.core.utils import get_query_key
 from oi_sud.courts.models import Court
 
 dateparse_settings.TIMEZONE = str(get_current_timezone())
@@ -80,7 +78,7 @@ class MsudrfParser(CourtSiteParser):
         case_info['result_type'] = search_data['result_type']
         search_data['result_text_url'] = search_data['result_text_url']
 
-        if (search_data['result_text_url'] != ''):
+        if search_data['result_text_url'] != '':
             case_info['result_text'] = self.get_result_text(search_data['result_text_url'])
             match = re.search('УИД (.*)', case_info['result_text'])
             if match:
@@ -231,7 +229,7 @@ class MsudrfParser(CourtSiteParser):
             'Судья': 'judge'
         }
 
-        if (len(pages) > 1):
+        if len(pages) > 1:
 
             page = pages[1]
 
@@ -252,11 +250,11 @@ class MsudrfParser(CourtSiteParser):
             result_dict = []
 
             for i in range(len(original_dict)):
-                pre_result_dict = {'type': ''
-                    , 'date': ''
-                    , 'time': ''
-                    , 'courtroom': ''
-                    , 'result': ''}
+                pre_result_dict = {'type': '',
+                                   'date': '',
+                                   'time': '',
+                                   'courtroom': '',
+                                   'result': ''}
                 for key in keys.keys():
                     if key in original_dict[i].keys():
                         if keys[key] == 'judge':
@@ -299,8 +297,7 @@ class MsudrfParser(CourtSiteParser):
             result_dict = []
 
             for i in range(len(original_dict)):
-                pre_result_dict = {'defendant': ''
-                    , 'codex_articles': ''}
+                pre_result_dict = {'defendant': '', 'codex_articles': ''}
                 for key in keys.keys():
                     if key in original_dict[i].keys():
                         pre_result_dict[keys[key]] = original_dict[i][key]
@@ -344,4 +341,3 @@ class MsudrfCasesGetter(CommonParser):
 
                 url = self.generate_params()
                 MsudrfParser(url=url, codex=codex).save_cases()
-

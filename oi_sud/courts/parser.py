@@ -241,3 +241,5 @@ class MoscowCourtParser(CourtsParser):
 
 
 moscow_courts_parser = MoscowCourtParser()
+
+

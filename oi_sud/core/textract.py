@@ -8,7 +8,6 @@ import chardet
 import docx2txt
 
 
-
 class BaseParser(object):
     """The :class:`.BaseParser` abstracts out some common functionality
     that is used across all document Parsers. In particular, it has
@@ -122,4 +121,3 @@ class DocXParser(BaseParser):
 
     def extract(self, filename, **kwargs):
         return docx2txt.process(filename)
-

@@ -9,15 +9,10 @@ from django.conf import settings
 from django.contrib.postgres.indexes import GinIndex
 from django.contrib.postgres.search import SearchVectorField
 
-
-
 from oi_sud.cases.consts import RESULT_TYPES, EVENT_TYPES, EVENT_RESULT_TYPES, APPEAL_RESULT_TYPES
 from oi_sud.core.utils import nullable
 from oi_sud.cases.utils import normalize_name, parse_name_and_get_gender
 from oi_sud.core.consts import region_choices
-
-
-
 
 CASE_TYPES = (
     (1, 'Дело об административном правонарушении'),
@@ -59,7 +54,6 @@ class CaseManager(models.Manager):
             print(traceback.format_exc())
 
 
-
 class Case(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -86,12 +80,12 @@ class Case(models.Model):
     type = models.IntegerField(choices=CASE_TYPES, verbose_name='Тип судопроизводства')  # тип судопроизводства
     stage = models.IntegerField(choices=CASE_STAGES,
                                 verbose_name='Инстанция')  # первая инстанция, обжалование, пересмотр, кассация
-    #group = models.ForeignKey('CaseGroup', on_delete=models.CASCADE, related_name='group_cases',**nullable)  # ссылки на аппеляции и пересмотры
     url = models.URLField(verbose_name='URL', unique=True, **nullable)
     linked_cases = models.ManyToManyField("self", symmetrical=True, **nullable)
 
-    linked_case_number = ArrayField(models.CharField(max_length=50), verbose_name='Номер связанного дела', **nullable) #Москва
-    linked_case_url = ArrayField(models.URLField(), verbose_name='Ссылка на связанное дело', **nullable) #Москва
+    linked_case_number = ArrayField(models.CharField(max_length=50), verbose_name='Номер связанного дела',
+                                    **nullable)  # Москва
+    linked_case_url = ArrayField(models.URLField(), verbose_name='Ссылка на связанное дело', **nullable)  # Москва
     koap_money_sum = models.IntegerField(verbose_name='Штраф', **nullable)
     koap_detention_days = models.IntegerField(verbose_name='Арест (дни)', **nullable)
     koap_public_work_hours = models.IntegerField(verbose_name='Общественные работы (часы)', **nullable)
@@ -99,19 +93,17 @@ class Case(models.Model):
 
     objects = CaseManager()
 
-
-
     class Meta:
         verbose_name = 'Дело'
         verbose_name_plural = 'Все дела'
         indexes = [
             GinIndex(fields=['text_search'])
         ]
+
     def __str__(self):
 
         articles_list = ','.join([str(x) for x in self.codex_articles.all()])
         return f'{self.case_number} {articles_list} {self.court}'
-
 
     def get_codex_type(self):
         if self.type == 1:
@@ -138,14 +130,15 @@ class Case(models.Model):
     def update_case(self):
 
         try:
-
+            codex = None
+            parser = None
             if self.type == 1:
                 codex = 'koap'
             elif self.type == 2:
                 codex = 'uk'
             if self.court.site_type == 1:
                 from oi_sud.cases.parsers.rf import FirstParser
-                parser = FirstParser(court=self.court, stage=self.stage,codex=codex)
+                parser = FirstParser(court=self.court, stage=self.stage, codex=codex)
             elif self.court.site_type == 2:
                 from oi_sud.cases.parsers.rf import SecondParser
                 parser = SecondParser(court=self.court, stage=self.stage, codex=codex)
@@ -158,7 +151,7 @@ class Case(models.Model):
                 url = url + '&nc=1'
             # print(url)
             raw_data = parser.get_raw_case_information(url)
-            fresh_data = {i: j for i, j in parser.serialize_data(raw_data).items() if j != None}
+            fresh_data = {i: j for i, j in parser.serialize_data(raw_data).items() if j is not None}
             self.update_if_needed(fresh_data)
         except:
             print('error: ', self.url)
@@ -167,7 +160,7 @@ class Case(models.Model):
     def update_if_needed(self, fresh_data):
 
         old_data = self.serialize()
-        #print(old_data, fresh_data)
+        # print(old_data, fresh_data)
         if not old_data.get('result_text') and fresh_data.get('result_text'):
             fresh_data['case']['result_published_date'] = timezone.now()
 
@@ -196,7 +189,7 @@ class Case(models.Model):
 
         for attribute in ['case_number', 'case_uid', 'protocol_number', 'result_text', 'entry_date', 'result_date',
                           'forwarding_to_higher_court_date', 'forwarding_to_lower_court_date', 'appeal_date',
-                          'appeal_result','result_type', 'type', 'stage', 'url', 'court', 'judge']:
+                          'appeal_result', 'result_type', 'type', 'stage', 'url', 'court', 'judge']:
             if getattr(self, attribute):
                 result['case'][attribute] = getattr(self, attribute)
 
@@ -226,16 +219,14 @@ class Case(models.Model):
 
 
 class UKCase(Case):
-
     class Meta:
         proxy = True
         verbose_name = 'Дело (УК)'
         verbose_name_plural = 'Дела (УК)'
-        ordering = ['-entry_date',]
+        ordering = ['-entry_date', ]
 
 
 class KoapCase(Case):
-
     class Meta:
         proxy = True
         verbose_name = 'Дело (КОАП)'
@@ -256,6 +247,7 @@ class LinkedCasesProxy(Case.linked_cases.through):
     def __str__(self):
         return str(self.to_case)
 
+
 class CaseEvent(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     date = models.DateTimeField(verbose_name='Дата', **nullable)
@@ -267,11 +259,10 @@ class CaseEvent(models.Model):
     def __str__(self):
         return f'{self.type}'
 
-
     class Meta:
         verbose_name = 'Событие в деле'
         verbose_name_plural = 'События в деле'
-        ordering = ['date',]
+        ordering = ['date', ]
 
 
 class Advocate(models.Model):
@@ -286,7 +277,8 @@ class Advocate(models.Model):
 class CaseDefense(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    defendant = models.ForeignKey('Defendant', verbose_name='Ответчик', related_name='defenses', on_delete=models.CASCADE)
+    defendant = models.ForeignKey('Defendant', verbose_name='Ответчик', related_name='defenses',
+                                  on_delete=models.CASCADE)
     advocate = models.ForeignKey('Advocate', verbose_name='Адвокат', on_delete=models.CASCADE, **nullable)
     codex_articles = models.ManyToManyField('codex.CodexArticle', verbose_name='Статьи')
     case = models.ForeignKey('Case', on_delete=models.CASCADE)
@@ -298,28 +290,32 @@ class CaseDefense(models.Model):
         verbose_name = 'Ответчик в деле'
         verbose_name_plural = 'Ответчики в делах'
 
+
 class DefendantManager(models.Manager):
     def create_from_name(self, name, region):
 
         names, gender = parse_name_and_get_gender(name)
         normalized_name = normalize_name(name)
-        if len(names) and Defendant.objects.filter(region=region, last_name=names[0], first_name=names[1], middle_name=names[2]).exists(): #Совпадают регион и ФИО полностью
-                return Defendant.objects.filter(region=region, last_name=names[0], first_name=names[1], middle_name=names[2]).first()
-        elif Defendant.objects.filter(name_normalized=normalized_name, region=region).exists(): #Совпадают регион, фамилия и инициалы
+        if len(names) and Defendant.objects.filter(region=region, last_name=names[0], first_name=names[1],
+                                                   middle_name=names[2]).exists():  # Совпадают регион и ФИО полностью
+            return Defendant.objects.filter(region=region, last_name=names[0], first_name=names[1],
+                                            middle_name=names[2]).first()
+        elif Defendant.objects.filter(name_normalized=normalized_name,
+                                      region=region).exists():  # Совпадают регион, фамилия и инициалы
             qs = Defendant.objects.filter(name_normalized=normalized_name, region=region)
-            if not len(names): #не можем проверить, отдаем первое совпадение
+            if not len(names):  # не можем проверить, отдаем первое совпадение
                 return qs.first()
             else:
                 for d in qs:
                     if d.first_name and d.middle_name:
                         e = editdistance.eval(f'{names[1]} {names[2]}', f'{d.first_name} {d.middle_name}')
-                        if e <= 3: #проверяем, что это то же самое имя и отчество и учитываем возможность опечаток
+                        if e <= 3:  # проверяем, что это то же самое имя и отчество и учитываем возможность опечаток
                             return d
-                return qs.first() #если не можем проверить, берем первое попавшееся
+                return qs.first()  # если не можем проверить, берем первое попавшееся
         else:
 
-            d_dict = {'region':region,
-                      'name_normalized':normalized_name}
+            d_dict = {'region': region,
+                      'name_normalized': normalized_name}
             if len(names):
                 d_dict['last_name'] = names[0]
                 d_dict['first_name'] = names[1]
@@ -329,6 +325,7 @@ class DefendantManager(models.Manager):
             defendant = Defendant(**d_dict)
             defendant.save()
             return defendant
+
 
 class Defendant(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)

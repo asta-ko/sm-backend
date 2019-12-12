@@ -2,6 +2,7 @@ from collections import OrderedDict
 from rest_framework.fields import SkipField
 from rest_framework.relations import PKOnlyObject
 
+
 class SkipNullValuesMixin(object):
     def to_representation(self, instance):
         """

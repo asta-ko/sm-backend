@@ -11,6 +11,7 @@ from oi_sud.courts.views import CourtsView, CourtsDebugView
 
 admin.site.site_header = 'OVD-info Sud Monster'
 
+
 def current_datetime(request):
     now = datetime.datetime.now()
     html = "<html><body>It is now %s.</body></html>" % now
@@ -24,7 +25,7 @@ urlpatterns = [
     path('api/v1/countcases', CountCasesView.as_view()),
     path('api/v1/cases', CasesView.as_view(), name='case-list'),
     path('api/v1/cases/<int:pk>', CaseView.as_view(), name='case-detail'),
-    path('case/<int:case_id>/result.txt',get_result_text, name='case-result-text'),
+    path('case/<int:case_id>/result.txt', get_result_text, name='case-result-text'),
     path('jet/', include('jet.urls', 'jet')),
     re_path(r'^celery_progress/(?P<task_id>[\w-]+)$', get_progress, name='task_status'),
 
@@ -32,5 +33,5 @@ urlpatterns = [
     path('admin/', admin.site.urls),
 ]
 
-if settings.DEBUG == True:
+if settings.DEBUG:
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

@@ -8,8 +8,8 @@ from rest_framework.views import APIView
 from oi_sud.courts.models import Court
 from oi_sud.courts.serializers import CourtSerializer, DebugCourtSerializer
 
-class CourtsDebugView(ListAPIView):
 
+class CourtsDebugView(ListAPIView):
     # def filter_queryset(self, queryset):
     #     for backend in list(self.filter_backends):
     #         queryset = backend().filter_queryset(self.request, queryset, self)
@@ -19,9 +19,11 @@ class CourtsDebugView(ListAPIView):
     #     return
 
     permission_classes = (permissions.IsAdminUser,)
-    queryset = Court.objects.filter(unprocessed_cases_urls__len__gt=0).extra(select={'length':'cardinality(unprocessed_cases_urls)'}).order_by('-length')
+    queryset = Court.objects.filter(unprocessed_cases_urls__len__gt=0).extra(
+        select={'length': 'cardinality(unprocessed_cases_urls)'}).order_by('-length')
     serializer_class = DebugCourtSerializer
-    filterset_fields = ['site_type','region']
+    filterset_fields = ['site_type', 'region']
+
 
 class CourtsView(ListAPIView):
     permission_classes = (permissions.IsAdminUser,)
@@ -29,5 +31,3 @@ class CourtsView(ListAPIView):
     queryset = Court.objects.all()
 
     # search_fields = ['defendants__last_name', 'judge__name']
-
-

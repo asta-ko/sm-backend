@@ -7,9 +7,11 @@ from django.utils.timezone import get_current_timezone
 from .consts import EVENT_TYPES, EVENT_RESULT_TYPES, RESULT_TYPES, APPEAL_RESULT_TYPES
 from .models import Case
 from oi_sud.cases.parsers.rf import FirstParser, SecondParser
-from  oi_sud.cases.parsers.moscow import MoscowParser
+from oi_sud.cases.parsers.moscow import MoscowParser
+
 dateparse_settings.TIMEZONE = str(get_current_timezone())
 dateparse_settings.RETURN_AS_TIMEZONE_AWARE = False
+
 
 class CasesGrouper(object):
     def get_first_cases(self, case):
@@ -52,9 +54,6 @@ class CasesGrouper(object):
                 # print(item)
                 return Case.objects.filter(**merged_params)
 
-
-
-
     def group_moscow_cases(self):
 
         cases_appealed_by_casenum = Case.objects.filter(linked_case_number__isnull=False)
@@ -70,8 +69,6 @@ class CasesGrouper(object):
             if first_cases:
                 case.linked_cases.add(*first_cases)
 
-
-
     def group_cases(self, region):
         first_cases_appealed = Case.objects.filter(court__region=region, appeal_result__isnull=False, linked_cases=None)
         second_cases = Case.objects.filter(stage=2, court__region=region)
@@ -85,23 +82,23 @@ class CasesGrouper(object):
         second_instance_cases_not_found = Case.objects.filter(stage=2, court__region=region, linked_cases=None)
 
         # print(len(first_cases_appealed), 'first_cases_appealed')
-        #print(len(first_cases_not_found), 'first_cases_not_found')
+        # print(len(first_cases_not_found), 'first_cases_not_found')
         # print(len(second_cases), 'second_cases_all')
-        #print(len(second_instance_cases_not_found), 'second_cases_not_found')
+        # print(len(second_instance_cases_not_found), 'second_cases_not_found')
 
         for case in second_instance_cases_not_found:
             first_cases = self.get_first_cases(case)
             if first_cases:
                 case.linked_cases.add(*first_cases)
-                #print('Yikes!')
+                # print('Yikes!')
 
         first_cases_not_found = Case.objects.filter(stage=1, court__region=region, appeal_result__isnull=False,
                                                     linked_cases=None)
         second_instance_cases_not_found = Case.objects.filter(stage=2, court__region=region, linked_cases=None)
         # print(len(first_cases_appealed), 'first_cases_appealed')
-        #print(len(first_cases_not_found), 'first_cases_not_found')
+        # print(len(first_cases_not_found), 'first_cases_not_found')
         # print(len(second_cases), 'second_cases_all')
-        #print(len(second_instance_cases_not_found), 'second_cases_not_found')
+        # print(len(second_instance_cases_not_found), 'second_cases_not_found')
 
         for case in first_cases_not_found:
             c = second_instance_cases_not_found.filter(defendants__in=case.defendants.all(),
@@ -129,4 +126,3 @@ class CasesGrouper(object):
 
 
 grouper = CasesGrouper()
-
