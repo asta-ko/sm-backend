@@ -25,4 +25,6 @@ django-celery-results
 djangorestframework
 markdown
 django-filter
-
+django-reversion
+django-reversion-compare
+diff-match-patch

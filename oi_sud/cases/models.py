@@ -10,9 +10,10 @@ from django.contrib.postgres.indexes import GinIndex
 from django.contrib.postgres.search import SearchVectorField
 
 from oi_sud.cases.consts import RESULT_TYPES, EVENT_TYPES, EVENT_RESULT_TYPES, APPEAL_RESULT_TYPES
-from oi_sud.core.utils import nullable
+from oi_sud.core.utils import nullable, DictDiffer
 from oi_sud.cases.utils import normalize_name, parse_name_and_get_gender
 from oi_sud.core.consts import region_choices
+
 
 CASE_TYPES = (
     (1, 'Дело об административном правонарушении'),
@@ -35,23 +36,24 @@ GENDER_TYPES = (
 class CaseManager(models.Manager):
 
     def create_case_from_data(self, item):
-        try:
-            case = Case.objects.create(**item['case'])
-            case.codex_articles.set(item['codex_articles'])
-            for defense in item['defenses']:
-                articles = defense['codex_articles']
-                defendant = defense['defendant']
-                defense = CaseDefense.objects.create(defendant=defendant, case=case)
-                if len(articles):
-                    defense.codex_articles.set(articles)
-            for event in item['events']:
-                event['case'] = case
-                case_event = CaseEvent.objects.create(**event)
+        with reversion.create_revision():
+            try:
+                case = Case.objects.create(**item['case'])
+                case.codex_articles.set(item['codex_articles'])
+                for defense in item['defenses']:
+                    articles = defense['codex_articles']
+                    defendant = defense['defendant']
+                    defense = CaseDefense.objects.create(defendant=defendant, case=case)
+                    if len(articles):
+                        defense.codex_articles.set(articles)
+                for event in item['events']:
+                    event['case'] = case
+                    case_event = CaseEvent.objects.create(**event)
 
-            print('saved case ', case)
-            return case
-        except Exception as e:
-            print(traceback.format_exc())
+                print('saved case ', case)
+                return case
+            except Exception as e:
+                print(traceback.format_exc())
 
 
 class Case(models.Model):
@@ -123,6 +125,9 @@ class Case(models.Model):
     def get_result_text_url(self):
         return f"{settings.BASE_URL}{reverse('case-result-text', kwargs={'case_id': self.pk})}"
 
+    def get_history_link(self):
+        return settings.BASE_URL+reverse(f'admin:cases_{self.get_codex_type()}case_history', args=(self.id,))
+
     @staticmethod
     def autocomplete_search_fields():
         return 'case_number',
@@ -152,6 +157,7 @@ class Case(models.Model):
             # print(url)
             raw_data = parser.get_raw_case_information(url)
             fresh_data = {i: j for i, j in parser.serialize_data(raw_data).items() if j is not None}
+            fresh_data['case'] = {k:v for k,v in fresh_data['case'].items() if v is not None}
             self.update_if_needed(fresh_data)
         except:
             print('error: ', self.url)
@@ -160,28 +166,40 @@ class Case(models.Model):
     def update_if_needed(self, fresh_data):
 
         old_data = self.serialize()
-        # print(old_data, fresh_data)
-        if not old_data.get('result_text') and fresh_data.get('result_text'):
+        #print(old_data, fresh_data)
+
+        if not old_data['case'].get('result_text') and fresh_data['case'].get('result_text'):
             fresh_data['case']['result_published_date'] = timezone.now()
+        if settings.TEST_MODE: # for tests
+            fresh_data['case']['case_number'] = '000'
+        with reversion.create_revision():
+            diff_keys = []
+            if fresh_data['case'] != old_data['case']:
+                print(f'Updating case... {self}')
+                diff_keys += DictDiffer(fresh_data['case'], old_data['case']).get_all_diff_keys()
+                self.__dict__.update(fresh_data['case'])
+                self.save()
 
-        if fresh_data['case'] != old_data['case']:
-            print(f'Updating case... {self}')
-            Case.objects.filter(pk=self.id).update(**fresh_data['case'])
+            if fresh_data['defenses'] != old_data['defenses']:
+                print(f'Updating case defendants... {self}')
+                for d in fresh_data['defenses']:
+                    articles = d['codex_articles']
+                    defendant = d['defendant']
+                    defense, created = CaseDefense.objects.get_or_create(defendant=defendant, case=self)
+                    if len(articles):
+                        defense.codex_articles.set(articles)
+                diff_keys.append('defenses')
 
-        if fresh_data['defenses'] != old_data['defenses']:
-            print(f'Updating case defendants... {self}')
-            for d in fresh_data['defenses']:
-                articles = d['codex_articles']
-                defendant = d['defendant']
-                defense, created = CaseDefense.objects.get_or_create(defendant=defendant, case=self)
-                if len(articles):
-                    defense.codex_articles.set(articles)
+            if fresh_data['events'] != old_data['events']:
+                print(f'Updating case events... {self}')
+                for event in fresh_data['events']:
+                    event['case'] = self
+                    obj, created = CaseEvent.objects.update_or_create(**event)
+                diff_keys.append('events')
 
-        if fresh_data['events'] != old_data['events']:
-            print(f'Updating case events... {self}')
-            for event in fresh_data['events']:
-                event['case'] = self
-                obj, created = CaseEvent.objects.update_or_create(**event)
+            if len(diff_keys):
+                comment_message = 'Изменено: '+', '.join(diff_keys)
+                reversion.set_comment(comment_message)
 
     def serialize(self):
 
@@ -225,6 +243,10 @@ class UKCase(Case):
         verbose_name_plural = 'Дела (УК)'
         ordering = ['-entry_date', ]
 
+    # def __str__(self):
+    #     articles_list = ','.join([str(x) for x in self.codex_articles.all()])
+    #     return f'{self.case_number} {articles_list} {self.court}'
+
 
 class KoapCase(Case):
     class Meta:
@@ -232,6 +254,11 @@ class KoapCase(Case):
         verbose_name = 'Дело (КОАП)'
         verbose_name_plural = 'Дела (КОАП)'
         ordering = ['-entry_date', ]
+
+    # def __str__(self):
+    #
+    #     articles_list = ','.join([str(x) for x in self.codex_articles.all()])
+    #     return f'{self.case_number} {articles_list} {self.court}'
 
 
 class LinkedCasesProxy(Case.linked_cases.through):
@@ -350,3 +377,9 @@ class Defendant(models.Model):
     class Meta:
         verbose_name = 'Ответчик'
         verbose_name_plural = 'Ответчики'
+
+import reversion
+reversion.register(Case)
+reversion.register(CaseDefense)
+reversion.register(CaseEvent)
+

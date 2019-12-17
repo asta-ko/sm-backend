@@ -4,7 +4,7 @@ from oi_sud.cases.models import Case
 from oi_sud.cases.management.commands.get_admin_cases_from_spb_courts import Command as SpbCourtsCommand
 from oi_sud.cases.utils import parse_name_and_get_gender
 from oi_sud.cases.grouper import grouper
-
+from reversion.models import Revision
 
 @pytest.mark.skip
 @pytest.mark.django_db
@@ -89,7 +89,7 @@ def test_name_parser():
         print(parse_name_and_get_gender(x))
 
 
-@pytest.mark.skip
+#@pytest.mark.skip
 @pytest.mark.django_db
 def test_rf_parser_update(rf_courts, koap_articles, settings):
     settings.USE_TZ = True
@@ -98,9 +98,14 @@ def test_rf_parser_update(rf_courts, koap_articles, settings):
     p = RFCasesGetter(codex='koap')
     p.get_cases(1)
     assert len(Case.objects.all())
+    revisions_len = len(Revision.objects.all())
+    assert revisions_len
     for case in Case.objects.all():
         case.update_case()
-    # assert False
+    assert len(Revision.objects.all()) > revisions_len
+    for item in Revision.objects.all():
+        print(item.comment)
+    assert False
 
 
 @pytest.mark.skip

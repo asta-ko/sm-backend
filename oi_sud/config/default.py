@@ -30,13 +30,12 @@ DEBUG_REQUESTS = False
 
 ALLOWED_HOSTS = ['sudmonster.ovdinfo.org']
 
-
 BASE_URL = 'https://sudmonster.ovdinfo.org'
 # Application definition
 
 INSTALLED_APPS = [
 
-    #'suit',
+    # 'suit',
     'jet',
     'django.contrib.admin',
     'django.contrib.auth',
@@ -50,11 +49,14 @@ INSTALLED_APPS = [
     'django_celery_results',
     'django_celery_beat',
     'django.contrib.postgres',
+    'reversion',  # https://github.com/etianen/django-reversion
+    'reversion_compare',  # https://github.com/jedie/django-reversion-compare
     'oi_sud.core',
     'oi_sud.courts.apps.CourtsConfig',
     'oi_sud.codex.apps.CodexConfig',
     'oi_sud.cases.apps.CasesConfig',
     'oi_sud.users.apps.UsersConfig',
+
 ]
 
 MIDDLEWARE = [
@@ -65,6 +67,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    "versioning.middleware.VersioningMiddleware",
 ]
 
 ROOT_URLCONF = 'oi_sud.urls'
@@ -146,7 +149,7 @@ STATIC_ROOT = '/var/www/static'
 # CELERY
 
 CELERY_BROKER_URL = os.environ.get('BROKER_URL', 'redis://redis:6379/0')
-#CELERY_RESULT_BACKEND = os.environ.get('BROKER_URL', 'redis://redis:6379/0')
+# CELERY_RESULT_BACKEND = os.environ.get('BROKER_URL', 'redis://redis:6379/0')
 CELERY_ACCEPT_CONTENT = ['application/json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
@@ -161,24 +164,22 @@ CELERY_RESULT_BACKEND = 'django-db'
 CELERY_CACHE_BACKEND = 'django-cache'
 
 CELERY_ROUTES = {
-                    'oi_sud.cases.tasks.main_get_cases': {
-                        'queue': 'main'
-                    },
+    'oi_sud.cases.tasks.main_get_cases': {
+        'queue': 'main'
+    },
 
+    'oi_sud.cases.tasks.get_cases_from_region': {
+        'queue': 'main'
+    },
+    'oi_sud.cases.tasks.get_uk_cases': {
+        'queue': 'other'
+    },
 
-                    'oi_sud.cases.tasks.get_cases_from_region': {
-                        'queue': 'main'
-                    },
-                    'oi_sud.cases.tasks.get_uk_cases': {
-                        'queue': 'other'
-                    },
+    'oi_sud.cases.tasks.get_koap_cases': {
+        'queue': 'other'
+    },
 
-                    'oi_sud.cases.tasks.get_koap_cases': {
-                        'queue': 'other'
-                    },
-
-                }
-
+}
 
 # CELERY_BEAT_SCHEDULE = {
 #     'get-cases': {
@@ -221,23 +222,24 @@ JET_SIDE_MENU_ITEMS = [
     ]},
 
     {'app_label': 'API', 'items': [
-        {'label': 'Cases count', 'url':'/api/v1/countcases'},
-        {'label': 'Cases', 'url':'/api/v1/cases'},
+        {'label': 'Cases count', 'url': '/api/v1/countcases'},
+        {'label': 'Cases', 'url': '/api/v1/cases'},
 
     ]},
 
-
 ]
-
 
 REST_FRAMEWORK = {
     'DEFAULT_FILTER_BACKENDS': ['django_filters.rest_framework.DjangoFilterBackend'],
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'DATETIME_FORMAT': "%Y-%m-%d %H:%M",
-    'PAGE_SIZE': 5,
+    'PAGE_SIZE': 10,
     'DEFAULT_RENDERER_CLASSES': [
         'rest_framework.renderers.JSONRenderer',
         'rest_framework.renderers.BrowsableAPIRenderer',
         'rest_framework.renderers.AdminRenderer'
     ]
 }
+
+# Add reversion models to admin interface:
+ADD_REVERSION_ADMIN=True

@@ -216,7 +216,7 @@ class CountCasesView(APIView):
 
 
 class CasesView(ListAPIView):
-    permission_classes = (permissions.IsAdminUser,)
+    #permission_classes = (permissions.IsAdminUser,)
     serializer_class = CaseSerializer
     filter_backends = [CaseFilterBackend, filters.OrderingFilter]
     filterset_class = CaseArticleFilter

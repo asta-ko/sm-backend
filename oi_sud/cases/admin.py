@@ -8,7 +8,7 @@ from .models import Case, KoapCase, UKCase, CaseEvent, Defendant, CaseDefense, L
 from jet.admin import CompactInline
 from jet.filters import RelatedFieldAjaxListFilter
 from django.utils.html import format_html
-
+from reversion_compare.admin import CompareVersionAdmin
 
 class ArticlesRelatedFieldAjaxListFilter(RelatedFieldAjaxListFilter):
 
@@ -137,7 +137,7 @@ class DefendantAdmin(admin.ModelAdmin):
         return qs
 
 
-class UKCaseAdmin(CaseAdmin):
+class UKCaseAdmin(CompareVersionAdmin, CaseAdmin):
     def get_queryset(self, request):
         qs = self.model.objects.filter(type=2)
 
@@ -148,7 +148,7 @@ class UKCaseAdmin(CaseAdmin):
         return qs
 
 
-class KoapCaseAdmin(CaseAdmin):
+class KoapCaseAdmin(CompareVersionAdmin, CaseAdmin):
     def get_queryset(self, request):
         qs = self.model.objects.filter(type=1)
         if request.user.is_superuser:
