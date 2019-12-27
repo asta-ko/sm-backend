@@ -73,3 +73,19 @@ class CaseFullSerializer(CaseSerializer):
     class Meta:
         model = Case
         exclude = ['advocates']
+
+class CaseResultSerializer(serializers.ModelSerializer):
+
+    codex_articles = serializers.SerializerMethodField()
+    result_text_url = serializers.SerializerMethodField()
+    api_url = serializers.HyperlinkedIdentityField(view_name='case-detail')
+
+    def get_codex_articles(self, obj):
+        return [str(x) for x in obj.codex_articles.all()]
+    def get_result_text_url(self, obj):
+        if obj.result_text:
+            return obj.get_result_text_url()
+
+    class Meta:
+        model = Case
+        fields = ['result_text_url','url','api_url','codex_articles']

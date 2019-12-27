@@ -12,9 +12,9 @@ from rest_framework.generics import ListAPIView
 from rest_framework.generics import RetrieveAPIView
 from rest_framework.response import Response
 from rest_framework.views import APIView
-
+from rest_framework.renderers import AdminRenderer
 from oi_sud.cases.models import Case, CaseEvent
-from oi_sud.cases.serializers import CaseSerializer, CaseFullSerializer
+from oi_sud.cases.serializers import CaseSerializer, CaseFullSerializer, CaseResultSerializer
 from oi_sud.codex.models import KoapCodexArticle, UKCodexArticle
 
 
@@ -130,7 +130,7 @@ class CaseFilter(django_filters.FilterSet):
         return queryset.filter(**{lookup: False})
 
     def filter_result_search(self, queryset, name, value):
-        return queryset.filter(text_search=SearchQuery(value, config='russian'))
+        return queryset.filter(text_search=SearchQuery(value, config='russian', search_type='phrase'))
 
     # def get_future(self, queryset, name, value):
     #         return queryset.filter(Q(result_date__gt=timezone.now())|Q(events__isnull=True, result_date__isnull=True))
@@ -233,3 +233,13 @@ class CaseView(RetrieveAPIView):
     queryset = Case.objects.prefetch_related(Prefetch('events',
                                                       queryset=CaseEvent.objects.order_by('date')), 'defendants',
                                              'court', 'judge', 'codex_articles')
+
+
+class CasesResultTextView(ListAPIView):
+    permission_classes = (permissions.IsAdminUser,)
+    serializer_class = CaseResultSerializer
+    filter_backends = [CaseFilterBackend]
+    filterset_class = CaseArticleFilter
+    ordering_fields = ['entry_date', ]
+    queryset = Case.objects.filter(result_text__isnull=False)
+    renderer_classes = (AdminRenderer, )
