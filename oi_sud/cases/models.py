@@ -439,7 +439,8 @@ class CasePenalty(models.Model):
 
 
 import reversion
-
+reversion.register(KoapCase)
+reversion.register(UKCase)
 reversion.register(Case)
 reversion.register(CaseDefense)
 reversion.register(CaseEvent)

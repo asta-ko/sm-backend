@@ -210,20 +210,20 @@ JET_SIDE_MENU_ITEMS = [
         {'name': 'judge'},
     ]},
 
-    {'app_label': 'django_celery_results', 'items': [
-        {'name': 'taskresult'},
+   # {'app_label': 'django_celery_results', 'items': [
+   #     {'name': 'taskresult'},
         # {'label': 'Running tasks', 'url': '/admin/active_celery_tasks', 'url_blank': True},
-    ]},
-    {'app_label': 'django_celery_beat', 'items': [
-        {'name': 'intervalschedule'},
-        {'name': 'periodictask'},
+   # ]},
+   # {'app_label': 'django_celery_beat', 'items': [
+   #     {'name': 'intervalschedule'},
+   #     {'name': 'periodictask'},
 
-    ]},
+   # ]},
 
     {'app_label': 'API', 'items': [
-        {'label': 'Cases count', 'url': '/api/v1/countcases'},
-        {'label': 'Cases', 'url': '/api/v1/cases'},
-
+        {'label': 'Счетчик дел', 'url': '/api/v1/countcases'},
+        {'label': 'Дела подробно', 'url': '/api/v1/cases'},
+        {'label': 'Тексты решений', 'url': '/api/v1/casestexts?format=admin'},
     ]},
 
 ]

@@ -67,7 +67,7 @@ class LinkedCases(CompactInline):
             f'<a href="/admin/cases/{instance.get_codex_type()}case/{instance.get_pk()}/change/">Link</a>')
 
 
-class CaseAdmin(admin.ModelAdmin):
+class CaseAdmin(CompareVersionAdmin, admin.ModelAdmin):
     inlines = (DefendantsInline, CaseEventsInline, LinkedCases)
     list_filter = (('codex_articles', ArticlesRelatedFieldAjaxListFilter), ('court', RelatedFieldAjaxListFilter),
                    ('judge', RelatedFieldAjaxListFilter), 'court__region', 'stage',)
@@ -137,7 +137,7 @@ class DefendantAdmin(admin.ModelAdmin):
         return qs
 
 
-class UKCaseAdmin(CompareVersionAdmin, CaseAdmin):
+class UKCaseAdmin(CaseAdmin):
     def get_queryset(self, request):
         qs = self.model.objects.filter(type=2)
 
@@ -148,7 +148,7 @@ class UKCaseAdmin(CompareVersionAdmin, CaseAdmin):
         return qs
 
 
-class KoapCaseAdmin(CompareVersionAdmin, CaseAdmin):
+class KoapCaseAdmin(CaseAdmin):
     def get_queryset(self, request):
         qs = self.model.objects.filter(type=1)
         if request.user.is_superuser:
