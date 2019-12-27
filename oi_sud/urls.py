@@ -6,7 +6,11 @@ from django.http import HttpResponse
 from django.urls import path, include, re_path
 
 from oi_sud.core.admin import admin_celery_view, get_progress
+<<<<<<< Updated upstream
 from oi_sud.cases.views import get_result_text, CountCasesView, CasesResultTextView, CasesView, CaseView
+=======
+from oi_sud.cases.views import get_result_text, CountCasesView, CasesView, CaseView, CasesResultTextView
+>>>>>>> Stashed changes
 from oi_sud.courts.views import CourtsView, CourtsDebugView
 
 admin.site.site_header = 'OVD-info Sud Monster'

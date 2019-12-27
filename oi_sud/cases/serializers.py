@@ -1,9 +1,9 @@
 from rest_framework import serializers
+from reversion.models import Version
 
 from oi_sud.cases.models import Case, CaseEvent, Defendant
 from oi_sud.core.api_utils import SkipNullValuesMixin
-from django.urls import reverse
-from reversion.models import Version
+
 
 class CaseEventSerializer(SkipNullValuesMixin, serializers.ModelSerializer):
     class Meta:
@@ -54,7 +54,9 @@ class CaseSerializer(SkipNullValuesMixin, serializers.ModelSerializer):
     def get_revisions(self, obj):
         revisions = Version.objects.get_for_object(obj)
         if len(revisions) > 1:
-            return {'link':obj.get_history_link(), 'revisions':[{'date':str(x.revision.date_created), 'comment':x.revision.comment} for x in Version.objects.get_for_object(obj)]}
+            return {'link': obj.get_history_link(),
+                    'revisions': [{'date': str(x.revision.date_created), 'comment': x.revision.comment} for x in
+                                  Version.objects.get_for_object(obj)]}
 
     def get_defendants(self, obj):
         if obj.defendants_hidden:
@@ -74,18 +76,19 @@ class CaseFullSerializer(CaseSerializer):
         model = Case
         exclude = ['advocates']
 
-class CaseResultSerializer(serializers.ModelSerializer):
 
+class CaseResultSerializer(serializers.ModelSerializer):
     codex_articles = serializers.SerializerMethodField()
     result_text_url = serializers.SerializerMethodField()
     api_url = serializers.HyperlinkedIdentityField(view_name='case-detail')
 
     def get_codex_articles(self, obj):
         return [str(x) for x in obj.codex_articles.all()]
+
     def get_result_text_url(self, obj):
         if obj.result_text:
             return obj.get_result_text_url()
 
     class Meta:
         model = Case
-        fields = ['result_text_url','url','api_url','codex_articles']
+        fields = ['result_text_url', 'url', 'api_url', 'codex_articles']

@@ -1,19 +1,18 @@
-import editdistance
 import traceback
-from django.db import models
-from django.urls import reverse
-from django.contrib.postgres.fields import ArrayField
-from django.utils import timezone
-from django.conf import settings
 
+import editdistance
+from django.conf import settings
+from django.contrib.postgres.fields import ArrayField
 from django.contrib.postgres.indexes import GinIndex
 from django.contrib.postgres.search import SearchVectorField
+from django.db import models
+from django.urls import reverse
+from django.utils import timezone
 
-from oi_sud.cases.consts import RESULT_TYPES, EVENT_TYPES, EVENT_RESULT_TYPES, APPEAL_RESULT_TYPES
-from oi_sud.core.utils import nullable, DictDiffer
+from oi_sud.cases.parsers.result_texts import kp_extractor
 from oi_sud.cases.utils import normalize_name, parse_name_and_get_gender
 from oi_sud.core.consts import region_choices
-
+from oi_sud.core.utils import nullable, DictDiffer
 
 CASE_TYPES = (
     (1, 'Дело об административном правонарушении'),
@@ -30,6 +29,14 @@ CASE_STAGES = (
 GENDER_TYPES = (
     (1, 'Ж'),
     (2, 'М'),
+)
+
+PENALTY_TYPES = (
+    ('fine', 'Штраф'),
+    ('works', 'Обязательные работы'),
+    ('arrest', 'Арест'),
+    ('term', 'Срок'),
+    ('other', 'Другое'),
 )
 
 
@@ -88,9 +95,6 @@ class Case(models.Model):
     linked_case_number = ArrayField(models.CharField(max_length=50), verbose_name='Номер связанного дела',
                                     **nullable)  # Москва
     linked_case_url = ArrayField(models.URLField(), verbose_name='Ссылка на связанное дело', **nullable)  # Москва
-    koap_money_sum = models.IntegerField(verbose_name='Штраф', **nullable)
-    koap_detention_days = models.IntegerField(verbose_name='Арест (дни)', **nullable)
-    koap_public_work_hours = models.IntegerField(verbose_name='Общественные работы (часы)', **nullable)
     text_search = SearchVectorField(null=True)
 
     objects = CaseManager()
@@ -106,6 +110,13 @@ class Case(models.Model):
 
         articles_list = ','.join([str(x) for x in self.codex_articles.all()])
         return f'{self.case_number} {articles_list} {self.court}'
+
+    def save(self, *args, **kwargs):
+
+        just_created = self.pk is None
+        super(Case, self).save(*args, **kwargs)
+        if just_created:
+            self.process_result_text()
 
     def get_codex_type(self):
         if self.type == 1:
@@ -126,7 +137,7 @@ class Case(models.Model):
         return f"{settings.BASE_URL}{reverse('case-result-text', kwargs={'case_id': self.pk})}"
 
     def get_history_link(self):
-        return settings.BASE_URL+reverse(f'admin:cases_{self.get_codex_type()}case_history', args=(self.id,))
+        return settings.BASE_URL + reverse(f'admin:cases_{self.get_codex_type()}case_history', args=(self.id,))
 
     @staticmethod
     def autocomplete_search_fields():
@@ -157,7 +168,7 @@ class Case(models.Model):
             # print(url)
             raw_data = parser.get_raw_case_information(url)
             fresh_data = {i: j for i, j in parser.serialize_data(raw_data).items() if j is not None}
-            fresh_data['case'] = {k:v for k,v in fresh_data['case'].items() if v is not None}
+            fresh_data['case'] = {k: v for k, v in fresh_data['case'].items() if v is not None}
             self.update_if_needed(fresh_data)
         except:
             print('error: ', self.url)
@@ -166,11 +177,12 @@ class Case(models.Model):
     def update_if_needed(self, fresh_data):
 
         old_data = self.serialize()
-        #print(old_data, fresh_data)
+        # print(old_data, fresh_data)
 
         if not old_data['case'].get('result_text') and fresh_data['case'].get('result_text'):
             fresh_data['case']['result_published_date'] = timezone.now()
-        if settings.TEST_MODE: # for tests
+            self.process_result_text()
+        if settings.TEST_MODE:  # for tests
             fresh_data['case']['case_number'] = '000'
         with reversion.create_revision():
             diff_keys = []
@@ -198,7 +210,7 @@ class Case(models.Model):
                 diff_keys.append('events')
 
             if len(diff_keys):
-                comment_message = 'Изменено: '+', '.join(diff_keys)
+                comment_message = 'Изменено: ' + ', '.join(diff_keys)
                 reversion.set_comment(comment_message)
 
     def serialize(self):
@@ -234,6 +246,25 @@ class Case(models.Model):
         result['codex_articles'] = self.codex_articles.all()
 
         return result
+
+    def process_result_text(self):
+
+        if not self.result_text:
+            return
+
+        if self.type != 1:  # пока мы не можем обрабатывать уголовки
+            return
+
+        result = kp_extractor.process(self.result_text)
+
+        if not result.get('could_not_process'):
+            for penalty_type in ['fine', 'arrest', 'works']:
+                if result.get(penalty_type):
+                    CasePenalty.objects.create(type=penalty_type, case=self, defendant=self.defendants.first(),
+                                               **result[penalty_type])
+                    break
+
+        # TODO: добавить выдворения/отмены/возвраты
 
 
 class UKCase(Case):
@@ -319,7 +350,9 @@ class CaseDefense(models.Model):
 
 
 class DefendantManager(models.Manager):
-    def create_from_name(self, name, region):
+
+    @staticmethod
+    def create_from_name(name, region):
 
         names, gender = parse_name_and_get_gender(name)
         normalized_name = normalize_name(name)
@@ -378,8 +411,35 @@ class Defendant(models.Model):
         verbose_name = 'Ответчик'
         verbose_name_plural = 'Ответчики'
 
+
+class CasePenalty(models.Model):
+    type = models.CharField(max_length=10, choices=PENALTY_TYPES, **nullable)
+    num = models.IntegerField(**nullable)
+    is_hidden = models.BooleanField()
+    case = models.ForeignKey(Case, related_name='penalties', on_delete=models.CASCADE)
+    defendant = models.ForeignKey('Defendant', on_delete=models.CASCADE)
+
+    def __str__(self):
+
+        units_dict = {
+            'works': 'в часах',
+            'fine': 'в рублях',
+            'arrest': 'в сутках'
+        }
+
+        if self.is_hidden:
+            return f'{self.get_type_display()}: инфорация скрыта'
+        else:
+            return f'{self.get_type_display()}: {self.num} ({units_dict[self.type]})'
+
+    class Meta:
+        verbose_name = 'Наказание'
+        verbose_name_plural = 'Наказания'
+        unique_together = ('case', 'defendant')
+
+
 import reversion
+
 reversion.register(Case)
 reversion.register(CaseDefense)
 reversion.register(CaseEvent)
-
