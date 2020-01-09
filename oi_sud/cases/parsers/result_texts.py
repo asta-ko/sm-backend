@@ -93,7 +93,8 @@ class KoapPenaltyExtractor(object):
             if 'выдвор' in decision_text:
                 result['deportation'] = True
         except Exception as e:
-            print('error parsing: '+e.text)
+            print('error parsing')
+            print(e)
 
         # проверяем, что мы получили какие-то данные, и если нет, прописываем ошибку в словарь результата
         is_result_empty = True
