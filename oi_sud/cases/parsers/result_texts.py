@@ -69,27 +69,31 @@ class KoapPenaltyExtractor(object):
 
         # получаем информацию о штрафе
 
-        if 'штраф' in decision_text:
-            fine_num, fine_not_found, fine_hidden = self.get_fine(decision_text)
-            if fine_num or fine_hidden:
-                result['fine'] = {'num': fine_num, 'is_hidden': fine_hidden}
+        try:
 
-        # если нет информации о штрафе, получаем информацию об аресте
-        if fine_not_found and 'арест' in decision_text:
-            arrest_days, arrest_not_found, arrest_hidden = self.get_arrest(decision_text)
-            if arrest_days or arrest_hidden:
-                result['arrest'] = {'num': arrest_days, 'is_hidden': arrest_hidden}
+            if 'штраф' in decision_text:
+                fine_num, fine_not_found, fine_hidden = self.get_fine(decision_text)
+                if fine_num or fine_hidden:
+                    result['fine'] = {'num': int(fine_num), 'is_hidden': fine_hidden}
 
-        # если нет информации о штрафе или об аресте, ищем обязательные работы
-        if fine_not_found and arrest_not_found and (
-                'обязательных работ' in decision_text or 'обязательные работы' in decision_text):
-            works_hours, works_not_found, works_hidden = self.get_compulsory_works(decision_text)
-            if works_hours or works_hidden:
-                result['works'] = {'num': works_hours, 'is_hidden': works_hidden}
+            # если нет информации о штрафе, получаем информацию об аресте
+            if fine_not_found and 'арест' in decision_text:
+                arrest_days, arrest_not_found, arrest_hidden = self.get_arrest(decision_text)
+                if arrest_days or arrest_hidden:
+                    result['arrest'] = {'num': int(arrest_days), 'is_hidden': arrest_hidden}
 
-        # проверяем, есть ли информация о выдворении
-        if 'выдвор' in decision_text:
-            result['deportation'] = True
+            # если нет информации о штрафе или об аресте, ищем обязательные работы
+            if fine_not_found and arrest_not_found and (
+                    'обязательных работ' in decision_text or 'обязательные работы' in decision_text):
+                works_hours, works_not_found, works_hidden = self.get_compulsory_works(decision_text)
+                if works_hours or works_hidden:
+                    result['works'] = {'num': int(works_hours), 'is_hidden': works_hidden}
+
+            # проверяем, есть ли информация о выдворении
+            if 'выдвор' in decision_text:
+                result['deportation'] = True
+        except Exception as e:
+            print('error parsing: '+e.text)
 
         # проверяем, что мы получили какие-то данные, и если нет, прописываем ошибку в словарь результата
         is_result_empty = True
