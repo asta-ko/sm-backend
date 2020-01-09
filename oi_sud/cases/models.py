@@ -258,14 +258,20 @@ class Case(models.Model):
         if self.penalties.count() > 1: # верно для административок
             return
 
-        result = kp_extractor.process(self.result_text)
 
-        if not result.get('could_not_process'):
-            for penalty_type in ['fine', 'arrest', 'works']:
-                if result.get(penalty_type):
-                    CasePenalty.objects.create(type=penalty_type, case=self, defendant=self.defendants.first(),
+        result = kp_extractor.process(self.result_text)
+        try:
+            if not result.get('could_not_process'):
+                for penalty_type in ['fine', 'arrest', 'works']:
+                    if result.get(penalty_type):
+                        if result[penalty_type].get('num') and int(result[penalty_type].get('num')) > 5000000:
+                            return
+                        CasePenalty.objects.create(type=penalty_type, case=self, defendant=self.defendants.first(),
                                                **result[penalty_type])
-                    break
+                        break
+        except Exception as e:
+            print('saving error')
+            print(e)
 
         # TODO: добавить выдворения/отмены/возвраты
 
