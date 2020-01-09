@@ -420,7 +420,7 @@ class CasePenalty(models.Model):
     num = models.IntegerField(**nullable)
     is_hidden = models.BooleanField()
     case = models.ForeignKey(Case, related_name='penalties', on_delete=models.CASCADE)
-    defendant = models.ForeignKey('Defendant', on_delete=models.CASCADE)
+    defendant = models.ForeignKey('Defendant', on_delete=models.CASCADE, **nullable)
 
     def __str__(self):
 
