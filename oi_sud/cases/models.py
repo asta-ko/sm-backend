@@ -255,6 +255,9 @@ class Case(models.Model):
         if self.type != 1:  # пока мы не можем обрабатывать уголовки
             return
 
+        if self.penalties.count() > 1: # верно для административок
+            return
+
         result = kp_extractor.process(self.result_text)
 
         if not result.get('could_not_process'):

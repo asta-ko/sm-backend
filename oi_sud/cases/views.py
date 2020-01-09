@@ -13,7 +13,7 @@ from rest_framework.generics import RetrieveAPIView
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.renderers import AdminRenderer
-from oi_sud.cases.models import Case, CaseEvent
+from oi_sud.cases.models import Case, CaseEvent, PENALTY_TYPES
 from oi_sud.cases.serializers import CaseSerializer, CaseFullSerializer, CaseResultSerializer
 from oi_sud.codex.models import KoapCodexArticle, UKCodexArticle
 
@@ -73,6 +73,7 @@ class CaseFilter(django_filters.FilterSet):
     court_city = django_filters.CharFilter(field_name="court__city", lookup_expr='icontains',
                                            label="Город/Населенный пункт")
     defendant = django_filters.CharFilter(field_name="defendants__last_name", lookup_expr='icontains', label="Ответчик")
+    penalty_type = django_filters.ChoiceFilter(field_name="penalties__type", choices = PENALTY_TYPES)
     result_type = django_filters.CharFilter(field_name="result_type", lookup_expr='icontains', label="Решение по делу")
     date_range = django_filters.DateFromToRangeFilter(field_name="entry_date",
                                                       widget=RangeWidget(attrs={'placeholder': 'YYYY-MM-DD'}),
@@ -85,6 +86,7 @@ class CaseFilter(django_filters.FilterSet):
 
     event_type = GroupedChoiceFilter(field_name="events__type", choices=EVENT_TYPE_CHOICES,
                                      label="В деле есть событие этого типа")
+
     event_date_range = GroupedDateFromToRangeFilter(field_name="events__date",
                                                     widget=RangeWidget(attrs={'placeholder': 'YYYY-MM-DD'}),
                                                     label='И дата этого события')
@@ -225,6 +227,15 @@ class CasesView(ListAPIView):
                                              'court', 'judge', 'codex_articles')
 
     ordering_fields = ['entry_date', ]
+
+
+class CasesResultTextView(ListAPIView):
+    permission_classes = (permissions.IsAdminUser,)
+    serializer_class = CaseResultSerializer
+    filter_backends = [CaseFilterBackend]
+    filterset_class = CaseArticleFilter
+    ordering_fields = ['entry_date', ]
+    queryset = Case.objects.filter(result_text__isnull=False)
 
 
 class CaseView(RetrieveAPIView):

@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from reversion.models import Version
 
-from oi_sud.cases.models import Case, CaseEvent, Defendant
+from oi_sud.cases.models import Case, CaseEvent, Defendant, CasePenalty
 from oi_sud.core.api_utils import SkipNullValuesMixin
 
 
@@ -19,6 +19,17 @@ class DefendantSerializer(SkipNullValuesMixin, serializers.ModelSerializer):
         model = Defendant
         exclude = ['id', 'region', 'created_at']
 
+class PenaltySerializer(SkipNullValuesMixin, serializers.ModelSerializer):
+
+    human_readable = serializers.SerializerMethodField()
+
+    def get_human_readable(self, obj):
+        return str(obj)
+
+    class Meta:
+        model = CasePenalty
+        exclude = ['id','case','defendant']
+
 
 class CaseSerializer(SkipNullValuesMixin, serializers.ModelSerializer):
     judge = serializers.SerializerMethodField()
@@ -32,6 +43,7 @@ class CaseSerializer(SkipNullValuesMixin, serializers.ModelSerializer):
     admin_url = serializers.SerializerMethodField()
     api_url = serializers.HyperlinkedIdentityField(view_name='case-detail')
     result_text_url = serializers.SerializerMethodField()
+    penalties = PenaltySerializer(many=True, read_only=True)
     linked_cases = serializers.HyperlinkedRelatedField(
         many=True,
         read_only=True,
@@ -41,6 +53,12 @@ class CaseSerializer(SkipNullValuesMixin, serializers.ModelSerializer):
     class Meta:
         model = Case
         exclude = ['result_text', 'advocates', 'text_search']
+
+    def get_penalty(self, obj):
+        if obj.penalties.first():
+            return str(obj.penalties.first())
+        else:
+            return None
 
     def get_judge(self, obj):
         return str(obj.judge)
