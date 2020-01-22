@@ -97,6 +97,25 @@ services:
           job: backend
           instance: sudmonster
 
+    frontend:
+        <<: *oi_sud
+        network_mode: host
+        image: oi-sud-monster-frontend:latest
+        container_name: sudmonster_frontend
+        working_dir: /cf/
+        volumes:
+          - ../oi-sud-monster-frontend/:/cf
+        restart: always
+        ports:
+          - "3000:3000"
+        command:
+          "npm run dev"
+        environment:
+          VIRTUAL_HOST: sudmonster.ovdinfo.org
+          VIRTUAL_PORT: 3000
+          LETSENCRYPT_HOST: sudmonster.ovdinfo.org
+          LETSENCRYPT_EMAIL: asta.ko@ovdinfo.org
+
 
     test:
         container_name: sudmonster_test

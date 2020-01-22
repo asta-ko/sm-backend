@@ -58,3 +58,6 @@ ENV/
 .vscode
 
 /.docker
+
+frontend/
+node_modules/

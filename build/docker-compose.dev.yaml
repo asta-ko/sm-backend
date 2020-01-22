@@ -6,11 +6,13 @@ x-global-environment: &global-environment
 
 x-projectname: &oi_sud
     env_file: .env
-    image: __C_PROJECT_NAME__-virtualenv-test:latest
+    image: __C_PROJECT_NAME__-virtualenv:latest
     environment:
         <<: *global-environment
     volumes:
         - ./:/code
+        - ../oi-sud-monster-frontend:/code/frontend
+
     restart: on-failure
 
 services:
@@ -42,9 +44,24 @@ services:
           - ./:/code
           - ./.docker/static:/var/www/static
           - ./.docker/media:/var/www/media
-        command: ["gunicorn", "oi_sud.wsgi:application", "-b", "0.0.0.0:8081", "--name", "oi_sud", "--reload"]
+        command: ["gunicorn", "oi_sud.wsgi:application", "-b", "0.0.0.0:8081", "--name", "oi_sud", "--reload", "--log-level", "debug",  ]
         ports:
           - "8082:8081"
+
+    frontend:
+        <<: *oi_sud
+        network_mode: host
+        image: oi-sud-monster-frontend-test:latest
+        container_name: nuxt_frontend
+        working_dir: /cf/
+        volumes:
+          - ../oi-sud-monster-frontend/:/cf
+        restart: always
+        ports:
+          - "3000:3000"
+        command:
+          "npm run dev"
+
 
     test:
         <<: *oi_sud
@@ -54,22 +71,22 @@ services:
 
 
 
-    celery_main:
-        <<: *oi_sud
-        command: ["celery", "-A", "oi_sud", "worker", "-l", "info", "-Q", "main", "-c", "1", "-n", "main" ]
-
-    celery_other:
-        <<: *oi_sud
-        command: ["celery", "-A", "oi_sud", "worker", "-l", "info", "-Q", "other", "-c", "8", "-n", "other" ]
-
-    celerybeat:
-        <<: *oi_sud
-        command: ["celery", "-A", "oi_sud", "beat", "--scheduler", "django_celery_beat.schedulers:DatabaseScheduler", "-l", "info", "--pidfile", "/tmp/celerybeat123324.pid", "--schedule", "/tmp/celerybeat-schedule"]
-
-    flower:
-      image: mher/flower
-      command: ["flower", "--broker=redis://redis:6379/0", "--port=8888"]
-      ports:
-         - 8888:8888
+#    celery_main:
+#        <<: *oi_sud
+#        command: ["celery", "-A", "oi_sud", "worker", "-l", "info", "-Q", "main", "-c", "1", "-n", "main" ]
+#
+#    celery_other:
+#        <<: *oi_sud
+#        command: ["celery", "-A", "oi_sud", "worker", "-l", "info", "-Q", "other", "-c", "8", "-n", "other" ]
+#
+#    celerybeat:
+#        <<: *oi_sud
+#        command: ["celery", "-A", "oi_sud", "beat", "--scheduler", "django_celery_beat.schedulers:DatabaseScheduler", "-l", "info", "--pidfile", "/tmp/celerybeat123324.pid", "--schedule", "/tmp/celerybeat-schedule"]
+#
+#    flower:
+#      image: mher/flower
+#      command: ["flower", "--broker=redis://redis:6379/0", "--port=8888"]
+#      ports:
+#         - 8888:8888
 volumes:
   db-data:

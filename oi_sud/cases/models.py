@@ -22,7 +22,7 @@ CASE_TYPES = (
 
 CASE_STAGES = (
     (1, 'Первая инстанция'),
-    (2, 'Аппеляция/первый пересмотр'),
+    (2, 'Апелляция/первый пересмотр'),
     (3, 'Новое рассмотрение в первой инстанции')
 )
 
@@ -55,11 +55,10 @@ class CaseManager(models.Manager):
                         defense.codex_articles.set(articles)
                 for event in item['events']:
                     event['case'] = case
-                    case_event = CaseEvent.objects.create(**event)
-
+                    CaseEvent.objects.create(**event)
                 print('saved case ', case)
                 return case
-            except Exception as e:
+            except Exception:
                 print(traceback.format_exc())
 
 
@@ -255,9 +254,8 @@ class Case(models.Model):
         if self.type != 1:  # пока мы не можем обрабатывать уголовки
             return
 
-        if self.penalties.count() > 1: # верно для административок
+        if self.penalties.count() > 1:  # верно для административок
             return
-
 
         result = kp_extractor.process(self.result_text)
         try:
@@ -267,13 +265,27 @@ class Case(models.Model):
                         if result[penalty_type].get('num') and int(result[penalty_type].get('num')) > 5000000:
                             return
                         CasePenalty.objects.create(type=penalty_type, case=self, defendant=self.defendants.first(),
-                                               **result[penalty_type])
+                                                   **result[penalty_type])
                         break
         except Exception as e:
             print('saving error')
             print(e)
 
-        # TODO: добавить выдворения/отмены/возвраты
+        if not self.result_type:
+
+            if result.get('returned'):
+                self.result_type = 'Возвращено'
+
+            if result.get('cancelled'):
+                self.result_type = 'Отмена'
+
+            if result.get('forward'):
+                self.result_type = 'Направлено по подведомственности'
+
+            if self.result_type:
+                self.save()
+
+        # TODO: добавить выдворения
 
 
 class UKCase(Case):
@@ -446,8 +458,8 @@ class CasePenalty(models.Model):
         verbose_name_plural = 'Наказания'
         unique_together = ('case', 'defendant')
 
-
 import reversion
+
 reversion.register(KoapCase)
 reversion.register(UKCase)
 reversion.register(Case)

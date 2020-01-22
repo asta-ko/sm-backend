@@ -19,8 +19,8 @@ class DefendantSerializer(SkipNullValuesMixin, serializers.ModelSerializer):
         model = Defendant
         exclude = ['id', 'region', 'created_at']
 
-class PenaltySerializer(SkipNullValuesMixin, serializers.ModelSerializer):
 
+class PenaltySerializer(SkipNullValuesMixin, serializers.ModelSerializer):
     human_readable = serializers.SerializerMethodField()
 
     def get_human_readable(self, obj):
@@ -28,15 +28,17 @@ class PenaltySerializer(SkipNullValuesMixin, serializers.ModelSerializer):
 
     class Meta:
         model = CasePenalty
-        exclude = ['id','case','defendant']
+        exclude = ['id', 'case', 'defendant']
 
 
 class CaseSerializer(SkipNullValuesMixin, serializers.ModelSerializer):
+    in_favorites = serializers.SerializerMethodField()
     judge = serializers.SerializerMethodField()
     court = serializers.SerializerMethodField()
     codex_articles = serializers.SerializerMethodField()
     revisions = serializers.SerializerMethodField()
     defendants = DefendantSerializer(many=True, read_only=True)
+    defendants_simple = serializers.SerializerMethodField()
     events = CaseEventSerializer(many=True, read_only=True)
     stage = serializers.CharField(source='get_stage_display')
     type = serializers.CharField(source='get_type_display')
@@ -49,6 +51,20 @@ class CaseSerializer(SkipNullValuesMixin, serializers.ModelSerializer):
         read_only=True,
         view_name='case-detail'
     )
+
+    def get_in_favorites(self, obj):
+        request = self.context.get("request")
+        if request and hasattr(request, "user"):
+            if request.user in obj.favorited_users.all():
+                return True
+            return False
+
+    def get_defendants_simple(self, obj):
+        if obj.defendants.count():
+            try:
+                return ', '.join(list([x.name_normalized for x in obj.defendants.all()]))
+            except TypeError:
+                return ''
 
     class Meta:
         model = Case

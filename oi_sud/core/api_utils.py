@@ -1,6 +1,12 @@
 from collections import OrderedDict
+
 from rest_framework.fields import SkipField
 from rest_framework.relations import PKOnlyObject
+from rest_framework_expiring_authtoken.authentication import ExpiringTokenAuthentication
+
+
+class BTokenAuthentication(ExpiringTokenAuthentication):
+    keyword = 'bearer' #needed for frontend
 
 
 class SkipNullValuesMixin(object):

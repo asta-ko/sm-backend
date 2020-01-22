@@ -10,9 +10,10 @@ from rest_framework import filters
 from rest_framework import permissions
 from rest_framework.generics import ListAPIView
 from rest_framework.generics import RetrieveAPIView
+from rest_framework.renderers import AdminRenderer
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework.renderers import AdminRenderer
+
 from oi_sud.cases.models import Case, CaseEvent, PENALTY_TYPES
 from oi_sud.cases.serializers import CaseSerializer, CaseFullSerializer, CaseResultSerializer
 from oi_sud.codex.models import KoapCodexArticle, UKCodexArticle
@@ -51,7 +52,7 @@ class GroupedDateFromToRangeFilter(django_filters.DateFromToRangeFilter):
             return {}
 
 
-class GroupedChoiceFilter(django_filters.ChoiceFilter):
+class GroupedChoiceFilter(django_filters.MultipleChoiceFilter):
     grouped = True
 
     def get_lookup_and_value(self, value):
@@ -69,15 +70,19 @@ EVENT_TYPE_CHOICES = list(type_dict.items())
 class CaseFilter(django_filters.FilterSet):
     entry_year_from = django_filters.NumberFilter(field_name="entry_date__year", lookup_expr='gte', label="Год (от)")
     entry_year_to = django_filters.NumberFilter(field_name="entry_date__year", lookup_expr='lte', label="Год (до)")
-    judge = django_filters.CharFilter(field_name="judge__name", lookup_expr='icontains', label="Фамилия судьи")
+    judge_name = django_filters.CharFilter(field_name="judge__name", lookup_expr='icontains', label="Фамилия судьи")
     court_city = django_filters.CharFilter(field_name="court__city", lookup_expr='icontains',
                                            label="Город/Населенный пункт")
     defendant = django_filters.CharFilter(field_name="defendants__last_name", lookup_expr='icontains', label="Ответчик")
-    penalty_type = django_filters.ChoiceFilter(field_name="penalties__type", choices = PENALTY_TYPES)
+    defendant_hidden = django_filters.BooleanFilter(field_name="defendants_hidden")
+    penalty_type = django_filters.ChoiceFilter(field_name="penalties__type", choices=PENALTY_TYPES)
     result_type = django_filters.CharFilter(field_name="result_type", lookup_expr='icontains', label="Решение по делу")
-    date_range = django_filters.DateFromToRangeFilter(field_name="entry_date",
-                                                      widget=RangeWidget(attrs={'placeholder': 'YYYY-MM-DD'}),
-                                                      label='Дата поступления')
+    entry_date_range = django_filters.DateFromToRangeFilter(field_name="entry_date",
+                                                            widget=RangeWidget(attrs={'placeholder': 'YYYY-MM-DD'}),
+                                                            label='Дата поступления')
+    result_date_range = django_filters.DateFromToRangeFilter(field_name="result_date",
+                                                             widget=RangeWidget(attrs={'placeholder': 'YYYY-MM-DD'}),
+                                                             label='Дата поступления')
     # is_in_future = django_filters.BooleanFilter(field_name='events', method='get_future', label='Еще не рассмотрено')
     has_result_text = django_filters.BooleanFilter(field_name='result_text', method='filter_has_result_text',
                                                    label="Есть текст решения")
@@ -129,7 +134,7 @@ class CaseFilter(django_filters.FilterSet):
     def filter_has_result_text(self, queryset, name, value):
         # construct the full lookup expression.
         lookup = '__'.join([name, 'isnull'])
-        return queryset.filter(**{lookup: False})
+        return queryset.filter(**{lookup: not value})
 
     def filter_result_search(self, queryset, name, value):
         return queryset.filter(text_search=SearchQuery(value, config='russian', search_type='phrase'))
@@ -139,13 +144,13 @@ class CaseFilter(django_filters.FilterSet):
 
     class Meta:
         model = Case
-        fields = ['stage', 'court__region', 'defendants__gender']
+        fields = ['stage', 'court__region', 'judge', 'defendants__gender']
 
 
 class CaseArticleFilter(CaseFilter):
     class Meta:
         model = Case
-        fields = ['stage', 'type', 'court__region', 'codex_articles']
+        fields = ['stage', 'type', 'court__region', 'codex_articles', 'court', 'judge']
 
 
 class CaseFilterBackend(DjangoFilterBackend):
@@ -218,7 +223,7 @@ class CountCasesView(APIView):
 
 
 class CasesView(ListAPIView):
-    #permission_classes = (permissions.IsAdminUser,)
+    permission_classes = (permissions.IsAdminUser,)
     serializer_class = CaseSerializer
     filter_backends = [CaseFilterBackend, filters.OrderingFilter]
     filterset_class = CaseArticleFilter
@@ -226,16 +231,7 @@ class CasesView(ListAPIView):
                                                       queryset=CaseEvent.objects.order_by('date')), 'defendants',
                                              'court', 'judge', 'codex_articles')
 
-    ordering_fields = ['entry_date', ]
-
-
-class CasesResultTextView(ListAPIView):
-    permission_classes = (permissions.IsAdminUser,)
-    serializer_class = CaseResultSerializer
-    filter_backends = [CaseFilterBackend]
-    filterset_class = CaseArticleFilter
-    ordering_fields = ['entry_date', ]
-    queryset = Case.objects.filter(result_text__isnull=False)
+    ordering_fields = ['entry_date', 'result_date']
 
 
 class CaseView(RetrieveAPIView):
@@ -253,4 +249,45 @@ class CasesResultTextView(ListAPIView):
     filterset_class = CaseArticleFilter
     ordering_fields = ['entry_date', ]
     queryset = Case.objects.filter(result_text__isnull=False)
-    renderer_classes = (AdminRenderer, )
+    renderer_classes = (AdminRenderer,)
+
+
+class CasesResultTypesView(APIView):
+
+    def filter_queryset(self, queryset):
+        for backend in list(self.filter_backends):
+            queryset = backend().filter_queryset(self.request, queryset, self)
+        return queryset
+
+    def get_queryset(self):
+        return Case.objects.all()
+
+    permission_classes = (permissions.IsAdminUser,)
+    filter_backends = [CaseFilterBackend]
+    filterset_class = CaseArticleFilter
+
+    def get(self, request, format=None):
+        queryset = self.get_queryset()  # Case.objects.all()
+        filtered = self.filter_queryset(queryset).values_list('result_type', flat=True).distinct()
+        return Response(filtered)
+
+
+class CasesEventTypesView(APIView): #TODO: may be add filtering
+
+    # def filter_queryset(self, queryset):
+    #     for backend in list(self.filter_backends):
+    #         queryset = backend().filter_queryset(self.request, queryset, self)
+    #     return queryset
+
+    def get_queryset(self):
+        return CaseEvent.objects.distinct('type').order_by('type')
+
+    permission_classes = (permissions.IsAdminUser,)
+
+    # filter_backends = [CaseFilterBackend]
+    # filterset_class = CaseArticleFilter
+
+    def get(self, request, format=None):
+        queryset = self.get_queryset()
+        filtered = queryset.values_list('type', flat=True)
+        return Response(filtered)

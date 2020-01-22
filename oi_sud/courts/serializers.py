@@ -1,7 +1,7 @@
 from rest_framework import serializers
-from collections import OrderedDict
-from oi_sud.courts.models import Court
+
 from oi_sud.core.api_utils import SkipNullValuesMixin
+from oi_sud.courts.models import Court, Judge
 
 
 class DebugCourtSerializer(serializers.ModelSerializer):
@@ -24,3 +24,15 @@ class CourtSerializer(SkipNullValuesMixin, serializers.ModelSerializer):
     class Meta:
         model = Court
         fields = '__all__'
+
+
+class CourtShortSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Court
+        fields = ['id', 'title', 'region']
+
+
+class JudgeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Judge
+        fields = ['id', 'name', 'court']
