@@ -33,13 +33,13 @@
 
 
   {% for task in tasks %}
-  var progressUrl{{ forloop.counter }} = "{% url 'task_status' task|get_item:'uuid' %}";
-  CeleryProgressBar.initProgressBar(progressUrl{{ forloop.counter }},  {
-    progressBarId: 'progress-bar-{{ forloop.counter }}',
-    progressBarMessageId: 'progress-bar-message-{{ forloop.counter }}'
-  });
-
-  {% endfor %}
+  var progressUrl;{{ forloop.counter }} = "{% url 'task_status' task|get_item:'uuid' %}";
+  CeleryProgressBar.initProgressBar(progressUrl;{{ forloop.counter }},  {
+    'progress-bar-{{ forloop.counter }}',
+    progressBarMessageId;: 'progress-bar-message-{{ forloop.counter }}'
+      }
+  )
+      {% endfor %}
 });
 
 

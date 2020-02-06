@@ -217,9 +217,105 @@ class CountCasesView(APIView):
             # for article in UKCodexArticle.objects.filter(active=True):
             #     if uk_qs.filter(codex_articles__in=[article]).count():
             #         data['uk']['articles'][article.__str__()] = uk_qs.filter(codex_articles__in=[article]).count()
-            return Response([data])
+            return Response({'data': data})
         else:
             return Response([])
+
+
+class FrontCountCasesView(APIView):
+
+    def filter_queryset(self, queryset):
+        for backend in list(self.filter_backends):
+            queryset = backend().filter_queryset(self.request, queryset, self)
+        return queryset
+
+    def get_queryset(self):
+        return Case.objects.all()
+
+    permission_classes = (permissions.IsAdminUser,)
+    filter_backends = [CaseFilterBackend]
+    filterset_class = CaseFilter
+
+    def get(self, request, format=None):
+        queryset = self.get_queryset()  # Case.objects.all()
+        filtered_queryset = self.filter_queryset(queryset)
+
+        koap_qs = filtered_queryset.filter(type=1)
+        uk_qs = filtered_queryset.filter(type=2)
+
+        if filtered_queryset.exists():
+            # count_all = filtered_queryset.count()
+            # # count_koap = filtered_queryset.filter(codex='koap')
+            # data = {'all': count_all, 'koap': {'count': koap_qs.count(), 'articles': {}},
+            #         'uk': {'count': uk_qs.count(), 'articles': {}}}
+
+            data = [
+                {'article': 'КОАП', 'count': koap_qs.count(), 'count_first_instance': koap_qs.filter(stage=1).count(),
+                 'count_second_instance': koap_qs.filter(stage=2).count(), 'key': 'koap',
+                 'description': 'Всего дел об административных правонарушениях', 'children': []},
+                {'article': 'УК', 'count': uk_qs.count(), 'count_first_instance': uk_qs.filter(stage=1).count(),
+                 'count_second_instance': uk_qs.filter(stage=2).count(), 'key': 'uk',
+                 'description': 'Всего уголовных дел', 'children': []}]
+
+            koap = []
+            uk = []
+
+            for article_number in KoapCodexArticle.objects.filter(active=True).values_list('article_number',
+                                                                                           flat=True).distinct():
+                article_qs = koap_qs.filter(codex_articles__article_number=article_number)
+                main_item = {'article': article_number, 'key': article_number,
+                             'count_first_instance': article_qs.filter(stage=1).count(),
+                             'count_second_instance': article_qs.filter(stage=2).count(), 'count': article_qs.count(),
+                             'description': KoapCodexArticle.objects.filter(
+                                 article_number=article_number).first().parent_title}
+
+                if KoapCodexArticle.objects.filter(article_number=article_number).count() > 1:
+                    children = []
+                    for article in KoapCodexArticle.objects.filter(article_number=article_number):
+                        if koap_qs.filter(codex_articles__in=[article]).count():
+                            children.append({'article': article.__str__(), 'key': article.__str__(),
+                                             'count_first_instance': article_qs.filter(stage=1, codex_articles__in=[
+                                                 article]).count(), 'count_second_instance': article_qs.filter(stage=2,
+                                                                                                               codex_articles__in=[
+                                                                                                                   article]).count(),
+                                             'count': article_qs.filter(codex_articles__in=[article]).count(),
+                                             'description': article.short_title})
+                    if len(children):
+                        main_item['children'] = children
+                koap.append(main_item)
+            data[0]['children'] = koap
+
+            for article_number in UKCodexArticle.objects.filter(active=True).values_list('article_number',
+                                                                                         flat=True).distinct():
+                article_qs = uk_qs.filter(codex_articles__article_number=article_number)
+                main_item = {'article': article_number, 'key': article_number,
+                             'count_first_instance': article_qs.filter(stage=1).count(),
+                             'count_second_instance': article_qs.filter(stage=2).count(),
+                             'count_first_instance': article_qs.filter(stage=1, codex_articles__in=[article]).count(),
+                             'count_second_instance': article_qs.filter(stage=2, codex_articles__in=[article]).count(),
+                             'count': article_qs.filter(codex_articles__in=[article]).count(),
+                             'description': UKCodexArticle.objects.filter(
+                                 article_number=article_number).first().parent_title}
+
+                if UKCodexArticle.objects.filter(article_number=article_number).count() > 1:
+                    children = []
+                    for article in UKCodexArticle.objects.filter(article_number=article_number):
+                        if uk_qs.filter(codex_articles__in=[article]).count():
+                            children.append({'article': article.__str__(), 'key': article.__str__(),
+                                             'count_first_instance': article_qs.filter(stage=1, codex_articles__in=[
+                                                 article]).count(), 'count_second_instance': article_qs.filter(stage=2,
+                                                                                                               codex_articles__in=[
+                                                                                                                   article]).count(),
+                                             'count': article_qs.filter(codex_articles__in=[article]).count(),
+                                             'description': article.short_title})
+                    if len(children):
+                        main_item['children'] = children
+                uk.append(main_item)
+            data[1]['children'] = uk
+
+            return Response({'data': data})
+        else:
+            return Response({'data':[]})
 
 
 class CasesView(ListAPIView):
@@ -272,7 +368,7 @@ class CasesResultTypesView(APIView):
         return Response(filtered)
 
 
-class CasesEventTypesView(APIView): #TODO: may be add filtering
+class CasesEventTypesView(APIView):  # TODO: may be add filtering
 
     # def filter_queryset(self, queryset):
     #     for backend in list(self.filter_backends):
