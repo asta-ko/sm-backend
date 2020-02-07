@@ -76,6 +76,7 @@ class CaseFilter(django_filters.FilterSet):
     defendant = django_filters.CharFilter(field_name="defendants__last_name", lookup_expr='icontains', label="Ответчик")
     defendant_hidden = django_filters.BooleanFilter(field_name="defendants_hidden")
     penalty_type = django_filters.ChoiceFilter(field_name="penalties__type", choices=PENALTY_TYPES)
+    penalty_hidden = django_filters.BooleanFilter(field_name="penalties__is_hidden", label="Наказание зацензурено")
     result_type = django_filters.CharFilter(field_name="result_type", lookup_expr='icontains', label="Решение по делу")
     entry_date_range = django_filters.DateFromToRangeFilter(field_name="entry_date",
                                                             widget=RangeWidget(attrs={'placeholder': 'YYYY-MM-DD'}),

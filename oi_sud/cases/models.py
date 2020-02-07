@@ -37,6 +37,8 @@ PENALTY_TYPES = (
     ('arrest', 'Арест'),
     ('term', 'Срок'),
     ('other', 'Другое'),
+    ('error', 'Ошибка')
+
 )
 
 

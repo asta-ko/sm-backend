@@ -46,11 +46,19 @@ class CaseSerializer(SkipNullValuesMixin, serializers.ModelSerializer):
     api_url = serializers.HyperlinkedIdentityField(view_name='case-detail')
     result_text_url = serializers.SerializerMethodField()
     penalties = PenaltySerializer(many=True, read_only=True)
+    penalty_human_readable = serializers.SerializerMethodField()
     linked_cases = serializers.HyperlinkedRelatedField(
         many=True,
         read_only=True,
         view_name='case-detail'
     )
+
+    def get_penalty_human_readable(self, obj):
+        if obj.type == 'uk':
+            return '-'
+        elif obj.type == 'koap':
+            return obj.penalties.first()
+
 
     def get_in_favorites(self, obj):
         request = self.context.get("request")
@@ -72,7 +80,7 @@ class CaseSerializer(SkipNullValuesMixin, serializers.ModelSerializer):
 
     def get_penalty(self, obj):
         if obj.penalties.first():
-            return str(obj.penalties.first())
+            return obj.penalties.all().first()
         else:
             return None
 
