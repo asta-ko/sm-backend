@@ -76,7 +76,10 @@ class CaseFilter(django_filters.FilterSet):
     defendant = django_filters.CharFilter(field_name="defendants__last_name", lookup_expr='icontains', label="Ответчик")
     defendant_hidden = django_filters.BooleanFilter(field_name="defendants_hidden")
     penalty_type = django_filters.ChoiceFilter(field_name="penalties__type", choices=PENALTY_TYPES)
+    has_penalty = django_filters.BooleanFilter(field_name="penalties", method='filter_has_penalty', label="Нет наказания")
     penalty_hidden = django_filters.BooleanFilter(field_name="penalties__is_hidden", label="Наказание зацензурено")
+    penalty_from = django_filters.NumberFilter(field_name="penalties__num", lookup_expr="gte", label="Размер наказания (от)")
+    penalty_to = django_filters.NumberFilter(field_name="penalties__num", lookup_expr="lte", label="Размер наказания (до)")
     result_type = django_filters.CharFilter(field_name="result_type", lookup_expr='icontains', label="Решение по делу")
     entry_date_range = django_filters.DateFromToRangeFilter(field_name="entry_date",
                                                             widget=RangeWidget(attrs={'placeholder': 'YYYY-MM-DD'}),
@@ -133,6 +136,11 @@ class CaseFilter(django_filters.FilterSet):
         return queryset
 
     def filter_has_result_text(self, queryset, name, value):
+        # construct the full lookup expression.
+        lookup = '__'.join([name, 'isnull'])
+        return queryset.filter(**{lookup: not value})
+
+    def filter_has_penalty(self, queryset, name, value):
         # construct the full lookup expression.
         lookup = '__'.join([name, 'isnull'])
         return queryset.filter(**{lookup: not value})
