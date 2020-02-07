@@ -54,9 +54,9 @@ class CaseSerializer(SkipNullValuesMixin, serializers.ModelSerializer):
     )
 
     def get_penalty_human_readable(self, obj):
-        if obj.type == 'uk':
+        if obj.type == '1':
             return '-'
-        elif obj.type == 'koap':
+        elif obj.type == '2':
             return obj.penalties.first()
 
 
