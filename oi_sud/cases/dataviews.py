@@ -171,6 +171,8 @@ def get_metric(name, articles_string, region=None, year=None, stage=None, type=N
         filters['result_date__year'] = year
     if name == 'defendants_hidden':
         filters['defendants_hidden'] = True
+    if name == 'penalties_all':
+        filters['penalties__isnull'] = False
     if name == 'penalties_hidden':
         filters['penalties__is_hidden'] = True
     if name == 'penalties_fines_all':
