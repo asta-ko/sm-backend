@@ -1,12 +1,12 @@
 version: '3.4'
 
 x-global-environment: &global-environment
-  C_PROJECT_VERSION: aca781c75baf9bac24fa8f529d3dfc974d51d0dd
+  C_PROJECT_VERSION: b764b422588657676c015379fd8f982dee43adb0
   C_PROJECT_STACK: prod
 
 x-projectname: &oi_sud
     env_file: .env
-    image: oi-sud-monster-virtualenv-test:latest
+    image: oi-sud-monster-virtualenv:latest
     environment:
         <<: *global-environment
     volumes:
@@ -18,12 +18,12 @@ x-projectname: &oi_sud
         instance: sudmonster
 
 
-    logging:
-      driver: loki
-      options:
-        loki-url: "https://loki.ovdinfo.org/api/prom/push"
-        labels: "instance,job"
-        max-size: "1m"
+#    logging:
+#      driver: loki
+#      options:
+#        loki-url: "https://loki.ovdinfo.org/api/prom/push"
+#        labels: "instance,job"
+#        max-size: "1m"
 
 
 
@@ -41,11 +41,11 @@ services:
       volumes:
         - db-data:/data/db
         - ./share/sql:/docker-entrypoint-initdb.d
-      logging:
-        driver: loki
-        options:
-          loki-url: "http://95.216.217.126:3100/api/prom/push"
-          labels: "instance,job"
+      #logging:
+      #  driver: loki
+      #  options:
+      #    loki-url: "http://95.216.217.126:3100/api/prom/push"
+      #    labels: "instance,job"
       labels:
         job: postgres
         instance: sudmonster   
@@ -64,11 +64,11 @@ services:
           net.core.somaxconn: '511'
 
         restart: always
-        logging:
-          driver: loki
-          options:
-            loki-url: "http://95.216.217.126:3100/api/prom/push"
-            labels: "instance,job"
+       # logging:
+       #   driver: loki
+       #   options:
+       #     loki-url: "http://95.216.217.126:3100/api/prom/push"
+       #     labels: "instance,job"
         labels:
           job: redis
           instance: sudmonster
@@ -78,9 +78,9 @@ services:
         <<: *oi_sud
         container_name: sudmonster_backend
         environment:
-          VIRTUAL_HOST: sudmonster.ovdinfo.org
+          VIRTUAL_HOST: sm.ovdinfo.org
           VIRTUAL_PORT: 8081
-          LETSENCRYPT_HOST: sudmonster.ovdinfo.org
+          LETSENCRYPT_HOST: sm.ovdinfo.org
           LETSENCRYPT_EMAIL: asta.ko@ovdinfo.org
 
           DJANGO_MANAGE_MIGRATE: "on"
@@ -97,6 +97,25 @@ services:
           job: backend
           instance: sudmonster
 
+    frontend:
+        <<: *oi_sud
+        #network_mode: host
+        image: oi-sud-monster-frontend:latest
+        container_name: sudmonster_frontend
+        working_dir: /cf/
+        volumes:
+          - ../oi-sud-monster-frontend/:/c
+        restart: always
+        ports:
+          - "3000:3000"
+        command:
+          "npm run start"
+        environment:
+          VIRTUAL_HOST: sudmonster.ovdinfo.org
+          VIRTUAL_PORT: 3000
+          LETSENCRYPT_HOST: sudmonster.ovdinfo.org
+          LETSENCRYPT_EMAIL: asta.ko@ovdinfo.org
+
 
     test:
         container_name: sudmonster_test
@@ -104,6 +123,7 @@ services:
         environment:
           DJANGO_SETTINGS_MODULE: 'oi_sud.config.test'
         command: ["echo", "'test'"]
+
 
     celery_main:
         container_name: sudmonster_celery_main
@@ -153,4 +173,4 @@ volumes:
 networks:
   default:
     external:
-      name: webproxy
+      name: webproxy2

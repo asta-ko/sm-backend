@@ -8,7 +8,7 @@ celery
 celery-progress
 user_agent
 idna==2.7
-kombu==4.6.3
+kombu==4.6.7
 psycopg2==2.7.3.2
 pytz==2018.7
 requests==2.20.1

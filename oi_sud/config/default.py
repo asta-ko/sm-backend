@@ -28,9 +28,9 @@ DEBUG = True
 
 DEBUG_REQUESTS = False
 
-ALLOWED_HOSTS = ['sudmonster.ovdinfo.org']
+ALLOWED_HOSTS = ['sm.ovdinfo.org, sudmonster.ovdinfo.org']
 
-BASE_URL = 'https://sudmonster.ovdinfo.org'
+BASE_URL = 'https://sm.ovdinfo.org'
 # Application definition
 
 INSTALLED_APPS = [
@@ -77,8 +77,8 @@ CORS_ORIGIN_ALLOW_ALL = True
 CORS_ALLOW_CREDENTIALS = True
 CORS_ORIGIN_WHITELIST = (
     # TODO - set this properly for production
-    'http://127.0.0.1:8082',
-    'http://127.0.0.1:8082',
+    'https://sudmonster.ovdinfo.org',
+    #'http://127.0.0.1:8082',
 )
 
 CORS_ALLOW_HEADERS = [

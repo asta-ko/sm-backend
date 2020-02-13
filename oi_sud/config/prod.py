@@ -3,7 +3,7 @@ import os
 from .default import *  # NOQA
 
 DEBUG = False
-ALLOWED_HOSTS = ['sudmonster.ovdinfo.org',]
+ALLOWED_HOSTS = ['sm.ovdinfo.org','sudmonster.ovdinfo.org',]
 
 DATABASES = {
     'default': {
