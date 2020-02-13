@@ -170,9 +170,24 @@ def get_metric(name, articles_string, region=None, year=None, stage=None, type=N
     if name == 'resulted':
         filters['result_date__year'] = year
     if name == 'defendants_hidden':
-        filters['defendants_hidden__isnull'] = False
+        filters['defendants_hidden'] = True
     if name == 'penalties_hidden':
-        filters['penalties__is_hidden'] = False
+        filters['penalties__is_hidden'] = True
+    if name == 'penalties_fines_all':
+        filters['penalties__type'] = 'fine'
+    if name == 'penalties_fines_hidden':
+        filters['penalties__type'] = 'fine'
+        filters['penalties__is_hidden'] = True
+    if name == 'penalties_arrests_all':
+        filters['penalties__type'] = 'arrest'
+    if name == 'penalties_arrests_hidden':
+        filters['penalties__type'] = 'arrest'
+        filters['penalties__is_hidden'] = True
+    if name == 'penalties_works_all':
+        filters['penalties__type'] = 'works'
+    if name == 'penalties_works_hidden':
+        filters['penalties__type'] = 'works'
+        filters['penalties__is_hidden'] = True
 
     return Case.objects.filter(**filters).count()
 
@@ -182,6 +197,13 @@ all_metrics = {'entried': 'Всего поступило',
                'resulted': 'Рассмотрено',
                'defendants_hidden': 'Ответчики зацензурены',
                'penalties_hidden': 'Наказания зацензурены',
+               'penalties_all': 'Всего дел с информацией о наказании',
+               'penalties_fines_all':'Всего штрафов',
+               'penalties_fines_hidden':'Всего штрафов зацензурено',
+               'penalties_arrests_all':'Всего арестов',
+               'penalties_arrests_hidden':'Всего арестов зацензурено',
+               'penalties_works_all':'Всего обязательных работ',
+               'penalties_works_hidden':'Всего работ зацензурено',
                }
 
 
