@@ -13,18 +13,28 @@ class ArticlesManager(models.Manager):
         articles = []
         for item in articles_list:  # ['19.3 ч.1',] -- для тестирования
             item_list = item.split(' ч.')
+            print(item_list)
+            print(len(item_list))
             article = item_list[0]
-            if len(item_list) > 0:
+            if len(item_list) > 1:
+
                 part = item_list[1]
             else:
                 part = None
 
-            params = {'article_number': article, 'part': part}
+            params = {'article_number': article}
+            if part:
+                params['part'] = part
+            print(params, 'params')
             if codex:
                 params['codex'] = codex
 
-            a = super().get_queryset().filter(**params).first()
-            if a:
+            filtered_articles = super().get_queryset().filter(**params)
+            f_a = super().get_queryset().filter(article_number='20.2')
+            print(f_a)
+
+            print(filtered_articles, 'a')
+            for a in filtered_articles:
                 articles.append(a)
         return articles
 
@@ -48,6 +58,12 @@ class CodexArticle(models.Model):
             return f'{self.article_number} ч.{self.part} {self.get_codex_display()}'
         else:
             return f'{self.article_number} {self.get_codex_display()}'
+
+    def get_number_and_part(self):
+        if self.part:
+            return f'{self.article_number} ч.{self.part}'
+        else:
+            return f'{self.article_number}'
 
     @staticmethod
     def autocomplete_search_fields():

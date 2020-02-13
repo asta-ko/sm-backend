@@ -30,3 +30,6 @@ django-reversion-compare
 diff-match-patch
 django-cors-headers
 djangorestframework-expiring-authtoken
+rest-pandas
+matplotlib
+xlwt

@@ -1,7 +1,7 @@
 from rest_framework import filters
 from rest_framework import permissions
 from rest_framework.generics import ListAPIView
-
+from django_filters.rest_framework import DjangoFilterBackend
 from oi_sud.courts.models import Court, Judge
 from oi_sud.courts.serializers import CourtSerializer, CourtShortSerializer, DebugCourtSerializer, JudgeSerializer
 
@@ -19,8 +19,8 @@ class CourtsView(ListAPIView):
     serializer_class = CourtSerializer
     queryset = Court.objects.all()
     search_fields = ['title']
-    filter_backends = (filters.SearchFilter,)
-
+    filter_backends = (filters.SearchFilter,DjangoFilterBackend)
+    filter_fields = ('region','city')
     # search_fields = ['defendants__last_name', 'judge__name']
 
 
@@ -29,7 +29,8 @@ class CourtsSearchView(ListAPIView):
     serializer_class = CourtShortSerializer
     queryset = Court.objects.all()
     search_fields = ['title']
-    filter_backends = (filters.SearchFilter,)
+    filter_backends = (filters.SearchFilter, DjangoFilterBackend)
+    filter_fields = ('region', 'city')
     pagination_class = None
 
 
