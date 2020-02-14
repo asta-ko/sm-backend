@@ -8,7 +8,7 @@ from rest_pandas import PandasSimpleView
 from oi_sud.cases.models import Case
 from oi_sud.cases.views import CaseFilter, CaseFilterBackend
 from oi_sud.codex.models import KoapCodexArticle, UKCodexArticle, CodexArticle
-
+from oi_sud.core.consts import region_choices
 
 class CountCasesView(APIView):
 
@@ -147,52 +147,6 @@ class FrontCountCasesView(CountCasesView):
             return Response({'data': []})
 
 
-def get_metric(name, articles_string, region=None, year=None, stage=None, type=None):
-    filters = {}
-
-    if not name == 'resulted':
-        filters['entry_date__year'] = year
-    if stage:
-        filters['stage'] = int(stage)
-
-    if type:
-        filters['type'] = type
-
-    if articles_string:
-        articles = CodexArticle.objects.get_from_list([articles_string, ])
-        filters['codex_articles__in'] = articles
-    if region:
-        filters['court__region'] = region
-    if name == 'entried':
-        filters['entry_date__year'] = year
-    if name == 'has_result_text':
-        filters['result_text__isnull'] = True
-    if name == 'resulted':
-        filters['result_date__year'] = year
-    if name == 'defendants_hidden':
-        filters['defendants_hidden'] = True
-    if name == 'penalties_all':
-        filters['penalties__isnull'] = False
-    if name == 'penalties_hidden':
-        filters['penalties__is_hidden'] = True
-    if name == 'penalties_fines_all':
-        filters['penalties__type'] = 'fine'
-    if name == 'penalties_fines_hidden':
-        filters['penalties__type'] = 'fine'
-        filters['penalties__is_hidden'] = True
-    if name == 'penalties_arrests_all':
-        filters['penalties__type'] = 'arrest'
-    if name == 'penalties_arrests_hidden':
-        filters['penalties__type'] = 'arrest'
-        filters['penalties__is_hidden'] = True
-    if name == 'penalties_works_all':
-        filters['penalties__type'] = 'works'
-    if name == 'penalties_works_hidden':
-        filters['penalties__type'] = 'works'
-        filters['penalties__is_hidden'] = True
-
-    return Case.objects.filter(**filters).count()
-
 
 all_metrics = {'entried': 'Всего поступило',
                'has_result_text': 'Есть текст решения',
@@ -209,26 +163,78 @@ all_metrics = {'entried': 'Всего поступило',
                }
 
 
-class DataMetricsViewByYears(PandasSimpleView):
+class DataView(PandasSimpleView):
 
-    def get_data(self, request, *args, **kwargs):
 
-        years = request.query_params.getlist('years[]')
-        # years = (request.GET.get('years'),)
-        article = request.GET.get('article')
-        region = request.GET.get('region')
+    def get_list_param(self, param_name):
+        list_param_name = param_name+'[]'
+        item = self.request.query_params.getlist(list_param_name) or self.request.GET.get(param_name)
+        if item and not isinstance(item, list):
+            return [item,]
+        elif item:
+            return item
+        else:
+            return []
+
+
+    def process_get(self, request):
+        years = self.get_list_param('years')
+        article = self.get_list_param('article')
+        regions = self.get_list_param('regions')
+        metrics = self.get_list_param('metrics')
         stage = request.GET.get('stage')
         type = request.GET.get('type')
-        data = []
-        header = ['Название метрики', ] + [x for x in years]
-        data.append(header)
+        metrics_list = [x for x in all_metrics.keys() if not ('penalties' in x and type == '2')]
+        if metrics:
+            metrics_list = [x for x in metrics_list if x in metrics]
+        return years, article, regions, stage, metrics_list, type
 
-        for metric in all_metrics.keys():
-            metric_arr = [all_metrics[metric], ]
-            for year in years:
-                m = get_metric(metric, article, region, year, stage, type)
-                metric_arr.append(m)
-            data.append(metric_arr)
+    @staticmethod
+    def get_metric(name, articles_string, region=None, year=None, stage=None, type=None):
+        filters = {}
+        if year and not name == 'resulted':
+            filters['entry_date__year'] = year
+        if stage:
+            filters['stage'] = int(stage)
+        if type:
+            filters['type'] = type
+        if articles_string:
+            articles = CodexArticle.objects.get_from_list([articles_string, ])
+            filters['codex_articles__in'] = articles
+        if region:
+            filters['court__region'] = region
+        if name == 'entried' and year:
+            filters['entry_date__year'] = year
+        if name == 'has_result_text':
+            filters['result_text__isnull'] = True
+        if name == 'resulted' and year:
+            filters['result_date__year'] = year
+        if name == 'defendants_hidden':
+            filters['defendants_hidden'] = True
+        if name == 'penalties_all':
+            filters['penalties__isnull'] = False
+        if name == 'penalties_hidden':
+            filters['penalties__is_hidden'] = True
+        if name == 'penalties_fines_all':
+            filters['penalties__type'] = 'fine'
+        if name == 'penalties_fines_hidden':
+            filters['penalties__type'] = 'fine'
+            filters['penalties__is_hidden'] = True
+        if name == 'penalties_arrests_all':
+            filters['penalties__type'] = 'arrest'
+        if name == 'penalties_arrests_hidden':
+            filters['penalties__type'] = 'arrest'
+            filters['penalties__is_hidden'] = True
+        if name == 'penalties_works_all':
+            filters['penalties__type'] = 'works'
+        if name == 'penalties_works_hidden':
+            filters['penalties__type'] = 'works'
+            filters['penalties__is_hidden'] = True
+
+        return Case.objects.filter(**filters).count()
+
+    @staticmethod
+    def data_to_df(data):
         data = np.array(data)
 
         df = pd.DataFrame(data=data[1:, 1:],
@@ -236,42 +242,48 @@ class DataMetricsViewByYears(PandasSimpleView):
                           columns=data[0, 1:])
         # if format == 'png':
         df = df.astype(int)
-
         return df
 
-
-class DataRegionsViewByMetrics(PandasSimpleView):
-    renderers = [
-        'rest_framework.renderers.JSONRenderer',
-        'rest_framework.renderers.BrowsableAPIRenderer',
-    ]
+class DataMetricsViewByYears(DataView):
 
     def get_data(self, request, *args, **kwargs):
-
-        metrics = [x for x in request.query_params.getlist('metrics[]') if x in all_metrics.keys()]
-        year = (request.GET.get('year'),)
-        regions = [x for x in request.query_params.getlist('regions[]')]
-        article = request.GET.get('article')
-
+        self.request = request
+        years, article, regions, stage, metrics_list, type = self.process_get(request)
+        region = None if not len(regions) else int(regions[0])
         data = []
-        header = ['', ] + [x for x in metrics]
+        header = ['Название метрики', ] + [x for x in years]
+
         data.append(header)
 
-        for region in regions:
-            region_arr = ['regionname']
-
-        for metric in all_metrics.keys():
+        for metric in metrics_list:
             metric_arr = [all_metrics[metric], ]
             for year in years:
-                m = get_metric(metric, article, region, year)
+                m = self.get_metric(metric, article, region, year, stage, type)
                 metric_arr.append(m)
             data.append(metric_arr)
-        data = np.array(data)
 
-        df = pd.DataFrame(data=data[1:, 1:],
-                          index=data[1:, 0],
-                          columns=data[0, 1:])
-        # if format == 'png':
-        # df = df.astype(float)
+        return self.data_to_df(data)
 
-        return df
+class DataRegionsViewByMetrics(DataView):
+
+    def get_data(self, request, *args, **kwargs):
+        self.request = request
+        years, article, regions, stage, metrics_list, type = self.process_get(request)
+        year = None if not len(years) else int(years[0])
+        data = []
+        header = ['Регион', ] + [all_metrics[x] for x in  metrics_list]
+        regions_list = [x for x in dict(region_choices).keys()]
+        if regions:
+            regions = [int(x) for x in regions]
+            regions_list = [x for x in regions_list if x in regions]
+
+        data.append(header)
+
+        for region in regions_list:
+            region_arr = [dict(region_choices)[region], ]
+            for metric in metrics_list:
+                m = self.get_metric(metric, article, region, year, stage, type)
+                region_arr.append(m)
+            data.append(region_arr)
+
+        return self.data_to_df(data)
