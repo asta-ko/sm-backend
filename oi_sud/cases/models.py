@@ -269,23 +269,25 @@ class Case(models.Model):
                         CasePenalty.objects.create(type=penalty_type, case=self, defendant=self.defendants.first(),
                                                    **result[penalty_type])
                         break
+            else:
+                CasePenalty.objects.create(type='error', case=self, defendant=self.defendants.first())
         except Exception as e:
             print('saving error')
             print(e)
 
-        if not self.result_type:
+        #if not self.result_type:
 
-            if result.get('returned'):
-                self.result_type = 'Возвращено'
+        if result.get('returned'):
+            self.result_type = 'Возвращено'
 
-            if result.get('cancelled'):
-                self.result_type = 'Отмена'
+        elif result.get('cancelled'):
+            self.result_type = 'Вынесено постановление о прекращении производства по делу об адм. правонарушении'
 
-            if result.get('forward'):
-                self.result_type = 'Направлено по подведомственности'
+        elif result.get('forward'):
+            self.result_type = 'Направлено по подведомственности'
 
-            if self.result_type:
-                self.save()
+        elif result.get('returned') or result.get('cancelled') or result.get('forward'):
+            self.save()
 
         # TODO: добавить выдворения
 
