@@ -170,3 +170,25 @@ def get_uk_cases_first(courts, newest=False):
 def get_uk_cases_second(courts, newest=False):
     entry_date = get_start_date(30 * 6) if newest else None
     return RFCasesGetter('uk').get_cases(2, courts, entry_date_from=entry_date)
+
+@shared_task
+def fix_moscow_cases():
+    count = 0
+
+    cases = Case.objects.filter(result_text='', court__region='77')  # [10000:35000]
+    print(cases.count())
+    for case in cases:
+        count += 1
+
+        case.update_case()
+
+        try:
+            if case.type == 1:
+                case.process_result_text()
+        except:
+            #raise
+            print('error', case.get_admin_url())
+        if count % 1000 == 0:
+            print(count)
+    cases = Case.objects.filter(result_text='', court__region='77')  # [10000:35000]
+    print(cases.count())
