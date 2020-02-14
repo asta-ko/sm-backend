@@ -179,7 +179,7 @@ class DataView(PandasSimpleView):
 
     def process_get(self, request):
         years = self.get_list_param('years')
-        article = self.get_list_param('article')
+        article = self.get_list_param('article')[0]
         regions = self.get_list_param('regions')
         metrics = self.get_list_param('metrics')
         stage = request.GET.get('stage')
