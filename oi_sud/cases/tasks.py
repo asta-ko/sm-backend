@@ -172,23 +172,29 @@ def get_uk_cases_second(courts, newest=False):
     return RFCasesGetter('uk').get_cases(2, courts, entry_date_from=entry_date)
 
 @shared_task
-def fix_moscow_cases():
-    count = 0
-
-    cases = Case.objects.filter(result_text='', court__region='77')  # [10000:35000]
-    print(cases.count())
-    for case in cases:
-        count += 1
+def fix_chunk(ids):
+    for id in ids:
+        case = Case.objects.get(id=id)
 
         case.update_case()
 
         try:
-            if case.type == 1:
-                case.process_result_text()
+            #if case.type == 1:
+            case.process_result_text()
         except:
-            #raise
+            # raise
             print('error', case.get_admin_url())
-        if count % 1000 == 0:
-            print(count)
-    cases = Case.objects.filter(result_text='', court__region='77')  # [10000:35000]
-    print(cases.count())
+
+
+
+@shared_task
+def fix_moscow_cases():
+
+    cases = Case.objects.filter(result_text='', type = 1, court__region='77')
+    cases_ids = cases.values_list('id', flat=True)
+
+    chunked_cases = chunks(cases_ids, 10)
+    for chunk in chunked_cases:
+        fix_chunk.si(chunk).set(queue="other")
+
+
