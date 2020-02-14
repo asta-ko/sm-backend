@@ -126,10 +126,10 @@ class MoscowParser(CourtSiteParser):
         f.write(bytes0)
         f.close()
         try:
-            if exten == 'doc':
-                return DocParser().process(filename, 'utf-8')
-            elif exten == 'docx':
+            if extension == 'docx':
                 return DocXParser().process(filename, 'utf-8')
+            else:
+                return DocParser().process(filename, 'utf-8')
         except:
             return ''
 
