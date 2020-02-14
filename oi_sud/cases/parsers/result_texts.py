@@ -52,12 +52,7 @@ class KoapPenaltyExtractor(object):
         # определяем нужные в дальнейшем переменные
         fine_not_found, arrest_not_found = True, True
 
-        # проверяем, не было ли дело возвращено
-        pattern_vozvr = re.compile \
-            (r'в(озвратить|ернуть).*(протокол|дело|материал.?|постановление)|(дело|протокол|постановление|материал.?).*(возвратить|вернуть)')
-        if pattern_vozvr.search(decision_text) != None:
-            result['returned'] = True
-            return result  # сразу отдаем результат
+
         # проверяем, не было ли дело прекращено
         pattern_prekr = re.compile(r'[П|п]роизводство.*прекратить|[П|п]рекратить.*производство')
         if pattern_prekr.search(decision_text) != None:
@@ -92,6 +87,7 @@ class KoapPenaltyExtractor(object):
             # проверяем, есть ли информация о выдворении
             if 'выдвор' in decision_text:
                 result['deportation'] = True
+
         except Exception as e:
             print('error parsing')
             print(e)

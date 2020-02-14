@@ -264,29 +264,29 @@ class Case(models.Model):
             if not result.get('could_not_process'):
                 for penalty_type in ['fine', 'arrest', 'works']:
                     if result.get(penalty_type):
-                        if result[penalty_type].get('num') and int(result[penalty_type].get('num')) > 5000000:
-                            return
+                        if result[penalty_type].get('num') and int(result[penalty_type].get('num')) > 8000000:
+                            CasePenalty.objects.create(type='error', is_hidden=False, case=self, defendant=self.defendants.first())
                         CasePenalty.objects.create(type=penalty_type, case=self, defendant=self.defendants.first(),
                                                    **result[penalty_type])
                         break
             else:
-                CasePenalty.objects.create(type='error', case=self, defendant=self.defendants.first())
+                CasePenalty.objects.create(type='error', case=self, is_hidden=False, defendant=self.defendants.first())
         except Exception as e:
             print('saving error')
             print(e)
 
         #if not self.result_type:
 
-        if result.get('returned'):
-            self.result_type = 'Возвращено'
+        #if result.get('returned'):
+        #    self.result_type = 'Возвращено'
 
-        elif result.get('cancelled'):
+        if result.get('cancelled'):
             self.result_type = 'Вынесено постановление о прекращении производства по делу об адм. правонарушении'
 
         elif result.get('forward'):
             self.result_type = 'Направлено по подведомственности'
 
-        elif result.get('returned') or result.get('cancelled') or result.get('forward'):
+        if result.get('returned') or result.get('cancelled') or result.get('forward'):
             self.save()
 
         # TODO: добавить выдворения
