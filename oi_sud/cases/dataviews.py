@@ -151,21 +151,23 @@ class FrontCountCasesView(CountCasesView):
 
 all_metrics = {'entried': 'Всего поступило',
                'has_result_text': 'Есть текст решения',
+               #'moscow_result_text_error': 'Ошибка при получении решения',
                'resulted': 'Рассмотрено',
                'koap1_result_was_punished': 'Назначено наказание',
                'koap1_result_forwarded': 'Направлено по подвед.',
                'koap1_result_cancelled': 'Прекращено',
                'koap1_result_returned': 'Возврат',
                # 'penalties_all': 'Всего дел с информацией о наказании',
-               'penalties_error': 'Наказаний не удалось обработать',
-               'defendants_hidden': 'Ответчики зацензурены',
-               'penalties_hidden': 'Наказания зацензурены',
+               'penalties_errors': 'Наказаний не удалось обработать',
                'penalties_fines_all': 'Всего штрафов',
-               'penalties_fines_hidden': 'Всего штрафов зацензурено',
                'penalties_arrests_all': 'Всего арестов',
-               'penalties_arrests_hidden': 'Всего арестов зацензурено',
                'penalties_works_all': 'Всего обязательных работ',
+               'penalties_hidden': 'Наказания зацензурены',
+               'penalties_fines_hidden': 'Всего штрафов зацензурено',
+               'penalties_arrests_hidden': 'Всего арестов зацензурено',
                'penalties_works_hidden': 'Всего работ зацензурено',
+               'defendants_hidden': 'Ответчики зацензурены',
+
                }
 
 RESULTS_FORWARDED = ['Дело присоединено к другому делу', 'Направлено по подведомственности',
@@ -259,6 +261,8 @@ class DataView(PandasSimpleView):
             filters['penalties__is_hidden'] = True
         if name == 'penalties_errors':
             filters['penalties__type'] = 'error'
+        #if name == 'moscow_result_text_error':
+        #    filters['result_text'] = ''
         if name == 'koap1_result_was_punished':
             filters['result_type'] = 'Вынесено постановление о назначении административного наказания'
         if name == 'koap1_result_forwarded':
