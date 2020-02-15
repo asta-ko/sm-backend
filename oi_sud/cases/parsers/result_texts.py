@@ -88,6 +88,13 @@ class KoapPenaltyExtractor(object):
             if 'выдвор' in decision_text:
                 result['deportation'] = True
 
+        # проверяем, не было ли дело возвращено
+            pattern_vozvr = re.compile \
+                (r'в(озвратить|ернуть).*(протокол|дело|материал.?|постановление)|(дело|протокол|постановление|материал.?).*(возвратить|вернуть)')
+            if pattern_vozvr.search(decision_text) != None and fine_not_found and arrest_not_found and works_not_found:
+                result['returned'] = True
+                return result  # сразу отдаем результат
+
         except Exception as e:
             print('error parsing')
             print(e)

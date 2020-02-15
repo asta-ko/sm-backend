@@ -277,8 +277,8 @@ class Case(models.Model):
 
         #if not self.result_type:
 
-        #if result.get('returned'):
-        #    self.result_type = 'Возвращено'
+        if result.get('returned'):
+            self.result_type = 'Возвращено'
 
         if result.get('cancelled'):
             self.result_type = 'Вынесено постановление о прекращении производства по делу об адм. правонарушении'

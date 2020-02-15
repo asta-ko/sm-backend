@@ -195,6 +195,6 @@ def fix_moscow_cases():
 
     chunked_cases = chunks(cases_ids, 10)
     for chunk in chunked_cases:
-        fix_chunk.si(chunk).set(queue="other")
+        fix_chunk.s(chunk).apply_async(queue="other")
 
 
