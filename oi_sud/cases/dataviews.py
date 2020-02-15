@@ -9,6 +9,8 @@ from oi_sud.cases.models import Case
 from oi_sud.cases.views import CaseFilter, CaseFilterBackend
 from oi_sud.codex.models import KoapCodexArticle, UKCodexArticle, CodexArticle
 from oi_sud.core.consts import region_choices
+from oi_sud.courts.models import Court
+
 
 class CountCasesView(APIView):
 
@@ -147,42 +149,43 @@ class FrontCountCasesView(CountCasesView):
             return Response({'data': []})
 
 
-
 all_metrics = {'entried': 'Всего поступило',
                'has_result_text': 'Есть текст решения',
                'resulted': 'Рассмотрено',
-               'koap1_result_was_punished':'Назначено наказание',
-               'koap1_result_forwarded':'Направлено по подвед.',
-               'koap1_result_cancelled':'Прекращено',
-               'koap1_result_returned':'Возврат',
-               #'penalties_all': 'Всего дел с информацией о наказании',
+               'koap1_result_was_punished': 'Назначено наказание',
+               'koap1_result_forwarded': 'Направлено по подвед.',
+               'koap1_result_cancelled': 'Прекращено',
+               'koap1_result_returned': 'Возврат',
+               # 'penalties_all': 'Всего дел с информацией о наказании',
                'penalties_error': 'Наказаний не удалось обработать',
                'defendants_hidden': 'Ответчики зацензурены',
                'penalties_hidden': 'Наказания зацензурены',
-               'penalties_fines_all':'Всего штрафов',
-               'penalties_fines_hidden':'Всего штрафов зацензурено',
-               'penalties_arrests_all':'Всего арестов',
-               'penalties_arrests_hidden':'Всего арестов зацензурено',
-               'penalties_works_all':'Всего обязательных работ',
-               'penalties_works_hidden':'Всего работ зацензурено',
+               'penalties_fines_all': 'Всего штрафов',
+               'penalties_fines_hidden': 'Всего штрафов зацензурено',
+               'penalties_arrests_all': 'Всего арестов',
+               'penalties_arrests_hidden': 'Всего арестов зацензурено',
+               'penalties_works_all': 'Всего обязательных работ',
+               'penalties_works_hidden': 'Всего работ зацензурено',
                }
 
-RESULTS_FORWARDED = ['Дело присоединено к другому делу','Направлено по подведомственности','Вынесено определение о передаче дела по подведомственности (ст 29.9 ч.2 п.2 и ст 29.4 ч.1 п.5)','Вынесено определение о передаче дела судье, в орган, должностному лицу, уполномоченному ...']
-RESULTS_RETURNED = ['Возвращено','Вынесено определение о возвращении протокола об АП и др. материалов дела в орган, долж. лицу ... в случае составления протокола и оформления других материалов дела неправомочными лицами, ...']
+RESULTS_FORWARDED = ['Дело присоединено к другому делу', 'Направлено по подведомственности',
+                     'Вынесено определение о передаче дела по подведомственности (ст 29.9 ч.2 п.2 и ст 29.4 ч.1 п.5)',
+                     'Вынесено определение о передаче дела судье, в орган, должностному лицу, уполномоченному ...']
+RESULTS_RETURNED = ['Возвращено',
+                    'Вынесено определение о возвращении протокола об АП и др. материалов дела в орган, долж. лицу ... в случае составления протокола и оформления других материалов дела неправомочными лицами, ...']
+
 
 class DataView(PandasSimpleView):
 
-
     def get_list_param(self, param_name):
-        list_param_name = param_name+'[]'
+        list_param_name = param_name + '[]'
         item = self.request.query_params.getlist(list_param_name) or self.request.GET.get(param_name)
         if item and not isinstance(item, list):
-            return [item,]
+            return [item, ]
         elif item:
             return item
         else:
             return []
-
 
     def process_get(self, request):
         years = self.get_list_param('years')
@@ -194,6 +197,7 @@ class DataView(PandasSimpleView):
         metrics = self.get_list_param('metrics')
         stage = request.GET.get('stage')
         type = request.GET.get('type')
+
         def can_use_metric(x):
             if type == '2' and 'penalties' in x:
                 return False
@@ -204,13 +208,14 @@ class DataView(PandasSimpleView):
             if stage == '1' and 'koap2' in x:
                 return False
             return True
+
         metrics_list = [x for x in all_metrics.keys() if can_use_metric(x)]
         if metrics:
             metrics_list = [x for x in metrics_list if x in metrics]
         return years, article, regions, stage, metrics_list, type
 
     @staticmethod
-    def get_metric(name, articles_string, region=None, year=None, stage=None, type=None):
+    def get_metric(name, articles_string, region=None, year=None, stage=None, type=None, court=None):
         filters = {}
         if year and not name == 'resulted':
             filters['entry_date__year'] = year
@@ -218,10 +223,12 @@ class DataView(PandasSimpleView):
             filters['stage'] = int(stage)
         if type:
             filters['type'] = type
+        if court:
+            filters['court'] = court
         if articles_string:
             articles = CodexArticle.objects.get_from_list([articles_string, ])
             filters['codex_articles__in'] = articles
-        if region:
+        if region and not court:
             filters['court__region'] = region
         if name == 'entried' and year:
             filters['entry_date__year'] = year
@@ -259,7 +266,8 @@ class DataView(PandasSimpleView):
         if name == 'koap1_result_cancelled':
             filters['result_type'] = 'Вынесено постановление о прекращении производства по делу об адм. правонарушении'
         if name == 'koap1_result_returned':
-            filters['result_type'] = 'Вынесено определение о возвращении протокола об АП и др. материалов дела в орган, долж. лицу ... в случае составления протокола и оформления других материалов дела неправомочными лицами, ...'
+            filters[
+                'result_type'] = 'Вынесено определение о возвращении протокола об АП и др. материалов дела в орган, долж. лицу ... в случае составления протокола и оформления других материалов дела неправомочными лицами, ...'
         return Case.objects.filter(**filters).count()
 
     @staticmethod
@@ -273,14 +281,16 @@ class DataView(PandasSimpleView):
         df = df.astype(int)
         return df
 
+
 class DataMetricsViewByYears(DataView):
 
     def get_data(self, request, *args, **kwargs):
         self.request = request
         years, article, regions, stage, metrics_list, type = self.process_get(request)
         region = None if not len(regions) else int(regions[0])
+
         data = []
-        header = ['Название метрики', ] + [x for x in years]
+        header = ['Название метрики', ] + ([x for x in years] or ['За всё время'])
 
         data.append(header)
 
@@ -289,9 +299,14 @@ class DataMetricsViewByYears(DataView):
             for year in years:
                 m = self.get_metric(metric, article, region, year, stage, type)
                 metric_arr.append(m)
+            if not years:
+                m = self.get_metric(metric, article, region, None, stage, type)
+                metric_arr.append(m)
+
             data.append(metric_arr)
 
         return self.data_to_df(data)
+
 
 class DataRegionsViewByMetrics(DataView):
 
@@ -300,7 +315,7 @@ class DataRegionsViewByMetrics(DataView):
         years, article, regions, stage, metrics_list, type = self.process_get(request)
         year = None if not len(years) else int(years[0])
         data = []
-        header = ['Регион', ] + [all_metrics[x] for x in  metrics_list]
+        header = ['Регион', ] + [all_metrics[x] for x in metrics_list]
         regions_list = [x for x in dict(region_choices).keys()]
         if regions:
             regions = [int(x) for x in regions]
@@ -324,20 +339,17 @@ class DataCourtsViewByMetrics(DataView):
         self.request = request
         years, article, regions, stage, metrics_list, type = self.process_get(request)
         year = None if not len(years) else int(years[0])
+        region = None if not len(regions) else int(regions[0])
         data = []
-        header = ['Регион', ] + [all_metrics[x] for x in  metrics_list]
-        regions_list = [x for x in dict(region_choices).keys()]
-        if regions:
-            regions = [int(x) for x in regions]
-            regions_list = [x for x in regions_list if x in regions]
-
+        header = ['Суд', ] + [all_metrics[x] for x in metrics_list]
+        courts = Court.objects.filter(region=region)
         data.append(header)
 
-        for region in regions_list:
-            region_arr = [dict(region_choices)[region], ]
+        for court in courts:
+            court_arr = [court.title.split(' (')[0], ]
             for metric in metrics_list:
-                m = self.get_metric(metric, article, region, year, stage, type)
-                region_arr.append(m)
-            data.append(region_arr)
+                m = self.get_metric(metric, article, region, year, stage, type, court.id)
+                court_arr.append(m)
+            data.append(court_arr)
 
         return self.data_to_df(data)

@@ -1,4 +1,5 @@
 import datetime
+
 from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
@@ -6,9 +7,9 @@ from django.http import HttpResponse
 from django.urls import path, include, re_path
 from rest_framework_expiring_authtoken.views import obtain_expiring_auth_token
 
+from oi_sud.cases.dataviews import DataMetricsViewByYears, DataRegionsViewByMetrics, DataCourtsViewByMetrics, CountCasesView, FrontCountCasesView
 from oi_sud.cases.views import get_result_text, CasesResultTextView, CasesResultTypesView, \
     CasesEventTypesView, CasesView, CaseView
-from oi_sud.cases.dataviews import DataMetricsViewByYears, DataRegionsViewByMetrics, CountCasesView, FrontCountCasesView
 from oi_sud.codex.views import CodexArticleListView, CodexArticleIListView
 from oi_sud.core.admin import admin_celery_view, get_progress
 from oi_sud.core.views import DebugView
@@ -42,6 +43,8 @@ urlpatterns = [
     re_path(r'^api/v1/data/metrics_by_years/.+\.[csv|xls|xlsx|png]', DataMetricsViewByYears.as_view()),
     path('api/v1/data/regions_by_metrics/', DataRegionsViewByMetrics.as_view()),
     re_path(r'^api/v1/data/regions_by_metrics/.+\.[csv|xls|xlsx|png]', DataRegionsViewByMetrics.as_view()),
+    path('api/v1/data/courts_by_metrics/', DataCourtsViewByMetrics.as_view()),
+    re_path(r'^api/v1/data/courts_by_metrics/.+\.[csv|xls|xlsx|png]', DataCourtsViewByMetrics.as_view()),
     path('api/v1/casesresulttypes/', CasesResultTypesView.as_view(), name='cases-result-types'),
     path('api/v1/caseseventstypes/', CasesEventTypesView.as_view(), name='cases-events-types'),
     path('api/v1/cases/', CasesView.as_view(), name='case-list'),
