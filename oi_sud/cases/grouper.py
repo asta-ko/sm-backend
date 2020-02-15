@@ -101,11 +101,13 @@ class CasesGrouper(object):
         # print(len(second_instance_cases_not_found), 'second_cases_not_found')
 
         for case in first_cases_not_found:
-            c = second_instance_cases_not_found.filter(defendants__in=case.defendants.all(),
-                                                       entry_date__gte=case.result_date,
-                                                       entry_date__lte=case.result_date + relativedelta(months=3))
-            if len(c):
-                case.linked_cases.add(*c)
+
+            if case.result_date:
+                c = second_instance_cases_not_found.filter(defendants__in=case.defendants.all(),
+                                                           entry_date__gte=case.result_date,
+                                                           entry_date__lte=case.result_date + relativedelta(months=3))
+                if len(c):
+                    case.linked_cases.add(*c)
 
         for case in second_instance_cases_not_found:
             c = first_cases_not_found.filter(defendants__in=case.defendants.all(), result_date__lt=case.entry_date,
