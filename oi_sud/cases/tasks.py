@@ -89,7 +89,8 @@ def group_moscow_cases():
 @shared_task
 def update_cases_by_court(court_id, newest=False, delta_days=3 * 30):
     court = Court.objects.get(pk=court_id)
-    cases = Case.objects.filter(court=court)
+    too_fresh_date = datetime.now() - timedelta(hours=8)
+    cases = Case.objects.filter(court=court, updated_at__lte=too_fresh_date)
     if newest:
         dt = datetime.now() - timedelta(days=delta_days)
         cases = cases.filter(entry_date__gte=dt)
@@ -196,5 +197,12 @@ def fix_moscow_cases():
     chunked_cases = chunks(cases_ids, 10)
     for chunk in chunked_cases:
         fix_chunk.s(chunk).apply_async(queue="other")
+
+@shared_task
+def update_spb():
+    spb_courts = Court.objects.filter(region=78).values_list('id', flat=True)
+    for court in spb_courts:
+        update_cases_by_court.s(court).apply_async(queue="other")
+
 
 
