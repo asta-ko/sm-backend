@@ -204,5 +204,7 @@ def update_spb():
     for court in spb_courts:
         update_cases_by_court.s(court).apply_async(queue="other")
 
-
-
+@shared_task
+def group_all():
+    for region in [x for x in dict(region_choices).keys() if x not in [77,78]]:
+        group_by_region.s(region).apply_async(queue="other")
