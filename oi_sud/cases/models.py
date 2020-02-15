@@ -454,6 +454,8 @@ class CasePenalty(models.Model):
 
         if self.is_hidden:
             return f'{self.get_type_display()}: информация скрыта'
+        elif self.type == 'error':
+            return 'Ошибка при получении'
         else:
             return f'{self.get_type_display()}: {self.num} ({units_dict[self.type]})'
 
