@@ -62,12 +62,13 @@ class GroupedChoiceFilter(django_filters.MultipleChoiceFilter):
             return {}
 
 
-type_list = CaseEvent.objects.values_list('type', flat=True).distinct().order_by()
-type_dict = {n: n for n in type_list}
-EVENT_TYPE_CHOICES = list(type_dict.items())
-
+def get_event_type_choices(self):
+    type_list = CaseEvent.objects.values_list('type', flat=True).distinct().order_by()
+    type_dict = {n: n for n in type_list}
+    return list(type_dict.items())
 
 class CaseFilter(django_filters.FilterSet):
+
     entry_year_from = django_filters.NumberFilter(field_name="entry_date__year", lookup_expr='gte', label="Год (от)")
     entry_year_to = django_filters.NumberFilter(field_name="entry_date__year", lookup_expr='lte', label="Год (до)")
     judge_name = django_filters.CharFilter(field_name="judge__name", lookup_expr='icontains', label="Фамилия судьи")
@@ -96,14 +97,14 @@ class CaseFilter(django_filters.FilterSet):
     result_text_search = django_filters.CharFilter(field_name="result_text", method='filter_result_search',
                                                    label="Текст решения содержит")
 
-    event_type = GroupedChoiceFilter(field_name="events__type", choices=EVENT_TYPE_CHOICES,
+    event_type = GroupedChoiceFilter(field_name="events__type", choices=get_event_type_choices(),
                                      label="В деле есть событие этого типа")
 
     event_date_range = GroupedDateFromToRangeFilter(field_name="events__date",
                                                     widget=RangeWidget(attrs={'placeholder': 'YYYY-MM-DD'}),
                                                     label='И дата этого события')
     event_type_exclude = django_filters.ChoiceFilter(field_name="events__type", exclude=True,
-                                                     choices=EVENT_TYPE_CHOICES,
+                                                     choices=get_event_type_choices(),
                                                      label="В деле нет событий этого типа")
 
     @property

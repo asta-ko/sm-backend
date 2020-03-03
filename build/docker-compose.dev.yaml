@@ -6,12 +6,12 @@ x-global-environment: &global-environment
 
 x-projectname: &oi_sud
     env_file: .env
-    image: __C_PROJECT_NAME__-virtualenv:latest
+    image: __C_PROJECT_NAME__-virtualenv-test:latest
     environment:
         <<: *global-environment
     volumes:
         - ./:/code
-        - ../oi-sud-monster-frontend:/code/frontend
+        - ../rontend:/code/frontend
 
     restart: on-failure
 
