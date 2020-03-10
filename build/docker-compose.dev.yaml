@@ -11,7 +11,7 @@ x-projectname: &oi_sud
         <<: *global-environment
     volumes:
         - ./:/code
-        - ../rontend:/code/frontend
+        - ../frontend:/code/frontend
 
     restart: on-failure
 
@@ -51,16 +51,15 @@ services:
     frontend:
         <<: *oi_sud
         network_mode: host
-        image: oi-sud-monster-frontend-test:latest
+        image: sudmonster-frontend-test:latest
         container_name: nuxt_frontend
-        working_dir: /cf/
         volumes:
-          - ../oi-sud-monster-frontend/:/cf
-        restart: always
+          - ../frontend/:/cf
+        restart: "always"
+        working_dir: "/cf"
         ports:
           - "3000:3000"
-        command:
-          "npm run dev"
+        command: sh -c "npm install && npm run dev"
 
 
     test:
