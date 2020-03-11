@@ -1,5 +1,4 @@
 gunicorn==19.9.0
-raven[flask]==6.9.0
 django==2.2.8
 beautifulsoup4
 airtable
@@ -20,6 +19,7 @@ requests-futures
 pymorphy2
 editdistance
 docx2txt
+django-extensions
 django-celery-beat
 django-celery-results
 djangorestframework

@@ -2,6 +2,7 @@ import django_filters
 from django.contrib.postgres.search import SearchQuery
 from django.db import models
 from django.db.models import Prefetch
+from django.db.utils import ProgrammingError
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
@@ -62,10 +63,14 @@ class GroupedChoiceFilter(django_filters.MultipleChoiceFilter):
             return {}
 
 
-def get_event_type_choices(self):
-    type_list = CaseEvent.objects.values_list('type', flat=True).distinct().order_by()
-    type_dict = {n: n for n in type_list}
-    return list(type_dict.items())
+def get_event_type_choices():
+    #return []
+    try:
+        type_list = CaseEvent.objects.values_list('type', flat=True).distinct().order_by()
+        type_dict = {n: n for n in type_list}
+        return list(type_dict.items())
+    except ProgrammingError:
+        return []
 
 class CaseFilter(django_filters.FilterSet):
 
