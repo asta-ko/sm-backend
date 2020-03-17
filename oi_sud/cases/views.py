@@ -90,6 +90,7 @@ class CaseFilter(django_filters.FilterSet):
     penalty_to = django_filters.NumberFilter(field_name="penalties__num", lookup_expr="lte",
                                              label="Размер наказания (до)")
     result_type = django_filters.CharFilter(field_name="result_type", lookup_expr='icontains', label="Решение по делу")
+    has_result = django_filters.BooleanFilter(field_name="result_type", method='filter_has_result', label="Рассмотрено")
     entry_date_range = django_filters.DateFromToRangeFilter(field_name="entry_date",
                                                             widget=RangeWidget(attrs={'placeholder': 'YYYY-MM-DD'}),
                                                             label='Дата поступления')
@@ -145,6 +146,11 @@ class CaseFilter(django_filters.FilterSet):
         return queryset
 
     def filter_has_result_text(self, queryset, name, value):
+        # construct the full lookup expression.
+        lookup = '__'.join([name, 'isnull'])
+        return queryset.filter(**{lookup: not value})
+
+    def filter_has_result(self, queryset, name, value):
         # construct the full lookup expression.
         lookup = '__'.join([name, 'isnull'])
         return queryset.filter(**{lookup: not value})

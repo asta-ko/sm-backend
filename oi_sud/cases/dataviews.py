@@ -238,6 +238,8 @@ class DataView(PandasSimpleView):
             filters['result_text__isnull'] = True
         if name == 'resulted' and year:
             filters['result_date__year'] = year
+        if name == 'resulted' and not year:
+            filters['result_date__isnull'] = False
         if name == 'defendants_hidden':
             filters['defendants_hidden'] = True
         if name == 'penalties_all':
