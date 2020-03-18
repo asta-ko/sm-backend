@@ -371,7 +371,7 @@ docker_() {
 
 docker_build() {
     #docker build -t "$C_PROJECT_NAME"-virtualenv:latest -f build/virtualenv/Dockerfile build/virtualenv #PROD
-    #docker build -t "$C_PROJECT_NAME"-frontend:latest -f ../frontend/Dockerfile-nuxt ../frontend #PROD
+    #docker build -t "$C_PROJECT_NAME"-frontend:latest -f ../oi-sud-monster-frontend/Dockerfile-nuxt ../oi-sud-monster-frontend #PROD
     docker build -t "$C_PROJECT_NAME"-frontend-test:latest -f ../frontend/Dockerfile-nuxt-dev ../frontend
     docker build -t "$C_PROJECT_NAME"-virtualenv-test:latest -f build/virtualenv/Dockerfile-test build/virtualenv
 }
