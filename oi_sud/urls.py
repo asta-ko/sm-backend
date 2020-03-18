@@ -10,7 +10,7 @@ from rest_framework_expiring_authtoken.views import obtain_expiring_auth_token
 from oi_sud.cases.dataviews import DataMetricsViewByYears, DataRegionsViewByMetrics, DataCourtsViewByMetrics, CountCasesView, FrontCountCasesView
 from oi_sud.cases.views import get_result_text, CasesResultTextView, CasesResultTypesView, \
     CasesEventTypesView, CasesView, CaseView
-from oi_sud.codex.views import CodexArticleListView, CodexArticleIListView
+from oi_sud.codex.views import CodexArticleListView, CodexArticleIListView, CodexArticleSearchView
 from oi_sud.core.admin import admin_celery_view, get_progress
 from oi_sud.core.views import DebugView
 from oi_sud.courts.views import CourtsView, CourtsDebugView, CourtsSearchView, JudgesSearchView
@@ -33,6 +33,7 @@ urlpatterns = [
     path('api/v1/debug/', DebugView.as_view()),
     path('api/v1/codexarticles/', CodexArticleListView.as_view(), name='articles-list'),
     path('api/v1/codexarticles/ierarchical/', CodexArticleIListView.as_view(), name='articles-list-ierarchical'),
+    path('api/v1/codexarticles/search/', CodexArticleSearchView.as_view(), name='articles-search'),
     path('api/v1/courts/', CourtsView.as_view(), name='courts-list'),
     path('api/v1/courtssearch/', CourtsSearchView.as_view(), name='courts-search'),
     path('api/v1/courtsdebug/', CourtsDebugView.as_view(), name='courts-debug-list'),

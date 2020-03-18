@@ -464,10 +464,19 @@ class RFCasesGetter(CommonParser):
             params_string = params_string.replace('adm', 'adm1').replace('adm11', 'adm1')
         return court.url + params_string
 
-    def get_cases(self, instance, courts_ids=None, courts_limit=None, entry_date_from=None):
+    def get_cases(self, instance, courts_ids=None, courts_limit=None, entry_date_from=None, custom_articles=None):
         start_time = time.time()
-        articles = CodexArticle.objects.filter(codex=self.codex, active=True)
+        articles = None
+        if not custom_articles:
+            articles = CodexArticle.objects.filter(codex=self.codex, active=True)
+        else:
+            articles_list = custom_articles.split(', ')
+            articles = CodexArticle.objects.get_from_list(articles_list)
+            if not len(articles):
+                raise Exception('Could not get custom articles')
+
         article_string = self.generate_articles_string(articles)
+
         if not courts_ids:
             courts = Court.objects.exclude(type=9)
         else:

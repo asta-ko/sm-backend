@@ -37,3 +37,11 @@ class CodexArticleIListView(APIView):
                 data[a.get_number_and_part()] = f'ст. {str(a)}'
 
         return Response(data)
+
+class CodexArticleSearchView(ListAPIView):
+    permission_classes = (permissions.IsAdminUser,)
+    serializer_class = CodexArticleSerializer
+    queryset = CodexArticle.objects.all()
+    search_fields = ['article_number']
+    filter_fields = ('codex')
+    pagination_class = None
