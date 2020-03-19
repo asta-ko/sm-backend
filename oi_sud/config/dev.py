@@ -9,7 +9,12 @@ EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 ALLOWED_HOSTS = ['127.0.0.1', 'backend', '*']
 BASE_URL = 'http://127.0.0.1:8082'
 
+CORS_ORIGIN_WHITELIST = (
 
+    'http://127.0.0.1:8082',
+    'http://localhost:3000',
+    'http://127.0.0.1:3000'
+)
 
 # REST_FRAMEWORK = {
 #     'DEFAULT_FILTER_BACKENDS': ['django_filters.rest_framework.DjangoFilterBackend'],
