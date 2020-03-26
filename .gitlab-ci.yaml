@@ -1,0 +1,30 @@
+stages:
+  - build
+  - tests
+  #- deploy_prod
+
+services:
+  - docker:19.03.1-dind
+
+before_script:
+  - docker info
+
+
+before_script:
+  - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+
+build:
+  stage: build
+  script:
+    './run.sh docker buildtest'
+    #docker build -t "backend-:latest -f build/virtualenv/Dockerfile-test build/virtualenv
+    #docker build -t "$C_PROJECT_NAME"-virtualenv:latest -f build/virtualenv/Dockerfile build/virtualenv
+
+
+test:
+  stage: tests
+  script: './run.sh test style'
+
+#deploy_run_sh:
+#  stage: deploy_prod
+#  script: './run.sh stack'
