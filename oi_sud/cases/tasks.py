@@ -19,7 +19,7 @@ weekday_regions = [  # Except SPb and Moscow
     [54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66],
     [67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 79],
     [82, 83, 86, 87, 89, 92, 94, 95]
-]
+    ]
 
 
 def get_start_date(delta_days):
@@ -184,9 +184,9 @@ def fix_chunk(ids):
         try:
             # if case.type == 1:
             case.process_result_text()
-        except:
+        except Exception as e:
             # raise
-            print('error', case.get_admin_url())
+            print(e, 'error', case.get_admin_url())
 
 
 @shared_task

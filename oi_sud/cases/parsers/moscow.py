@@ -129,7 +129,8 @@ class MoscowParser(CourtSiteParser):
                 return DocXParser().process(filename, 'utf-8')
             else:
                 return DocParser().process(filename, 'utf-8')
-        except:
+        except Exception as e:
+            print('error getting moscow result text', e)
             return ''
 
     def get_raw_case_information(self, url):
@@ -173,24 +174,26 @@ class MoscowParser(CourtSiteParser):
         # записываем данные из первой таблицы в финальный словарь
 
         # словарь с названиями параметров, которые мы будем записывать в финальный словарь
-        dict_names = {'Номер дела': 'case_number', 'Уникальный идентификатор дела': 'case_uid',
-                      'Дата регистрации': 'entry_date',
-                      'Дата поступления': 'entry_date',
-                      'Дата поступления дела в апелляционную инстанцию': 'entry_date',
-                      'Дата вступления в силу': 'result_valid_date',
-                      'Дата вступления решения в силу': 'result_valid_date',
-                      'Номер дела ~ материала': 'case_number',
-                      'Cудья': 'judge',
-                      'Привлекаемое лицо': 'defendant', 'Статья КоАП РФ': 'codex_articles',
-                      # 'Текущее состояние': 'current_state',
-                      'Дата рассмотрения дела в первой инстанции': 'result_date',
-                      'Дата окончания': 'result_date',
-                      'Номер дела в суде вышестоящей инстанции': 'linked_case_number',
-                      'Номер дела в суде нижестоящей инстанции': 'linked_case_number',
-                      'Ссылка на связанное дело': 'linked_case_url',
-                      'Осужденный (оправданный, обвиняемый)': 'uk_defense',
-                      'Лицо': 'uk_defense',
-                      'Подсудимый': 'uk_defense'}
+        dict_names = {
+            'Номер дела': 'case_number', 'Уникальный идентификатор дела': 'case_uid',
+            'Дата регистрации': 'entry_date',
+            'Дата поступления': 'entry_date',
+            'Дата поступления дела в апелляционную инстанцию': 'entry_date',
+            'Дата вступления в силу': 'result_valid_date',
+            'Дата вступления решения в силу': 'result_valid_date',
+            'Номер дела ~ материала': 'case_number',
+            'Cудья': 'judge',
+            'Привлекаемое лицо': 'defendant', 'Статья КоАП РФ': 'codex_articles',
+            # 'Текущее состояние': 'current_state',
+            'Дата рассмотрения дела в первой инстанции': 'result_date',
+            'Дата окончания': 'result_date',
+            'Номер дела в суде вышестоящей инстанции': 'linked_case_number',
+            'Номер дела в суде нижестоящей инстанции': 'linked_case_number',
+            'Ссылка на связанное дело': 'linked_case_url',
+            'Осужденный (оправданный, обвиняемый)': 'uk_defense',
+            'Лицо': 'uk_defense',
+            'Подсудимый': 'uk_defense'
+            }
         defense = {}
         for key in content_dict.keys():
             if key in dict_names.keys():
@@ -213,7 +216,7 @@ class MoscowParser(CourtSiteParser):
         table_sessions = None
         table_acts = None
         table_states = None
-        table_case_location = None
+        # table_case_location = None
 
         div_sessions = page.find('div', id='sessions')
         if div_sessions:
@@ -228,16 +231,18 @@ class MoscowParser(CourtSiteParser):
             states_tables = div_states.findAll('table')
             if len(states_tables) > 0:
                 table_states = states_tables[0]
-            if len(states_tables) > 1:
-                table_case_location = states_tables[1]
+            # if len(states_tables) > 1:
+            # table_case_location = states_tables[1] #TODO: где находится дело (скорее не нужно)
 
         # выгружаем информацию о судебных заседаниях по делу
         events = []
 
         if table_sessions:
             # какие параметры нам нужны, их имена на сайте и в итоговом словаре
-            event_names = {'Стадия': 'type', 'date': 'date', 'time': 'time', 'courtroom': 'courtroom',
-                           'Результат': 'result', 'Основание': 'reason'}
+            event_names = {
+                'Стадия': 'type', 'date': 'date', 'time': 'time', 'courtroom': 'courtroom',
+                'Результат': 'result', 'Основание': 'reason'
+                }
             # выгружаем таблицу с прошедшими заседаниями (центральная нижняя)
             heads = [head.string.strip() for head in table[0].findAll('th')]
             results = [result.string.strip() for result in table[0].findAll('td')]
@@ -297,8 +302,6 @@ class MoscowParser(CourtSiteParser):
         case_info['events'] = events
 
         # ищем ссылку на текст решения
-        links = []
-        decision_urls = []
 
         if table_acts:
             links = ['https://www.mos-gorsud.ru' + x['href'] for x in table_acts.findAll('a')]

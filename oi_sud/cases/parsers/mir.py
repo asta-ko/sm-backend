@@ -37,17 +37,18 @@ class MsudrfParser(CourtSiteParser):
         return urls
 
     def get_all_cases_urls(self, limit_pages=False):
+        pass
         # Получаем все урлы дел по данной статье
-        urls = []
-        for i in range(get_pages_number(search)):
-            url_search = url.replace('&pageNum_Recordset1=0', '') + '&pageNum_Recordset1=' + str(i)
-            txt, status_code = self.send_get_request(url_search)
-            if status_code != 200:
-                print("GET error: ", status_code)
-            else:
-                page = BeautifulSoup(txt, 'html.parser')
-                urls.extend(get_cases_urls_from_list(page))
-        return urls
+        # urls = []
+        # for i in range(self.get_pages_number(search)):
+        #     url_search = url.replace('&pageNum_Recordset1=0', '') + '&pageNum_Recordset1=' + str(i)
+        #     txt, status_code = self.send_get_request(url_search)
+        #     if status_code != 200:
+        #         print("GET error: ", status_code)
+        #     else:
+        #         page = BeautifulSoup(txt, 'html.parser')
+        #         urls.extend(self.get_cases_urls_from_list(page))
+        # return urls #TODO
 
     def get_raw_case_information(self, url):
 
@@ -113,7 +114,7 @@ class MsudrfParser(CourtSiteParser):
             'result_date': '',
             'result_type': '',
             'result_text_url': ''
-        }
+            }
 
         keys = {
             'Номер дела': 'case_number', '№ дела': 'case_number',
@@ -123,7 +124,7 @@ class MsudrfParser(CourtSiteParser):
             'Дата решения': 'result_date',
             'Решение': 'result_type',
             'Судебныеакты': 'result_text_url'
-        }
+            }
 
         txt, status_code = self.send_get_request(url)
 
@@ -144,11 +145,11 @@ class MsudrfParser(CourtSiteParser):
             delo_id = match_delo.group(1)
 
             if delo_id == '1500001':
-                search_url = url.split('?')[
-                                 0] + '?' + 'name=sud_delo&delo_id=1500001&op=sf&adm_case__CASE_NUMBERSS=' + case_number
+                search_url = url.split('?')[0] + '?' + 'name=sud_delo&delo_id=1500001&' \
+                                                       'op=sf&adm_case__CASE_NUMBERSS=' + case_number
             elif delo_id == '1540006':
-                search_url = url.split('?')[
-                                 0] + '?' + 'name=sud_delo&delo_id=1540006&op=sf&u1_case__CASE_NUMBERSS=' + case_number
+                search_url = url.split('?')[0] + '?' + 'name=sud_delo&delo_id=1540006&' \
+                                                       'op=sf&u1_case__CASE_NUMBERSS=' + case_number
             else:
                 return result_dict
 
@@ -169,10 +170,10 @@ class MsudrfParser(CourtSiteParser):
                 headers = [x.text.strip() for x in table.find('tr').findAll('th')]
                 if len(headers) == 0:
                     headers = [x.text.strip() for x in table.thead.findAll('td')]
-                    tds = [x.a["href"] if x.text.strip() == "" and x.a != None else x.text.strip() for x in
+                    tds = [x.a["href"] if x.text.strip() == "" and x.a is not None else x.text.strip() for x in
                            table.tbody.findAll('td')]
                 else:
-                    tds = [x.a["href"] if x.text.strip() == "" and x.a != None else x.text.strip() for x in
+                    tds = [x.a["href"] if x.text.strip() == "" and x.a is not None else x.text.strip() for x in
                            table.findAll('tr')[1].findAll('td')]
                 original_dict = dict(zip(headers, tds))
 
@@ -189,7 +190,7 @@ class MsudrfParser(CourtSiteParser):
         result_dict = {
             'protocol_number': '',
             'judge': ''
-        }
+            }
 
         keys = {
             'Номер протокола об АП': 'protocol_number',
@@ -197,7 +198,7 @@ class MsudrfParser(CourtSiteParser):
             'Результат рассмотрения (подготовки к рассмотрению) дела': 'result_type',
             'Результат рассмотрения по делу': 'result_type',
             'Дата вынесения постановления (определения) по делу': 'result_date', 'Дата рассмотрения дела': 'result_date'
-        }
+            }
 
         if (len(pages) > 0):
             page = pages[0]
@@ -214,11 +215,7 @@ class MsudrfParser(CourtSiteParser):
         return result_dict
 
     def get_events_data(self, pages):
-        result_dict = [{'type': ''
-                           , 'date': ''
-                           , 'time': ''
-                           , 'courtroom': ''
-                           , 'result': ''}]
+        result_dict = [{'type': '', 'date': '', 'time': '', 'courtroom': '', 'result': ''}]
 
         keys = {
             'Наименование события': 'type',
@@ -226,7 +223,7 @@ class MsudrfParser(CourtSiteParser):
             'Время события': 'time',
             'Результат события': 'result', 'Результат': 'result',
             'Судья': 'judge'
-        }
+            }
 
         if len(pages) > 1:
 
@@ -249,11 +246,13 @@ class MsudrfParser(CourtSiteParser):
             result_dict = []
 
             for i in range(len(original_dict)):
-                pre_result_dict = {'type': '',
-                                   'date': '',
-                                   'time': '',
-                                   'courtroom': '',
-                                   'result': ''}
+                pre_result_dict = {
+                    'type': '',
+                    'date': '',
+                    'time': '',
+                    'courtroom': '',
+                    'result': ''
+                    }
                 for key in keys.keys():
                     if key in original_dict[i].keys():
                         if keys[key] == 'judge':
@@ -275,7 +274,7 @@ class MsudrfParser(CourtSiteParser):
             'Наименование вида правонарушения': 'info',
             'Дата вынесения приговора (опр., пост.)': 'result_date',
             'Приговор (опр., пост.)': 'result'
-        }
+            }
 
         if (len(pages) > 2):
 

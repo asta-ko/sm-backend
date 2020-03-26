@@ -20,7 +20,7 @@ class DebugView(APIView):
             'cases_without_defendants': Case.objects.filter(defendants__isnull=True, defendants_hidden=False).count(),
             'cases_without_articles': Case.objects.filter(codex_articles__isnull=True).count(),
             'cases_without_events': Case.objects.filter(events__isnull=True).count()
-        }
+            }
         return Response({'data': data})
 
 #

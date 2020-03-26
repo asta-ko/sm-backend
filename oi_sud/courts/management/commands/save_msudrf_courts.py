@@ -59,5 +59,5 @@ class Command(BaseCommand):
                     court_dict = parse_row(row)
                     court = Court.objects.create(**court_dict)
                     print(court)
-                except:
-                    pass
+                except Exception as e:
+                    print('error', e)

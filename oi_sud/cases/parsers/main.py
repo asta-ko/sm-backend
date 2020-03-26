@@ -71,8 +71,8 @@ class CourtSiteParser(CommonParser):
                     self.court.save()
                 result['proccessed'] += 1
                 result['new'] += 1
-            except:
-                print('error: ', case_url)
+            except Exception as e:
+                print('error: ', case_url, e)
                 print(traceback.format_exc())
                 result['errors'] += 1
                 result['error_urls'].append(case_url)

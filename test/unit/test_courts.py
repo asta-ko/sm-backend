@@ -1,7 +1,6 @@
 import pytest
-from oi_sud.courts.parser import courts_parser, moscow_courts_parser
 from oi_sud.courts.models import Court, Judge
-from django.conf import settings
+from oi_sud.courts.parser import courts_parser, moscow_courts_parser
 
 
 @pytest.mark.skip

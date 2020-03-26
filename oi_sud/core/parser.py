@@ -1,7 +1,6 @@
 import re
 
 import requests
-from oi_sud.core.consts import *
 from requests import Request
 from requests.packages.urllib3.util.retry import Retry
 from requests_futures.sessions import FuturesSession
@@ -22,7 +21,8 @@ class CommonParser(object):
             session.mount('https://', a)
             session.mount('http://', a)
             rs = (session.get(u, hooks={
-                'response': callback}) for u in urls)
+                'response': callback
+                }) for u in urls)
             for r in rs:
                 resp = r.result()
                 print(resp)

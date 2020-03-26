@@ -29,7 +29,7 @@ class ArticlesRelatedFieldAjaxListFilter(RelatedFieldAjaxListFilter):
             'data-model': model_name,
             'data-ajax--url': reverse('jet:model_lookup'),
             'data-queryset--lookup': self.lookup_kwarg,
-        }))
+            }))
 
         if self.lookup_val is None:
             return []
@@ -109,7 +109,7 @@ class CaseAdmin(CompareVersionAdmin, admin.ModelAdmin):
     class Media:
         css = {
             'all': ('https://use.fontawesome.com/releases/v5.8.2/css/all.css',)
-        }
+            }
 
 
 class DefendantAdmin(admin.ModelAdmin):

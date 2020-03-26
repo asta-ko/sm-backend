@@ -11,7 +11,7 @@ class CustomUserAdmin(UserAdmin):
 
     fieldsets = UserAdmin.fieldsets + (
         (None, {'fields': ('regions',)}),
-    )
+        )
 
 
 admin.site.register(CustomUser, CustomUserAdmin)

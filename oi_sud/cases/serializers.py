@@ -49,7 +49,7 @@ class CaseSerializer(SkipNullValuesMixin, serializers.ModelSerializer):
         many=True,
         read_only=True,
         view_name='case-detail'
-    )
+        )
 
     def get_in_favorites(self, obj):
         request = self.context.get("request")
@@ -87,9 +87,11 @@ class CaseSerializer(SkipNullValuesMixin, serializers.ModelSerializer):
     def get_revisions(self, obj):
         revisions = Version.objects.get_for_object(obj)
         if len(revisions) > 1:
-            return {'link': obj.get_history_link(),
-                    'revisions': [{'date': str(x.revision.date_created), 'comment': x.revision.comment} for x in
-                                  Version.objects.get_for_object(obj)]}
+            return {
+                'link': obj.get_history_link(),
+                'revisions': [{'date': str(x.revision.date_created), 'comment': x.revision.comment} for x in
+                              Version.objects.get_for_object(obj)]
+                }
 
     def get_defendants(self, obj):
         if obj.defendants_hidden:

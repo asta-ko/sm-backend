@@ -1,12 +1,12 @@
 import pytest
-from oi_sud.cases.parsers.rf import RFCasesGetter
-from oi_sud.cases.models import Case
 from oi_sud.cases.management.commands.get_admin_cases_from_spb_courts import Command as SpbCourtsCommand
+from oi_sud.cases.models import Case
+from oi_sud.cases.parsers.rf import RFCasesGetter
 from oi_sud.cases.utils import parse_name_and_get_gender
-from oi_sud.cases.grouper import grouper
 from reversion.models import Revision
 
-@pytest.mark.skip
+
+#@pytest.mark.skip
 @pytest.mark.django_db
 def test_rf_parser_koap_first_instance(rf_courts, koap_articles):
     p = RFCasesGetter(codex='koap')
@@ -15,7 +15,7 @@ def test_rf_parser_koap_first_instance(rf_courts, koap_articles):
     # assert False
 
 
-@pytest.mark.skip
+#@pytest.mark.skip
 @pytest.mark.django_db
 def test_rf_parser_koap_second_instance(rf_courts, koap_articles):
     RFCasesGetter('koap').get_cases(2, rf_courts)
@@ -25,7 +25,7 @@ def test_rf_parser_koap_second_instance(rf_courts, koap_articles):
     # assert False
 
 
-@pytest.mark.skip
+#@pytest.mark.skip
 @pytest.mark.django_db
 def test_rf_parser_uk_first_instance(rf_courts, uk_articles):
     p = RFCasesGetter(codex='uk')
@@ -33,7 +33,7 @@ def test_rf_parser_uk_first_instance(rf_courts, uk_articles):
     assert len(Case.objects.all())
 
 
-@pytest.mark.skip
+#@pytest.mark.skip
 @pytest.mark.django_db
 def test_rf_parser_uk_second_instance(rf_courts, uk_articles):
     p = RFCasesGetter(codex='uk')
@@ -41,7 +41,7 @@ def test_rf_parser_uk_second_instance(rf_courts, uk_articles):
     assert len(Case.objects.all())
 
 
-@pytest.mark.skip
+#@pytest.mark.skip
 def test_name_parser():
     names_list = ['Пиатровский Андрей Владимирович', 'Магомадов Арсен Сулейманович', 'Зинченко Нина Владимировна',
                   'Буриев Фазлиддин Сироджиддинович', 'МЕЛЕХИН ЕВГЕНИЙ ВИКТОРОВИЧ', 'БЫСТРОВ ДМИТРИЙ ВАЛЕНТИНОВИЧ',
@@ -89,7 +89,7 @@ def test_name_parser():
         print(parse_name_and_get_gender(x))
 
 
-#@pytest.mark.skip
+# @pytest.mark.skip
 @pytest.mark.django_db
 def test_rf_parser_update(rf_courts, koap_articles, settings):
     settings.USE_TZ = True
@@ -105,20 +105,19 @@ def test_rf_parser_update(rf_courts, koap_articles, settings):
     assert len(Revision.objects.all()) > revisions_len
     for item in Revision.objects.all():
         print(item.comment)
-    assert False
 
 
-@pytest.mark.skip
+#@pytest.mark.skip
 @pytest.mark.django_db
 def test_spb_courts_command(rf_courts, koap_articles):
     SpbCourtsCommand().handle()
     assert len(Case.objects.all())
 
 
-@pytest.mark.skip
+#@pytest.mark.skip
 @pytest.mark.django_db
 def test_case_serialization(rf_courts, koap_articles):
     SpbCourtsCommand().handle()
     assert len(Case.objects.all())
     print(Case.objects.first().serialize())
-    assert False
+

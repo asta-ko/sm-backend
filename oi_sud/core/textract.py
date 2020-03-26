@@ -77,7 +77,7 @@ class ShellParser(BaseParser):
             pipe = subprocess.Popen(
                 args,
                 stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-            )
+                )
         except OSError as e:
             if e.errno == errno.ENOENT:
                 # File not found.

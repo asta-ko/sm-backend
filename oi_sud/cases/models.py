@@ -1,6 +1,7 @@
 import traceback
 
 import editdistance
+import reversion
 from django.conf import settings
 from django.contrib.postgres.fields import ArrayField
 from django.contrib.postgres.indexes import GinIndex
@@ -17,18 +18,18 @@ CASE_TYPES = (
     (1, 'Дело об административном правонарушении'),
     (2, 'Уголовное дело'),
     (3, 'Производство по материалам')
-)
+    )
 
 CASE_STAGES = (
     (1, 'Первая инстанция'),
     (2, 'Апелляция/первый пересмотр'),
     (3, 'Новое рассмотрение в первой инстанции')
-)
+    )
 
 GENDER_TYPES = (
     (1, 'Ж'),
     (2, 'М'),
-)
+    )
 
 PENALTY_TYPES = (
     ('fine', 'Штраф'),
@@ -38,7 +39,7 @@ PENALTY_TYPES = (
     ('other', 'Другое'),
     ('error', 'Ошибка')
 
-)
+    )
 
 
 class CaseManager(models.Manager):
@@ -104,7 +105,7 @@ class Case(models.Model):
         verbose_name_plural = 'Все дела'
         indexes = [
             GinIndex(fields=['text_search'])
-        ]
+            ]
 
     def __str__(self):
 
@@ -249,18 +250,23 @@ class Case(models.Model):
 
     def process_result_text(self):
 
-        if not self.result_text:
+        # пока мы не можем обрабатывать уголовки. третье условие верно только для административок
+        if not self.result_text or self.type != 1 or self.penalties.count() > 1:
             return
 
-        if self.type != 1:  # пока мы не можем обрабатывать уголовки
-            return
+        result = kp_extractor.process(self.result_text)  # получаем результат
 
-        if self.penalties.count() > 1:  # верно для административок
-            return
+        if result and not result.get('could_not_process') \
+                and (result.get('returned') or result.get('cancelled') or result.get('forward')):
+            self.add_result_type(result)
+            return  # если у нас есть результат, и это возврат, отмена или направление по подведомственности,
+            # сохраняем его в результат дела, если он пустой, и останавливаемся.
 
-        result = kp_extractor.process(self.result_text)
         try:
-            if not result.get('could_not_process'):
+            if not result.get('could_not_process'):  # если результат с ошибкой, сохраняем ошибку
+                CasePenalty.objects.create(type='error', case=self, is_hidden=False, defendant=self.defendants.first())
+            else:
+                # если результат без ошибки, сохраняем наказание
                 for penalty_type in ['fine', 'arrest', 'works']:
                     if result.get(penalty_type):
                         if result[penalty_type].get('num') and int(result[penalty_type].get('num')) > 8000000:
@@ -269,13 +275,16 @@ class Case(models.Model):
                         CasePenalty.objects.create(type=penalty_type, case=self, defendant=self.defendants.first(),
                                                    **result[penalty_type])
                         break
-            else:
-                CasePenalty.objects.create(type='error', case=self, is_hidden=False, defendant=self.defendants.first())
+
         except Exception as e:
             print('saving error')
             print(e)
 
-        # if not self.result_type:
+        # TODO: добавить выдворения
+
+    def add_result_type(self, result):
+        if self.result_type:
+            return
 
         if result.get('returned'):
             self.result_type = 'Возвращено'
@@ -283,13 +292,11 @@ class Case(models.Model):
         if result.get('cancelled'):
             self.result_type = 'Вынесено постановление о прекращении производства по делу об адм. правонарушении'
 
-        elif result.get('forward'):
+        if result.get('forward'):
             self.result_type = 'Направлено по подведомственности'
 
         if result.get('returned') or result.get('cancelled') or result.get('forward'):
             self.save()
-
-        # TODO: добавить выдворения
 
 
 class UKCase(Case):
@@ -399,8 +406,10 @@ class DefendantManager(models.Manager):
                 return qs.first()  # если не можем проверить, берем первое попавшееся
         else:
 
-            d_dict = {'region': region,
-                      'name_normalized': normalized_name}
+            d_dict = {
+                'region': region,
+                'name_normalized': normalized_name
+                }
             if len(names):
                 d_dict['last_name'] = names[0]
                 d_dict['first_name'] = names[1]
@@ -450,7 +459,7 @@ class CasePenalty(models.Model):
             'works': 'в часах',
             'fine': 'в рублях',
             'arrest': 'в сутках'
-        }
+            }
 
         if self.is_hidden:
             return f'{self.get_type_display()}: информация скрыта'
@@ -464,8 +473,6 @@ class CasePenalty(models.Model):
         verbose_name_plural = 'Наказания'
         unique_together = ('case', 'defendant')
 
-
-import reversion
 
 reversion.register(KoapCase)
 reversion.register(UKCase)

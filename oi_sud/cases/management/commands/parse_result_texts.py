@@ -17,9 +17,9 @@ class Command(BaseCommand):
             try:
                 if not case.penalties.count():
                     case.process_result_text()
-            except:
-                raise
-                print('error', case.get_admin_url())
+            except Exception as e:
+                print('error', e, case.get_admin_url())
+                # raise
             if count % 1000 == 0:
                 print(count)
         print(CasePenalty.objects.count())

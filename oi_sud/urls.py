@@ -5,10 +5,14 @@ from django.conf.urls.static import static
 from django.contrib import admin
 from django.http import HttpResponse
 from django.urls import include, path, re_path
-from oi_sud.cases.dataviews import CountCasesView, DataCourtsViewByMetrics, DataMetricsViewByYears, \
-    DataRegionsViewByMetrics, FrontCountCasesView
-from oi_sud.cases.views import CaseView, CasesEventTypesView, CasesResultTextView, CasesResultTypesView, CasesView, \
-    get_result_text
+from oi_sud.cases.dataviews import (
+    CountCasesView, DataCourtsViewByMetrics, DataMetricsViewByYears,
+    DataRegionsViewByMetrics, FrontCountCasesView,
+    )
+from oi_sud.cases.views import (
+    CaseView, CasesEventTypesView, CasesResultTextView, CasesResultTypesView, CasesView,
+    get_result_text,
+    )
 from oi_sud.codex.views import CodexArticleIListView, CodexArticleListView, CodexArticleSearchView
 from oi_sud.core.admin import admin_celery_view, get_progress
 from oi_sud.core.views import DebugView
@@ -57,7 +61,7 @@ urlpatterns = [
 
     path('admin/active_celery_tasks/', admin_celery_view),
     path('admin/', admin.site.urls),
-]
+    ]
 
 if settings.DEBUG:
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

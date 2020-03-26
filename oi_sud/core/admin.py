@@ -23,7 +23,7 @@ def admin_celery_view(request):
     context = {
         'title': 'Celery running tasks',
         'tasks': arr,
-    }
+        }
 
     template = 'admin/celery_tasks.html'
     return render(request, template, context)
@@ -50,19 +50,19 @@ class Progress(object):
                 'success': True,
                 'progress': _get_completed_progress(),
                 # 'result': self.result.get(self.task_id) if success else None,
-            }
+                }
         elif self.result.state == PROGRESS_STATE:
             return {
                 'complete': False,
                 'success': None,
                 'progress': self.result.info,
-            }
+                }
         elif self.result.state in ['PENDING', 'STARTED']:
             return {
                 'complete': False,
                 'success': None,
                 'progress': _get_unknown_progress(),
-            }
+                }
         return self.result.info
 
 
@@ -76,7 +76,7 @@ def _get_completed_progress():
         'current': 100,
         'total': 100,
         'percent': 100,
-    }
+        }
 
 
 def _get_unknown_progress():
@@ -84,4 +84,4 @@ def _get_unknown_progress():
         'current': 0,
         'total': 100,
         'percent': 0,
-    }
+        }

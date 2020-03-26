@@ -1,10 +1,12 @@
 [flake8]
-ignore = D203
+ignore = D203,Q000,E123,F403,F405,C901
 exclude =
     # No need to traverse our git directory
     .git,
     # There's no value in checking cache directories
     __pycache__,
-    migrations
+    migrations,
+    config,
+    test
 max-complexity = 10
 max-line-length = 120

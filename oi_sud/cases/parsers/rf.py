@@ -123,20 +123,24 @@ class RFCourtSiteParser(CourtSiteParser):
 
         events = []
 
-        indeces = {'Наименование события': None,
-                   'Дата': None,
-                   'Дата события': None,
-                   'Время': None,
-                   'Время события': None,
-                   'Зал судебного заседания': None,
-                   'Результат': None,
-                   'Результат события': None}
+        indeces = {
+            'Наименование события': None,
+            'Дата': None,
+            'Дата события': None,
+            'Время': None,
+            'Время события': None,
+            'Зал судебного заседания': None,
+            'Результат': None,
+            'Результат события': None
+            }
 
-        types = {'type': ['Наименование события'],
-                 'date': ['Дата', 'Дата события'],
-                 'time': ['Время', 'Время события'],
-                 'courtroom': ['Зал судебного заседания', 'Зал'],
-                 'result': ['Результат события', 'Результат']}
+        types = {
+            'type': ['Наименование события'],
+            'date': ['Дата', 'Дата события'],
+            'time': ['Время', 'Время события'],
+            'courtroom': ['Зал судебного заседания', 'Зал'],
+            'result': ['Результат события', 'Результат']
+            }
 
         while tr_head[0] != 'Наименование события':
             tr_head = tr_head[1:]
@@ -235,7 +239,8 @@ class FirstParser(RFCourtSiteParser):
         # получаем урлы карточек дел из страницы поиска
         urls = []
         tds = page.find('table', id='tablcont').findAll('td', attrs={
-            'title': 'Для получения справки по делу, нажмите на номер дела'})
+            'title': 'Для получения справки по делу, нажмите на номер дела'
+            })
         for td in tds:
             href = td.find('a')['href']
             if Case.objects.filter(url=href).exists():
@@ -274,16 +279,19 @@ class FirstParser(RFCourtSiteParser):
             return tag.name == 'table' and 'ДВИЖЕНИЕ ДЕЛА' in tag.text
 
         def defendants_table(tag):
-            return tag.name == 'table' and (
-                    'СТОРОНЫ ПО ДЕЛУ' in tag.text or 'СВЕДЕНИЯ О ЛИЦЕ' in tag.text or 'ЛИЦА' in tag.text)
+            return tag.name == 'table' and ('СТОРОНЫ ПО ДЕЛУ' in tag.text or
+                                            'СВЕДЕНИЯ О ЛИЦЕ' in tag.text or
+                                            'ЛИЦА' in tag.text)
 
         def appeal_table(tag):
             return tag.name == 'table' and 'Дата рассмотрения жалобы' in tag.text
 
-        tabs = {'delo': page.find('div', id='cont1').find('table'),
-                'events': page.find(events_table),
-                'defendants': page.find(defendants_table),
-                'appeal': page.find(appeal_table)}
+        tabs = {
+            'delo': page.find('div', id='cont1').find('table'),
+            'events': page.find(events_table),
+            'defendants': page.find(defendants_table),
+            'appeal': page.find(appeal_table)
+            }
         return tabs
 
     def get_raw_case_information(self, url):
@@ -314,7 +322,8 @@ class FirstParser(RFCourtSiteParser):
                 case_info['entry_date'] = val
             if 'Номер протокола об АП' in tr_text:
                 case_info['protocol_number'] = val
-            if 'Судья' in tr_text or 'Передано в производство судье' in tr_text or 'Дело находится в производстве судьи' in tr_text:
+            if 'Судья' in tr_text or 'Передано в производство судье' in tr_text or 'Дело находится в производстве ' \
+                                                                                   'судьи' in tr_text:
                 case_info['judge'] = val
             if 'Дата рассмотрения' in tr_text or 'Дата вынесения постановления (определения) по делу' in tr_text:
                 case_info['result_date'] = val
