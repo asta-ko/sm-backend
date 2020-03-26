@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import CodexArticle, KoapCodexArticle, UKCodexArticle
+from .models import KoapCodexArticle, UKCodexArticle
 
 
 class CodexAdmin(admin.ModelAdmin):

@@ -1,12 +1,11 @@
 from django.core.management.base import BaseCommand
-
-from oi_sud.courts.models import Court
 from oi_sud.cases.parsers.rf import RFCasesGetter
+from oi_sud.courts.models import Court
+
 
 class Command(BaseCommand):
 
     def add_arguments(self, parser):
-
         parser.add_argument('codex', type=str)
         parser.add_argument('instance', type=int)
         # parser.add_argument(

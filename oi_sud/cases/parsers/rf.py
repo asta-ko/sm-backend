@@ -1,13 +1,10 @@
-import traceback
-from bs4 import BeautifulSoup
-from dateutil.relativedelta import relativedelta
-
-import time
 import re
+import time
+
+from bs4 import BeautifulSoup
 from dateparser.conf import settings as dateparse_settings
 from django.utils.html import strip_tags
 from django.utils.timezone import get_current_timezone
-
 from oi_sud.cases.consts import *
 from oi_sud.cases.models import Case
 from oi_sud.cases.parsers.main import CourtSiteParser
@@ -278,7 +275,7 @@ class FirstParser(RFCourtSiteParser):
 
         def defendants_table(tag):
             return tag.name == 'table' and (
-                        'СТОРОНЫ ПО ДЕЛУ' in tag.text or 'СВЕДЕНИЯ О ЛИЦЕ' in tag.text or 'ЛИЦА' in tag.text)
+                    'СТОРОНЫ ПО ДЕЛУ' in tag.text or 'СВЕДЕНИЯ О ЛИЦЕ' in tag.text or 'ЛИЦА' in tag.text)
 
         def appeal_table(tag):
             return tag.name == 'table' and 'Дата рассмотрения жалобы' in tag.text
@@ -387,7 +384,8 @@ class SecondParser(RFCourtSiteParser):
             print("GET error: ", status_code)
             return None
         page = BeautifulSoup(txt, 'html.parser')
-        case_info['case_number'] = page.find('div', class_='case-num').text.replace('дело № ', '').replace('ДЕЛО № ','')
+        case_info['case_number'] = page.find('div', class_='case-num').text.replace('дело № ', '').replace('ДЕЛО № ',
+                                                                                                           '')
         case_info['url'] = url
         case_result_text_div = page.find('div', id='tab_content_Document1')
         if case_result_text_div:

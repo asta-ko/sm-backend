@@ -1,6 +1,5 @@
-from rest_framework import serializers
-
 from oi_sud.codex.models import CodexArticle
+from rest_framework import serializers
 
 
 class CodexArticleSerializer(serializers.ModelSerializer):

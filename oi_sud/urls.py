@@ -4,17 +4,17 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
 from django.http import HttpResponse
-from django.urls import path, include, re_path
-from rest_framework_expiring_authtoken.views import obtain_expiring_auth_token
-
-from oi_sud.cases.dataviews import DataMetricsViewByYears, DataRegionsViewByMetrics, DataCourtsViewByMetrics, CountCasesView, FrontCountCasesView
-from oi_sud.cases.views import get_result_text, CasesResultTextView, CasesResultTypesView, \
-    CasesEventTypesView, CasesView, CaseView
-from oi_sud.codex.views import CodexArticleListView, CodexArticleIListView, CodexArticleSearchView
+from django.urls import include, path, re_path
+from oi_sud.cases.dataviews import CountCasesView, DataCourtsViewByMetrics, DataMetricsViewByYears, \
+    DataRegionsViewByMetrics, FrontCountCasesView
+from oi_sud.cases.views import CaseView, CasesEventTypesView, CasesResultTextView, CasesResultTypesView, CasesView, \
+    get_result_text
+from oi_sud.codex.views import CodexArticleIListView, CodexArticleListView, CodexArticleSearchView
 from oi_sud.core.admin import admin_celery_view, get_progress
 from oi_sud.core.views import DebugView
-from oi_sud.courts.views import CourtsView, CourtsDebugView, CourtsSearchView, JudgesSearchView
+from oi_sud.courts.views import CourtsDebugView, CourtsSearchView, CourtsView, JudgesSearchView
 from oi_sud.users.views import CurrentUserView, LogoutView
+from rest_framework_expiring_authtoken.views import obtain_expiring_auth_token
 
 admin.site.site_header = 'OVD-info Sud Monster'
 

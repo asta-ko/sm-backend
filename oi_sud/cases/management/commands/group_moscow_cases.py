@@ -1,7 +1,7 @@
 from django.core.management.base import BaseCommand
 
-from oi_sud.courts.models import Court
-from oi_sud.cases.grouper import  grouper
+from oi_sud.cases.grouper import grouper
+
 
 class Command(BaseCommand):
 

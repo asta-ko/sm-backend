@@ -1,5 +1,6 @@
 from django.core.management.base import BaseCommand
-from oi_sud.cases.parsers.moscow import MoscowCasesGetter, MoscowParser
+from oi_sud.cases.parsers.moscow import MoscowParser
+
 
 class Command(BaseCommand):
 

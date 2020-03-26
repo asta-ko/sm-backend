@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
 import json
 import re
-from airtable import airtable
+
 from airtable.airtable import Airtable
 from bs4 import BeautifulSoup
-
 from oi_sud.core.consts import region_choices
 from oi_sud.core.parser import CommonParser
+
 from .models import Court, Judge
 
 
@@ -241,5 +241,3 @@ class MoscowCourtParser(CourtsParser):
 
 
 moscow_courts_parser = MoscowCourtParser()
-
-

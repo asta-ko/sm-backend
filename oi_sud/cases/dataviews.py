@@ -1,15 +1,14 @@
 import numpy as np
 import pandas as pd
+from oi_sud.cases.models import Case
+from oi_sud.cases.views import CaseFilter, CaseFilterBackend
+from oi_sud.codex.models import CodexArticle, KoapCodexArticle, UKCodexArticle
+from oi_sud.core.consts import region_choices
+from oi_sud.courts.models import Court
 from rest_framework import permissions
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_pandas import PandasSimpleView
-
-from oi_sud.cases.models import Case
-from oi_sud.cases.views import CaseFilter, CaseFilterBackend
-from oi_sud.codex.models import KoapCodexArticle, UKCodexArticle, CodexArticle
-from oi_sud.core.consts import region_choices
-from oi_sud.courts.models import Court
 
 
 class CountCasesView(APIView):
@@ -68,6 +67,7 @@ class CountCasesView(APIView):
 class FrontCountCasesView(CountCasesView):
 
     def get(self, request, format=None):
+
         queryset = self.get_queryset()  # Case.objects.all()
         filtered_queryset = self.filter_queryset(queryset)
 
@@ -151,7 +151,7 @@ class FrontCountCasesView(CountCasesView):
 
 all_metrics = {'entried': 'Всего поступило',
                'has_result_text': 'Есть текст решения',
-               #'moscow_result_text_error': 'Ошибка при получении решения',
+               # 'moscow_result_text_error': 'Ошибка при получении решения',
                'resulted': 'Рассмотрено',
                'koap1_result_was_punished': 'Назначено наказание',
                'koap1_result_forwarded': 'Направлено по подвед.',
@@ -263,7 +263,7 @@ class DataView(PandasSimpleView):
             filters['penalties__is_hidden'] = True
         if name == 'penalties_errors':
             filters['penalties__type'] = 'error'
-        #if name == 'moscow_result_text_error':
+        # if name == 'moscow_result_text_error':
         #    filters['result_text'] = ''
         if name == 'koap1_result_was_punished':
             filters['result_type'] = 'Вынесено постановление о назначении административного наказания'

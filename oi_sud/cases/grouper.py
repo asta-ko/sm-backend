@@ -1,13 +1,8 @@
-import traceback
-from dateutil.relativedelta import relativedelta
-
 from dateparser.conf import settings as dateparse_settings
+from dateutil.relativedelta import relativedelta
 from django.utils.timezone import get_current_timezone
 
-from .consts import EVENT_TYPES, EVENT_RESULT_TYPES, RESULT_TYPES, APPEAL_RESULT_TYPES
 from .models import Case
-from oi_sud.cases.parsers.rf import FirstParser, SecondParser
-from oi_sud.cases.parsers.moscow import MoscowParser
 
 dateparse_settings.TIMEZONE = str(get_current_timezone())
 dateparse_settings.RETURN_AS_TIMEZONE_AWARE = False

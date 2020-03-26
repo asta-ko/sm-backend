@@ -6,7 +6,7 @@ from rest_framework_expiring_authtoken.authentication import ExpiringTokenAuthen
 
 
 class BTokenAuthentication(ExpiringTokenAuthentication):
-    keyword = 'bearer' #needed for frontend
+    keyword = 'bearer'  # needed for frontend
 
 
 class SkipNullValuesMixin(object):

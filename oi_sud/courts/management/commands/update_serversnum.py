@@ -1,17 +1,15 @@
-import requests
-from django.core.management.base import BaseCommand
-
-from oi_sud.courts.models import Court
-from oi_sud.courts.parser import courts_parser
-from oi_sud.core.parser import CommonParser
 from bs4 import BeautifulSoup
+
+from django.core.management.base import BaseCommand
+from oi_sud.core.parser import CommonParser
+from oi_sud.courts.models import Court
 
 
 class Command(BaseCommand):
 
     def handle(self, *args, **options):
         for court in Court.objects.all():
-            #print(court.title)
+            # print(court.title)
             url = court.url + '/modules.php?name=sud_delo'
             parser = CommonParser()
             text, status = parser.send_get_request(url)
@@ -26,4 +24,3 @@ class Command(BaseCommand):
 
             else:
                 continue
-

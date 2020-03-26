@@ -5,68 +5,68 @@ x-global-environment: &global-environment
   C_PROJECT_STACK: __C_PROJECT_STACK__
 
 x-projectname: &oi_sud
-    env_file: .env
-    image: __C_PROJECT_NAME__-virtualenv-test:latest
-    environment:
-        <<: *global-environment
-    volumes:
-        - ./:/code
-        - ../frontend:/code/frontend
+  env_file: .env
+  image: __C_PROJECT_NAME__-virtualenv-test:latest
+  environment:
+    <<: *global-environment
+  volumes:
+    - ./:/code
+    - ../frontend:/code/frontend
 
-    restart: on-failure
+  restart: on-failure
 
 services:
-    db:
-      image: postgres:alpine
-      ports:
+  db:
+    image: postgres:alpine
+    ports:
       - 5432
-      restart: always
-      environment:
-        POSTGRES_USER: "sudmonster"
-        POSTGRES_PASSWORD: "sudmonster"
-        POSTGRES_DB: "sudmonster"
-      volumes:
-        - db-data:/data/db
-        - ./share/sql:/docker-entrypoint-initdb.d
+    restart: always
+    environment:
+      POSTGRES_USER: "sudmonster"
+      POSTGRES_PASSWORD: "sudmonster"
+      POSTGRES_DB: "sudmonster"
+    volumes:
+      - db-data:/data/db
+      - ./share/sql:/docker-entrypoint-initdb.d
 
-    redis:
-        image: redis:4.0.11
-        volumes:
-            - ./.docker/redis/data:/var/redis
-        restart: always
+  redis:
+    image: redis:4.0.11
+    volumes:
+      - ./.docker/redis/data:/var/redis
+    restart: always
 
-    backend:
-        <<: *oi_sud
-        environment:
-          DJANGO_MANAGE_MIGRATE: "on"
-          DJANGO_MANAGE_COLLECTSTATIC: "on"
-        volumes:
-          - ./:/code
-          - ./.docker/static:/var/www/static
-          - ./.docker/media:/var/www/media
-        command: ["gunicorn", "oi_sud.wsgi:application", "-b", "0.0.0.0:8081", "--name", "oi_sud", "--reload", "--log-level", "debug",  ]
-        ports:
-          - "8082:8081"
+  backend:
+    <<: *oi_sud
+    environment:
+      DJANGO_MANAGE_MIGRATE: "on"
+      DJANGO_MANAGE_COLLECTSTATIC: "on"
+    volumes:
+      - ./:/code
+      - ./.docker/static:/var/www/static
+      - ./.docker/media:/var/www/media
+    command: ["gunicorn", "oi_sud.wsgi:application", "-b", "0.0.0.0:8081", "--name", "oi_sud", "--reload", "--log-level", "debug",  ]
+    ports:
+      - "8082:8081"
 
-    frontend:
-        <<: *oi_sud
-        network_mode: host
-        image: sudmonster-frontend-test:latest
-        container_name: nuxt_frontend
-        volumes:
-          - ../frontend/:/cf
-        restart: "always"
-        working_dir: "/cf"
-        ports:
-          - "3000:3000"
-        command: sh -c "npm install && npm run dev"
+  frontend:
+    <<: *oi_sud
+    network_mode: host
+    image: sudmonster-frontend-test:latest
+    container_name: nuxt_frontend
+    volumes:
+      - ../frontend/:/cf
+    restart: "always"
+    working_dir: "/cf"
+    ports:
+      - "3000:3000"
+    command: sh -c "npm install && npm run dev"
 
 
-    test:
-        <<: *oi_sud
-        environment:
-          DJANGO_SETTINGS_MODULE: 'oi_sud.config.test'
-        command: ["echo", "'test'"]
+  test:
+    <<: *oi_sud
+    environment:
+      DJANGO_SETTINGS_MODULE: 'oi_sud.config.test'
+    command: ["echo", "'test'"]
 
 
 

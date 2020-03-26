@@ -1,14 +1,11 @@
-
-import datetime
-import requests
 import re
-from requests import Request, Session
+
+import requests
+from oi_sud.core.consts import *
+from requests import Request
 from requests.packages.urllib3.util.retry import Retry
 from requests_futures.sessions import FuturesSession
-from urllib.parse import urlparse
-from user_agent import generate_user_agent, generate_navigator
-
-from oi_sud.core.consts import *
+from user_agent import generate_user_agent
 
 
 class CommonParser(object):

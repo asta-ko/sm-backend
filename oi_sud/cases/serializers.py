@@ -1,8 +1,7 @@
+from oi_sud.cases.models import Case, CaseEvent, CasePenalty, Defendant
+from oi_sud.core.api_utils import SkipNullValuesMixin
 from rest_framework import serializers
 from reversion.models import Version
-
-from oi_sud.cases.models import Case, CaseEvent, Defendant, CasePenalty
-from oi_sud.core.api_utils import SkipNullValuesMixin
 
 
 class CaseEventSerializer(SkipNullValuesMixin, serializers.ModelSerializer):

@@ -1,8 +1,6 @@
 from django.core.management.base import BaseCommand
-
-from oi_sud.courts.models import Court
-from oi_sud.courts.parser import courts_parser
 from oi_sud.core.utils import get_city_from_address
+from oi_sud.courts.models import Court
 
 
 class Command(BaseCommand):

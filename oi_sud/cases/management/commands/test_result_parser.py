@@ -2,7 +2,6 @@ import re
 
 import pymorphy2  # библиотека для морфологического анализа
 from django.core.management.base import BaseCommand
-
 from oi_sud.cases.models import Case
 
 
@@ -11,7 +10,6 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
 
         class KoapPenaltyExtractor(object):
-
 
             def court_result(self, decision_text):  # убрать temp_table после отладки
                 '''находит в тексте судебного решения информацию о решении, п ри штрафе определяет сумму штрафа'''
@@ -33,18 +31,16 @@ class Command(BaseCommand):
                         decision_text = re.split(pattern, decision_text)[-1]
                         break
 
-
-
                 # в решениях с таким текстом -- штраф. убираем лишнее, чтобы не путать
                 for no_arrest in ['либо административный арест на',
                                   'либо назначить наказание в виде административного ареста',
                                   'в качестве одной из мер административного наказания административный арест']:
                     decision_text = re.sub(no_arrest, '', decision_text)
 
-                #записываем текст для дальнейшего просмотра и дебаггинга
+                # записываем текст для дальнейшего просмотра и дебаггинга
                 decision_text_to_view = decision_text
 
-                #и переводим в ловеркейс для более удобной работы
+                # и переводим в ловеркейс для более удобной работы
                 decision_text = decision_text.lower()
 
                 # шаблон результата на выходе
@@ -61,7 +57,8 @@ class Command(BaseCommand):
                 fine_not_found, arrest_not_found = True, True
 
                 # проверяем, не было ли дело возвращено
-                pattern_vozvr = re.compile(r'в(озвратить|ернуть).*(протокол|дело|материал.?|постановление)|(дело|протокол|постановление|материал.?).*(возвратить|вернуть)')
+                pattern_vozvr = re.compile(
+                    r'в(озвратить|ернуть).*(протокол|дело|материал.?|постановление)|(дело|протокол|постановление|материал.?).*(возвратить|вернуть)')
                 if pattern_vozvr.search(decision_text) != None:
                     result['returned'] = True
                     return result  # сразу отдаем результат
@@ -106,11 +103,9 @@ class Command(BaseCommand):
                         break
                 if is_result_empty:
                     result['could_not_process'] = True
-                    #print(decision_text)
+                    # print(decision_text)
 
                 return result
-
-
 
             @staticmethod
             def get_num_from_text(fine_txt):
@@ -168,7 +163,7 @@ class Command(BaseCommand):
                         works_hours = int(pattern_num.search(works_data).group(1))  # сумма штрафа числом
                     elif pattern_txt.search(works_data):
                         txt = pattern_txt.search(works_data).group(1)
-                        txt.replace('осемь','восемь')
+                        txt.replace('осемь', 'восемь')
                         works_hours = self.get_num_from_text(txt)
                     else:
                         hidden = True
@@ -181,7 +176,8 @@ class Command(BaseCommand):
                     re.compile(
                         r'сроком( на)? (?P<arrest_data>.+)(сут(ки|ок)|>|\*|&gt;|\.\.|--)'),
                     re.compile(r'наказани.( в виде)? (?P<arrest_data>.+)сут(ки|ок) (административного )?ареста'),
-                    re.compile(r' подвергнуть( его| её)? административному аресту (на(?! срок)|на срок ?в?|сроком ?н?а?в?)(?P<arrest_data>.{,40})(сут(ки|ок)|>|\*|&gt;|\.\.|--)'),
+                    re.compile(
+                        r' подвергнуть( его| её)? административному аресту (на(?! срок)|на срок ?в?|сроком ?н?а?в?)(?P<arrest_data>.{,40})(сут(ки|ок)|>|\*|&gt;|\.\.|--)'),
                     re.compile(
                         r'наложить( административный)? арест на (срок)?(?P<arrest_data>.{,40})(сут(ки|ок)|>|\*|&gt;|\.\.|--)')]
 

@@ -1,11 +1,12 @@
+from datetime import datetime, timedelta
+
 from celery import chord
 from celery import shared_task
 from celery.result import allow_join_result
-from datetime import timedelta, datetime
 from oi_sud.cases.grouper import grouper
 from oi_sud.cases.models import Case
-from oi_sud.cases.parsers.rf import RFCasesGetter
 from oi_sud.cases.parsers.moscow import MoscowCasesGetter
+from oi_sud.cases.parsers.rf import RFCasesGetter
 from oi_sud.core.consts import region_choices
 from oi_sud.core.utils import chunks
 from oi_sud.courts.models import Court
@@ -172,6 +173,7 @@ def get_uk_cases_second(courts, newest=False):
     entry_date = get_start_date(30 * 6) if newest else None
     return RFCasesGetter('uk').get_cases(2, courts, entry_date_from=entry_date)
 
+
 @shared_task
 def fix_chunk(ids):
     for id in ids:
@@ -180,23 +182,22 @@ def fix_chunk(ids):
         case.update_case()
 
         try:
-            #if case.type == 1:
+            # if case.type == 1:
             case.process_result_text()
         except:
             # raise
             print('error', case.get_admin_url())
 
 
-
 @shared_task
 def fix_moscow_cases():
-
-    cases = Case.objects.filter(result_text='', type = 1, court__region='77')
+    cases = Case.objects.filter(result_text='', type=1, court__region='77')
     cases_ids = cases.values_list('id', flat=True)
 
     chunked_cases = chunks(cases_ids, 10)
     for chunk in chunked_cases:
         fix_chunk.s(chunk).apply_async(queue="other")
+
 
 @shared_task
 def update_spb():
@@ -204,7 +205,8 @@ def update_spb():
     for court in spb_courts:
         update_cases_by_court.s(court).apply_async(queue="other")
 
+
 @shared_task
 def group_all():
-    for region in [x for x in dict(region_choices).keys() if x not in [77,78]]:
+    for region in [x for x in dict(region_choices).keys() if x not in [77, 78]]:
         group_by_region.s(region).apply_async(queue="other")

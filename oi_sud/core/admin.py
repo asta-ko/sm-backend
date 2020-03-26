@@ -4,7 +4,6 @@ import requests
 from django.http import HttpResponse
 from django.shortcuts import render
 from django.template.defaulttags import register
-
 from oi_sud.celery import app
 
 

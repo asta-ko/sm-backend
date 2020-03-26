@@ -1,12 +1,14 @@
 from django.core.management.base import BaseCommand
-from oi_sud.cases.models import Defendant, Case
 from django.db.models import Count
+from oi_sud.cases.models import Defendant
+
 
 class Command(BaseCommand):
 
     def handle(self, *args, **options):
         groups = []
-        s = Defendant.objects.values('name_normalized').order_by('name_normalized').annotate(the_count=Count('name_normalized'))
+        s = Defendant.objects.values('name_normalized').order_by('name_normalized').annotate(
+            the_count=Count('name_normalized'))
         for x in s:
             if x['the_count'] > 1:
                 print(x)
@@ -28,6 +30,3 @@ class Command(BaseCommand):
                                 c.defendant = first_defendant
                                 c.save()
                             d.delete()
-
-
-

@@ -7,6 +7,9 @@ from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 from django_filters.widgets import RangeWidget
+from oi_sud.cases.models import Case, CaseEvent, PENALTY_TYPES
+from oi_sud.cases.serializers import CaseFullSerializer, CaseResultSerializer, CaseSerializer
+from oi_sud.core.consts import region_choices
 from rest_framework import filters
 from rest_framework import permissions
 from rest_framework.generics import ListAPIView
@@ -14,10 +17,6 @@ from rest_framework.generics import RetrieveAPIView
 from rest_framework.renderers import AdminRenderer
 from rest_framework.response import Response
 from rest_framework.views import APIView
-
-from oi_sud.cases.models import Case, CaseEvent, PENALTY_TYPES
-from oi_sud.cases.serializers import CaseSerializer, CaseFullSerializer, CaseResultSerializer
-from oi_sud.codex.models import KoapCodexArticle, UKCodexArticle
 
 
 def get_result_text(request, case_id):
@@ -64,7 +63,7 @@ class GroupedChoiceFilter(django_filters.MultipleChoiceFilter):
 
 
 def get_event_type_choices():
-    #return []
+    # return []
     try:
         type_list = CaseEvent.objects.values_list('type', flat=True).distinct().order_by()
         type_dict = {n: n for n in type_list}
@@ -72,13 +71,18 @@ def get_event_type_choices():
     except ProgrammingError:
         return []
 
-class CaseFilter(django_filters.FilterSet):
 
+class CaseFilter(django_filters.FilterSet):
     entry_year_from = django_filters.NumberFilter(field_name="entry_date__year", lookup_expr='gte', label="Год (от)")
     entry_year_to = django_filters.NumberFilter(field_name="entry_date__year", lookup_expr='lte', label="Год (до)")
     judge_name = django_filters.CharFilter(field_name="judge__name", lookup_expr='icontains', label="Фамилия судьи")
     court_city = django_filters.CharFilter(field_name="court__city", lookup_expr='icontains',
                                            label="Город/Населенный пункт")
+    regions = django_filters.MultipleChoiceFilter(
+        choices=region_choices,
+        field_name='court__region',
+        method='str_to_int',
+        lookup_expr='in')
     defendant = django_filters.CharFilter(field_name="defendants__last_name", lookup_expr='icontains', label="Ответчик")
     defendant_hidden = django_filters.BooleanFilter(field_name="defendants_hidden")
     penalty_type = django_filters.ChoiceFilter(field_name="penalties__type", choices=PENALTY_TYPES)
@@ -160,6 +164,11 @@ class CaseFilter(django_filters.FilterSet):
         lookup = '__'.join([name, 'isnull'])
         return queryset.filter(**{lookup: not value})
 
+    def str_to_int(self, queryset, name, value):
+        # construct the full lookup expression.
+        lookup = '__'.join([name, 'in'])
+        return queryset.filter(**{lookup: [int(x) for x in value]})
+
     def filter_result_search(self, queryset, name, value):
         return queryset.filter(text_search=SearchQuery(value, config='russian', search_type='phrase'))
 
@@ -168,13 +177,13 @@ class CaseFilter(django_filters.FilterSet):
 
     class Meta:
         model = Case
-        fields = ['stage', 'court__region', 'judge', 'defendants__gender']
+        fields = ['stage', 'judge', 'defendants__gender']
 
 
 class CaseArticleFilter(CaseFilter):
     class Meta:
         model = Case
-        fields = ['stage', 'type', 'court__region', 'codex_articles', 'court', 'judge']
+        fields = ['stage', 'type', 'codex_articles', 'court', 'judge']
 
 
 class CaseFilterBackend(DjangoFilterBackend):

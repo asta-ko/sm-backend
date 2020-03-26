@@ -1,7 +1,6 @@
-from rest_framework import serializers
-
 from oi_sud.core.api_utils import SkipNullValuesMixin
 from oi_sud.courts.models import Court, Judge
+from rest_framework import serializers
 
 
 class DebugCourtSerializer(serializers.ModelSerializer):

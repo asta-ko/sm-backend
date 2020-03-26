@@ -1,12 +1,11 @@
 from collections import OrderedDict
 
+from oi_sud.codex.models import CodexArticle
+from oi_sud.codex.serializers import CodexArticleSerializer
 from rest_framework import permissions
 from rest_framework.generics import ListAPIView
 from rest_framework.response import Response
 from rest_framework.views import APIView
-
-from oi_sud.codex.models import CodexArticle
-from oi_sud.codex.serializers import CodexArticleSerializer
 
 
 class CodexArticleListView(ListAPIView):
@@ -16,6 +15,7 @@ class CodexArticleListView(ListAPIView):
     # filter_backends = (filters.DjangoFilterBackend,)
     filterset_fields = ('codex',)
     pagination_class = None
+
 
 class CodexArticleIListView(APIView):
     queryset = CodexArticle.objects.filter(active=True)
@@ -37,6 +37,7 @@ class CodexArticleIListView(APIView):
                 data[a.get_number_and_part()] = f'ст. {str(a)}'
 
         return Response(data)
+
 
 class CodexArticleSearchView(ListAPIView):
     permission_classes = (permissions.IsAdminUser,)

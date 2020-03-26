@@ -1,11 +1,8 @@
 import pytz
 from django.contrib.postgres.fields import ArrayField
 from django.db import models
-
-from oi_sud.core.consts import region_choices
+from oi_sud.core.consts import far_east_timezone_dict, region_choices, timezone_dict
 from oi_sud.core.utils import nullable
-
-from oi_sud.core.consts import region_choices, timezone_dict, far_east_timezone_dict
 
 COURT_TYPES = (
     (0, 'Районный суд'),

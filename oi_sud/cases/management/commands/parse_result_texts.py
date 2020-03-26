@@ -9,7 +9,7 @@ class Command(BaseCommand):
         print('starting')
         count = 0
 
-        cases = Case.objects.filter(result_text__isnull=False, type=1)#[10000:35000]
+        cases = Case.objects.filter(result_text__isnull=False, type=1)  # [10000:35000]
         print(cases.count())
         for case in cases:
             count += 1

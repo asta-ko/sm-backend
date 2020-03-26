@@ -1,11 +1,11 @@
+import errno
+import os
 import subprocess
 import tempfile
-import os
-import errno
 
-import six
 import chardet
 import docx2txt
+import six
 
 
 class BaseParser(object):

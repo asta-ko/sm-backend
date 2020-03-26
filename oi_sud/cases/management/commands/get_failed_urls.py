@@ -1,6 +1,5 @@
 from django.core.management.base import BaseCommand
-from django_celery_results.models import TaskResult
-import json
+
 
 class Command(BaseCommand):
 
@@ -16,10 +15,10 @@ class Command(BaseCommand):
                         all_urls.append(url)
 
 
-
 from django.core.management.base import BaseCommand
 from django_celery_results.models import TaskResult
 import json
+
 
 class Command(BaseCommand):
 
@@ -30,10 +29,8 @@ class Command(BaseCommand):
             result_dict = json.loads(item.result)
             for court in result_dict.values():
                 if court.get('error_urls') and len(court.get('error_urls')) > 0:
-                   # for url in court.get('error_urls'):
-                   #     print(url)
+                    # for url in court.get('error_urls'):
+                    #     print(url)
                     url = court.get('error_urls')[0]
                     print(url)
                     all_urls.append(url)
-
-

@@ -2,16 +2,15 @@ import traceback
 
 import dateparser
 import pytz
-from pytz import utc
 from dateparser.conf import settings as dateparse_settings
 from django.conf import settings
 from django.utils.timezone import get_current_timezone
-
-from oi_sud.cases.consts import EVENT_TYPES, EVENT_RESULT_TYPES, RESULT_TYPES, APPEAL_RESULT_TYPES
+from oi_sud.cases.consts import APPEAL_RESULT_TYPES, EVENT_RESULT_TYPES, EVENT_TYPES, RESULT_TYPES
 from oi_sud.cases.models import Case, Defendant
 from oi_sud.codex.models import CodexArticle
 from oi_sud.core.parser import CommonParser
 from oi_sud.courts.models import Judge
+from pytz import utc
 
 dateparse_settings.TIMEZONE = str(get_current_timezone())
 dateparse_settings.RETURN_AS_TIMEZONE_AWARE = False
@@ -20,8 +19,6 @@ event_types_dict = {y: x for x, y in dict(EVENT_TYPES).items()}
 event_result_types_dict = {y: x for x, y in dict(EVENT_RESULT_TYPES).items()}
 result_types_dict = {y: x for x, y in dict(RESULT_TYPES).items()}
 appeal_result_types_dict = {y: x for x, y in dict(APPEAL_RESULT_TYPES).items()}
-
-
 
 
 class CourtSiteParser(CommonParser):

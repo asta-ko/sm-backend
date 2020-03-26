@@ -9,7 +9,6 @@ import re
 from bs4 import BeautifulSoup
 from dateparser.conf import settings as dateparse_settings
 from django.utils.timezone import get_current_timezone
-
 from oi_sud.cases.consts import msudrf_params_dict
 from oi_sud.cases.parsers.main import CourtSiteParser
 from oi_sud.codex.models import CodexArticle

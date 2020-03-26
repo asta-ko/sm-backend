@@ -1,14 +1,15 @@
 from django.contrib import admin
-from django.utils.html import format_html
-from django.forms.utils import flatatt
 from django.contrib.admin.utils import get_model_from_relation
+from django.forms.utils import flatatt
 from django.urls import reverse
 from django.utils.encoding import smart_text
-from .models import Case, KoapCase, UKCase, CaseEvent, Defendant, CaseDefense, LinkedCasesProxy
+from django.utils.html import format_html
 from jet.admin import CompactInline
 from jet.filters import RelatedFieldAjaxListFilter
-from django.utils.html import format_html
 from reversion_compare.admin import CompareVersionAdmin
+
+from .models import Case, CaseDefense, CaseEvent, Defendant, KoapCase, LinkedCasesProxy, UKCase
+
 
 class ArticlesRelatedFieldAjaxListFilter(RelatedFieldAjaxListFilter):
 

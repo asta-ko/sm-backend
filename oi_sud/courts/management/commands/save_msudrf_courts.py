@@ -1,10 +1,11 @@
-from django.core.management.base import BaseCommand
 import csv
-from oi_sud.courts.models import Court
-from oi_sud.courts.parser import courts_parser
-from oi_sud.core.consts import region_choices
 import os
 import sys
+
+from django.core.management.base import BaseCommand
+from oi_sud.core.consts import region_choices
+from oi_sud.courts.models import Court
+
 
 class Command(BaseCommand):
 
@@ -17,7 +18,6 @@ class Command(BaseCommand):
             court_dict = {}
 
             court_dict['title'] = row[0]
-
 
             court_dict['type'] = 4
 
@@ -46,10 +46,9 @@ class Command(BaseCommand):
 
             return court_dict
 
-
         # Court.objects.all().delete()
 
-        path = os.path.join(sys.path[0],'oi_sud/courts/management/commands/mirsud.csv')
+        path = os.path.join(sys.path[0], 'oi_sud/courts/management/commands/mirsud.csv')
         with open(path) as csvfile:
             readCSV = csv.reader(csvfile, delimiter=';')
             for row in readCSV:

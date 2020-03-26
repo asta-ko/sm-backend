@@ -1,9 +1,9 @@
 import re
+
 import pymorphy2
 
 
 class KoapPenaltyExtractor(object):
-
 
     def process(self, decision_text):  # убрать temp_table после отладки
         '''находит в тексте судебного решения информацию о решении, п ри штрафе определяет сумму штрафа'''
@@ -24,8 +24,6 @@ class KoapPenaltyExtractor(object):
             if re.search(pattern, decision_text):
                 decision_text = re.split(pattern, decision_text)[-1]
                 break
-
-
 
         # в решениях с таким текстом -- штраф. убираем лишнее, чтобы не путать
         for no_arrest in ['либо административный арест на',
@@ -51,7 +49,6 @@ class KoapPenaltyExtractor(object):
 
         # определяем нужные в дальнейшем переменные
         fine_not_found, arrest_not_found = True, True
-
 
         # проверяем, не было ли дело прекращено
         pattern_prekr = re.compile(r'[П|п]роизводство.*прекратить|[П|п]рекратить.*производство')
@@ -88,9 +85,10 @@ class KoapPenaltyExtractor(object):
             if 'выдвор' in decision_text:
                 result['deportation'] = True
 
-        # проверяем, не было ли дело возвращено
+            # проверяем, не было ли дело возвращено
             pattern_vozvr = re.compile \
-                (r'в(озвратить|ернуть).*(протокол|дело|материал.?|постановление)|(дело|протокол|постановление|материал.?).*(возвратить|вернуть)')
+                    (
+                    r'в(озвратить|ернуть).*(протокол|дело|материал.?|постановление)|(дело|протокол|постановление|материал.?).*(возвратить|вернуть)')
             if pattern_vozvr.search(decision_text) != None and fine_not_found and arrest_not_found and works_not_found:
                 result['returned'] = True
                 return result  # сразу отдаем результат
@@ -110,8 +108,6 @@ class KoapPenaltyExtractor(object):
             # print(decision_text)
 
         return result
-
-
 
     @staticmethod
     def get_num_from_text(fine_txt):
@@ -169,7 +165,7 @@ class KoapPenaltyExtractor(object):
                 works_hours = int(pattern_num.search(works_data).group(1))  # сумма штрафа числом
             elif pattern_txt.search(works_data):
                 txt = pattern_txt.search(works_data).group(1)
-                txt.replace('осемь' ,'восемь')
+                txt.replace('осемь', 'восемь')
                 works_hours = self.get_num_from_text(txt)
             else:
                 hidden = True
@@ -183,7 +179,8 @@ class KoapPenaltyExtractor(object):
                 r'сроком( на)? (?P<arrest_data>.+)(сут(ки|ок)|>|\*|&gt;|\.\.|--)'),
             re.compile(r'наказани.( в виде)? (?P<arrest_data>.+)сут(ки|ок) (административного )?ареста'),
             re.compile
-                (r' подвергнуть( его| её)? административному аресту (на(?! срок)|на срок ?в?|сроком ?н?а?в?)(?P<arrest_data>.{,40})(сут(ки|ок)|>|\*|&gt;|\.\.|--)'),
+                (
+                r' подвергнуть( его| её)? административному аресту (на(?! срок)|на срок ?в?|сроком ?н?а?в?)(?P<arrest_data>.{,40})(сут(ки|ок)|>|\*|&gt;|\.\.|--)'),
             re.compile(
                 r'наложить( административный)? арест на (срок)?(?P<arrest_data>.{,40})(сут(ки|ок)|>|\*|&gt;|\.\.|--)')]
 
@@ -261,5 +258,6 @@ class KoapPenaltyExtractor(object):
             not_found = False
             hidden = True
         return fine_num, not_found, hidden
+
 
 kp_extractor = KoapPenaltyExtractor()

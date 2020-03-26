@@ -1,9 +1,8 @@
+from oi_sud.users.models import CustomUser
 from rest_framework import serializers
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
-
-from oi_sud.users.models import CustomUser
 
 
 class UserSerializer(serializers.ModelSerializer):

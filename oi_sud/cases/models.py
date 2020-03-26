@@ -8,11 +8,10 @@ from django.contrib.postgres.search import SearchVectorField
 from django.db import models
 from django.urls import reverse
 from django.utils import timezone
-
 from oi_sud.cases.parsers.result_texts import kp_extractor
 from oi_sud.cases.utils import normalize_name, parse_name_and_get_gender
 from oi_sud.core.consts import region_choices
-from oi_sud.core.utils import nullable, DictDiffer
+from oi_sud.core.utils import DictDiffer, nullable
 
 CASE_TYPES = (
     (1, 'Дело об административном правонарушении'),
@@ -171,7 +170,7 @@ class Case(models.Model):
             fresh_data = {i: j for i, j in parser.serialize_data(raw_data).items() if j is not None}
             fresh_data['case'] = {k: v for k, v in fresh_data['case'].items() if v is not None}
             self.update_if_needed(fresh_data)
-        except:
+        except:  # NOQA
             print('error: ', self.url)
             print(traceback.format_exc())
 
@@ -265,7 +264,8 @@ class Case(models.Model):
                 for penalty_type in ['fine', 'arrest', 'works']:
                     if result.get(penalty_type):
                         if result[penalty_type].get('num') and int(result[penalty_type].get('num')) > 8000000:
-                            CasePenalty.objects.create(type='error', is_hidden=False, case=self, defendant=self.defendants.first())
+                            CasePenalty.objects.create(type='error', is_hidden=False, case=self,
+                                                       defendant=self.defendants.first())
                         CasePenalty.objects.create(type=penalty_type, case=self, defendant=self.defendants.first(),
                                                    **result[penalty_type])
                         break
@@ -275,7 +275,7 @@ class Case(models.Model):
             print('saving error')
             print(e)
 
-        #if not self.result_type:
+        # if not self.result_type:
 
         if result.get('returned'):
             self.result_type = 'Возвращено'
@@ -463,6 +463,7 @@ class CasePenalty(models.Model):
         verbose_name = 'Наказание'
         verbose_name_plural = 'Наказания'
         unique_together = ('case', 'defendant')
+
 
 import reversion
 
