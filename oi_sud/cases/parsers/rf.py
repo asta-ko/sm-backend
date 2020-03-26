@@ -1,15 +1,11 @@
-import traceback
-from bs4 import BeautifulSoup
-from dateutil.relativedelta import relativedelta
-
-import time
 import re
+import time
+
+from bs4 import BeautifulSoup
 from dateparser.conf import settings as dateparse_settings
 from django.utils.html import strip_tags
 from django.utils.timezone import get_current_timezone
-
-from oi_sud.cases.consts import site_types_by_codex, EVENT_TYPES, EVENT_RESULT_TYPES, RESULT_TYPES, APPEAL_RESULT_TYPES, \
-    instances_dict
+from oi_sud.cases.consts import *
 from oi_sud.cases.models import Case
 from oi_sud.cases.parsers.main import CourtSiteParser
 from oi_sud.codex.models import CodexArticle
@@ -27,6 +23,69 @@ appeal_result_types_dict = {y: x for x, y in dict(APPEAL_RESULT_TYPES).items()}
 
 
 class RFCourtSiteParser(CourtSiteParser):
+
+    def get_all_cases_urls(self):
+        if self.court.servers_num == 1:
+            return self.get_cases_urls()
+        else:
+            return self.get_all_cases_from_multiple_servers()
+
+    def get_all_cases_from_multiple_servers(self):
+        all_urls = []
+        for n in range(1, self.court.servers_num + 1):
+            new_params = f'srv_num={str(n)}&case__num_build={str(n)}'
+            url = self.url.replace('srv_num=1', new_params)
+            all_urls += self.get_cases_urls(url=url)
+        return all_urls
+
+    def get_cases_urls(self, url=None):
+        # Получаем все урлы дел в данном суде
+
+        print(url, 'url')
+
+        if not url:
+            url = self.url
+        txt, status_code = self.send_get_request(url)
+        if status_code != 200:
+            print("GET error: ", status_code)
+            print('Unable to save cases')
+            return None
+        first_page = BeautifulSoup(txt, 'html.parser')
+        pages_number = self.get_pages_number(first_page)  # TODO CHANGE
+        all_pages = [first_page, ]
+        pages_urls = None
+
+        if pages_number != 1:
+            if self.court.site_type == 2:
+                pages_urls = [f'{url}&_page={p}' for p in range(2, pages_number + 1)]
+            elif self.court.site_type == 1:
+                pages_urls = [f'{url}&page={p}' for p in range(2, pages_number + 1)]
+
+            for url in pages_urls:
+                txt, status_code = self.send_get_request(url)
+                if status_code != 200:
+                    print("GET error: ", status_code)
+                    continue
+                page = BeautifulSoup(txt, 'html.parser')
+                all_pages.append(page)
+
+        all_cases_urls = []
+
+        for page in all_pages:
+            try:
+                urls = self.get_cases_urls_from_list(page)
+                urls = [self.url.replace('/modules.php', '').split('?')[0] + u for u in urls]
+                all_cases_urls += urls
+            except AttributeError:
+                pass
+
+        if all_cases_urls == []:
+            print(self.court, '...Got no cases urls')
+        else:
+            print(self.court, '...Got all cases urls')
+
+        return all_cases_urls
+
     def get_koap_article(self, raw_string):
         # получаем объекты статей КОАП из строки, полученной из карточки дела
 
@@ -60,28 +119,76 @@ class RFCourtSiteParser(CourtSiteParser):
                 codex_articles.append(codex_article)
         return codex_articles
 
+    def parse_events(self, events_trs, tr_head):
+
+        events = []
+
+        indeces = {
+            'Наименование события': None,
+            'Дата': None,
+            'Дата события': None,
+            'Время': None,
+            'Время события': None,
+            'Зал судебного заседания': None,
+            'Результат': None,
+            'Результат события': None
+            }
+
+        types = {
+            'type': ['Наименование события'],
+            'date': ['Дата', 'Дата события'],
+            'time': ['Время', 'Время события'],
+            'courtroom': ['Зал судебного заседания', 'Зал'],
+            'result': ['Результат события', 'Результат']
+            }
+
+        while tr_head[0] != 'Наименование события':
+            tr_head = tr_head[1:]
+
+        for item in indeces.keys():
+            if item in tr_head:
+                indeces[item] = tr_head.index(item)
+
+        for tr in events_trs:
+            event = {}
+            tds = tr.findAll('td')
+
+            for k, v in types.items():
+                for item in v:
+                    if indeces.get(item) is not None and len(tds) > indeces.get(item):
+                        text = tds[indeces.get(item)].text.replace('\xa0', '').strip()
+                        if text:
+                            event[k] = text
+                            continue
+
+            if event.get('type'):
+                events.append(event)
+
+        return events
+
     def parse_defenses(self, el):
         # Получаем имя обвиняемого и статьи (может быть несколько)
+
         defenses = []
+        defendants_hidden = False
         title_tr = None
-        title_tr_index = None
-        title_tds = []
         defendant_index = None
         codex_articles_index = None
         trs = el.findAll('tr')
+
         for index, tr in enumerate(trs):
 
             tr_text = tr.text
 
             if 'ФИО' in tr_text or 'Фамилия' in tr_text or 'статей' in tr_text:
                 title_tr = tr
-                title_tr_index = index
 
         if not title_tr:
             title_tds = el.findAll('td', attrs={'align': 'center'})
             if not title_tds:
-                title_tds = el.findAll('td', attrs={'style': 'text-align:center;'})
-            title_tr_index = 2
+                title_tds = el.findAll('td', {'style': 'text-align:center'})
+            if not title_tds:
+                title_tds = el.findAll('td', {'style': 'text-align:center;'})
         else:
             title_tds = title_tr.findAll('td')
 
@@ -92,18 +199,26 @@ class RFCourtSiteParser(CourtSiteParser):
             if 'статей' in td_text:
                 codex_articles_index = index
 
-        for tr in trs[title_tr_index:]:
-            if 'ФИО' in tr.text or 'статей' in tr.text or 'Фамилия' in tr.text or 'Информация скрыта' in tr.text:
+        for tr in trs:
+            if 'Информация скрыта' in tr.text:
+                defendants_hidden = True
+                print(defendants_hidden, 'hidden')
+
+            if 'ФИО' in tr.text or 'статей' in tr.text \
+                    or 'Фамилия' in tr.text \
+                    or 'Информация скрыта' in tr.text \
+                    or 'Адвокат' in tr.text \
+                    or 'Прокурор' in tr.text:
                 continue
+
             tds = tr.findAll('td')
-            if len(tds) >= defendant_index and len(tds) >= codex_articles_index:
+            if len(tds) > defendant_index and len(tds) > codex_articles_index:
                 defendant = tds[defendant_index].text.strip()
                 codex_articles = tds[codex_articles_index].text.strip()
                 print(defendant, codex_articles)
                 defenses.append({'defendant': defendant, 'codex_articles': codex_articles})
 
-        return defenses
-
+        return defenses, defendants_hidden
 
 
 class FirstParser(RFCourtSiteParser):
@@ -124,16 +239,20 @@ class FirstParser(RFCourtSiteParser):
         # получаем урлы карточек дел из страницы поиска
         urls = []
         tds = page.find('table', id='tablcont').findAll('td', attrs={
-            'title': 'Для получения справки по делу, нажмите на номер дела'})
+            'title': 'Для получения справки по делу, нажмите на номер дела'
+            })
         for td in tds:
             href = td.find('a')['href']
             if Case.objects.filter(url=href).exists():
                 continue
             urls.append(href + '&nc=1')
+
         return urls
 
     def get_result_text_url(self, page):
         # получаем урл на текст решения
+        if not self.court:
+            return
         ths = page.find('div', id='cont1').findAll('th')
         for th in ths:
             a = th.find('a')
@@ -149,7 +268,31 @@ class FirstParser(RFCourtSiteParser):
             return None
         page = BeautifulSoup(txt, 'html.parser')
         result_text_span = page.find('span')
-        return strip_tags(result_text_span.text)
+        if result_text_span:
+            return strip_tags(result_text_span.text)
+        else:
+            return ''
+
+    def get_tabs(self, page):
+
+        def events_table(tag):
+            return tag.name == 'table' and 'ДВИЖЕНИЕ ДЕЛА' in tag.text
+
+        def defendants_table(tag):
+            return tag.name == 'table' and ('СТОРОНЫ ПО ДЕЛУ' in tag.text or
+                                            'СВЕДЕНИЯ О ЛИЦЕ' in tag.text or
+                                            'ЛИЦА' in tag.text)
+
+        def appeal_table(tag):
+            return tag.name == 'table' and 'Дата рассмотрения жалобы' in tag.text
+
+        tabs = {
+            'delo': page.find('div', id='cont1').find('table'),
+            'events': page.find(events_table),
+            'defendants': page.find(defendants_table),
+            'appeal': page.find(appeal_table)
+            }
+        return tabs
 
     def get_raw_case_information(self, url):
         # парсим карточку дела
@@ -165,7 +308,8 @@ class FirstParser(RFCourtSiteParser):
         if case_result_text_url:
             result_text = self.get_result_text(case_result_text_url)
             case_info['result_text'] = result_text
-        case_trs = page.find('div', id='cont1').find('tr').findAll('tr')
+        tables = self.get_tabs(page)
+        case_trs = tables['delo'].find('tr').findAll('tr')
         for tr in case_trs:
             tds = tr.findAll('td')
             if len(tds) < 2:
@@ -178,39 +322,27 @@ class FirstParser(RFCourtSiteParser):
                 case_info['entry_date'] = val
             if 'Номер протокола об АП' in tr_text:
                 case_info['protocol_number'] = val
-            if 'Судья' in tr_text or 'Передано в производство судье' in tr_text:
+            if 'Судья' in tr_text or 'Передано в производство судье' in tr_text or 'Дело находится в производстве ' \
+                                                                                   'судьи' in tr_text:
                 case_info['judge'] = val
             if 'Дата рассмотрения' in tr_text or 'Дата вынесения постановления (определения) по делу' in tr_text:
                 case_info['result_date'] = val
             if 'Результат рассмотрения' in tr_text:
                 case_info['result_type'] = val
-        if page.find('div', id='cont2'):
-            events = []
-            tr_head = [x.text for x in page.find('div', id='cont2').findAll('td')][1:]
-            trs = page.find('div', id='cont2').findAll('tr')[2:-1]
+        case_info['events'] = []
+        if tables.get('events'):
+            tr_head = [x.text for x in tables['events'].findAll('td')][:10]
 
-            for tr in trs:
-                event = {}
-                tds = tr.findAll('td')
-                event['type'] = tds[0].text.replace('\xa0', '')
-                event['date'] = tds[1].text.replace('\xa0', '')
-                if 'Время' in tr_head:
-                    index = tr_head.index('Время')
-                    event['time'] = tds[index].text.replace('\xa0', '')
-                if 'Зал судебного заседания' in tr_head:
-                    index = tr_head.index('Зал судебного заседания')
-                    event['courtroom'] = tds[index].text.replace('\xa0', '')
-                if 'Результат события' in tr_head:
-                    index = tr_head.index('Результат события')
-                    event['result'] = tds[index].text.replace('\xa0', '').strip()
-                events.append(event)
-            case_info['events'] = events
-        if page.find('div', id='cont3'):
-            defenses = []
+            trs = tables['events'].findAll('tr')[2:]
+
+            case_info['events'] = self.parse_events(trs, tr_head)
+
+        case_info['defenses'] = []
+        if tables.get('defendants'):
             # trs = page.find('div', id='cont3').findAll('tr')
-            case_info['defenses'] = self.parse_defenses(page.find('div', id='cont3'))
-        if page.find('div', id='cont4'):
-            trs = page.find('div', id='cont4').findAll('tr')
+            case_info['defenses'], case_info['defendants_hidden'] = self.parse_defenses(tables['defendants'])
+        if tables.get('appeal'):
+            trs = tables['appeal'].findAll('tr')
             for tr in trs:
                 tr_text = tr.text
                 if 'Дата направления дела в вышест. суд' in tr_text:
@@ -233,8 +365,9 @@ class SecondParser(RFCourtSiteParser):
         # получаем число страниц с делами
         pagination = page.find('ul', class_='pagination')
         if pagination:
-            last_page_href = pagination.findAll('li')[-1].find('a')['href']
+            last_page_href = pagination.findAll('li')[-2].find('a')['href']
             pages_number = int(get_query_key(last_page_href, '_page'))
+
             return pages_number
         else:
             return 1
@@ -248,18 +381,20 @@ class SecondParser(RFCourtSiteParser):
             if Case.objects.filter(url=a['href']).exists():
                 continue
             urls.append(a['href'] + '&nc=1')
+
         return urls
 
     def get_raw_case_information(self, url):
 
-        #парсим карточку дела
+        # парсим карточку дела
         case_info = {}
         txt, status_code = self.send_get_request(url)
         if status_code != 200:
             print("GET error: ", status_code)
             return None
         page = BeautifulSoup(txt, 'html.parser')
-        case_info['case_number'] = page.find('div', class_='case-num').text.replace('дело № ', '')
+        case_info['case_number'] = page.find('div', class_='case-num').text.replace('дело № ', '').replace('ДЕЛО № ',
+                                                                                                           '')
         case_info['url'] = url
         case_result_text_div = page.find('div', id='tab_content_Document1')
         if case_result_text_div:
@@ -278,40 +413,23 @@ class SecondParser(RFCourtSiteParser):
                 case_info['entry_date'] = val
             if 'Номер протокола об АП' in tr_text:
                 case_info['protocol_number'] = val
-            if 'Судья' in tr_text or 'Передано в производство судье' in tr_text:
+            if 'Судья' in tr_text \
+                    or 'Передано в производство судье' in tr_text \
+                    or 'Дело находится в производстве судьи' in tr_text:
                 case_info['judge'] = val
             if 'Дата рассмотрения' in tr_text or 'Дата вынесения постановления (определения) по делу' in tr_text:
                 case_info['result_date'] = val
             if 'Результат рассмотрения' in tr_text:
                 case_info['result_type'] = val
-
-        events_trs = page.find('div', id='tab_content_EventList').findAll('tr')[1:]
-        tr_head = [x.text for x in page.find('div', id='tab_content_EventList').findAll('td')]
-        events = []
-        for tr in events_trs:
-            event = {}
-            tds = tr.findAll('td')
-            event['type'] = tds[0].text.replace('\xa0', '')
-            event['date'] = tds[1].text.replace('\xa0', '')
-            if 'Время' in tr_head:
-                index = tr_head.index('Время')
-                event['time'] = tds[index].text.replace('\xa0', '')
-            if 'Зал судебного заседания' in tr_head:
-                index = tr_head.index('Зал судебного заседания')
-                event['courtroom'] = tds[index].text.replace('\xa0', '')
-            if 'Результат события' in tr_head:
-                index = tr_head.index('Результат события')
-                event['result'] = tds[index].text.replace('\xa0', '').strip()
-            events.append(event)
-        case_info['events'] = events
-
-        # defendant_tds = page.find('div', id='tab_content_PersonList').findAll('tr')[1].findAll('td')
-        defenses = []
-        # trs = page.find('div', id='tab_content_PersonList').find('table', class_='none-mobile').findAll('tr')
+        case_info['events'] = []
+        if page.find('div', id='tab_content_EventList'):
+            events_trs = page.find('div', id='tab_content_EventList').findAll('tr')[1:]
+            tr_head = [x.text for x in page.find('div', id='tab_content_EventList').findAll('td')][:10]
+            case_info['events'] = self.parse_events(events_trs, tr_head)
 
         defense_table = page.find('div', id='tab_content_PersonList').find('table', class_='none-mobile')
 
-        case_info['defenses'] = self.parse_defenses(defense_table)
+        case_info['defenses'], case_info['defendants_hidden'] = self.parse_defenses(defense_table)
 
         return case_info
 
@@ -351,30 +469,53 @@ class RFCasesGetter(CommonParser):
         params_string = self.generate_params(string, params_dict, params)
         if instance == 2:
             params_string = params_string.replace('adm', 'adm1').replace('adm11', 'adm1')
-        print(court.url + params_string)
         return court.url + params_string
 
-    def get_cases(self, instance, courts_ids=None, courts_limit=None, entry_date_from=None):
+    def get_cases(self, instance, courts_ids=None, courts_limit=None, entry_date_from=None, custom_articles=None):
         start_time = time.time()
-        articles = CodexArticle.objects.filter(codex=self.codex)
+        articles = None
+        if not custom_articles:
+            articles = CodexArticle.objects.filter(codex=self.codex, active=True)
+        else:
+            articles_list = custom_articles.split(', ')
+            articles = CodexArticle.objects.get_from_list(articles_list)
+            if not len(articles):
+                raise Exception('Could not get custom articles')
+
         article_string = self.generate_articles_string(articles)
+
         if not courts_ids:
-            courts = Court.objects.all()
+            courts = Court.objects.exclude(type=9)
         else:
             courts = Court.objects.filter(pk__in=courts_ids)
         if courts_limit:
             courts = courts[:courts_limit]
 
-        for court in courts:
-            params = {'articles': article_string}
-            if entry_date_from:
-                params['entry_date_from'] = entry_date_from  # DD.MM.YYYY
-            url = self.generate_url(court, params, instance)
-            if court.site_type == 2:
-                url = url.replace('XXX', court.vn_kod)
-                print(url, "WTF")
-                SecondParser(court=court, stage=instance, codex=self.codex, url=url).save_cases()
-            elif court.site_type == 1:
-                FirstParser(court=court, stage=instance, codex=self.codex, url=url).save_cases()
-        print("--- %s seconds ---" % (time.time() - start_time))
+        all_results = {}
 
+        for court in courts:
+
+            try:
+                params = {'articles': article_string}
+                if entry_date_from:
+                    params['entry_date_from'] = entry_date_from  # DD.MM.YYYY
+                url = self.generate_url(court, params, instance)
+                if court.site_type == 2:
+                    url = url.replace('XXX', court.vn_kod)
+                    print(url, 'urlll')
+                    result = SecondParser(court=court, stage=instance, codex=self.codex, url=url).save_cases()
+                    all_results[court.title] = result
+                elif court.site_type == 1:
+                    result = FirstParser(court=court, stage=instance, codex=self.codex, url=url).save_cases()
+                    all_results[court.title] = result
+
+            except Exception as e:
+                print(e)
+
+                court.not_available = True
+                court.save()
+                all_results[court.title] = 'error'
+
+        print("--- %s seconds ---" % (time.time() - start_time))
+        print(all_results)
+        return all_results

@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
 import json
 import re
-from airtable import airtable
+
 from airtable.airtable import Airtable
 from bs4 import BeautifulSoup
-
 from oi_sud.core.consts import region_choices
 from oi_sud.core.parser import CommonParser
+
 from .models import Court, Judge
 
 
@@ -81,7 +81,8 @@ class CourtsParser(CommonParser):
         judges = []
         court_url = court.url
         for x in ['1540006', '1500001']:
-            url = f'{court_url}/modules.php?name=sud_delo&name_op=cat&nc=1&_deloId=1540006&_caseType=0&_new=0&_table=case&_fieldname=judge&srv_num=1'
+            url = f'{court_url}/modules.php?name=sud_delo&name_op=cat&nc=1&_deloId=1540006&_caseType=0&_new=0&_table' \
+                  f'=case&_fieldname=judge&srv_num=1'
             txt, code = self.send_get_request(url)
             page = BeautifulSoup(txt, 'html.parser')
             div = page.findAll('div', id='search_results')[0]
@@ -120,8 +121,8 @@ class CourtsParser(CommonParser):
 
         court_dict['title'] = rec['fields']['название суда'].replace('  ', ' ')
 
-        if 'Верховный' in court_dict['title'] or 'Постоянное' in court_dict['title'] or ('Москва' in court_dict[
-            'title'] and self.at_table != 'Суды Москвы'):
+        if 'Верховный' in court_dict['title'] or 'Постоянное' in court_dict['title'] or \
+                ('Москва' in court_dict['title'] and self.at_table != 'Суды Москвы'):
             return
 
         court_dict['type'] = self.get_court_type(court_dict['title'])[0]

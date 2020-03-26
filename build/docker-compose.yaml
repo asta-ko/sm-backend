@@ -5,78 +5,163 @@ x-global-environment: &global-environment
   C_PROJECT_STACK: __C_PROJECT_STACK__
 
 x-projectname: &oi_sud
-    env_file: .env
-    image: __C_PROJECT_NAME__-virtualenv-test:latest
-    environment:
-        <<: *global-environment
-    volumes:
-        - ./:/code
-        - /var/www/static:/var/www/static:rw
-        - /var/www/media:/var/www/media:rw
-    restart: on-failure
+  env_file: .env
+  image: __C_PROJECT_NAME__-virtualenv:latest
+  environment:
+    <<: *global-environment
+  volumes:
+    - ./:/code
+    - /var/www/static:/var/www/static:rw
+    - /var/www/media:/var/www/media:rw
+  restart: on-failure
+  labels:
+    instance: sudmonster
+
+
+#    logging:
+#      driver: loki
+#      options:
+#        loki-url: "https://loki.ovdinfo.org/api/prom/push"
+#        labels: "instance,job"
+#        max-size: "1m"
+
+
 
 services:
-    db:
-      image: postgres:alpine
-      ports:
+  db:
+    container_name: sudmonster_db
+    image: postgres:alpine
+    ports:
       - 5432
-      restart: always
-      environment:
-        POSTGRES_USER: "sudmonster"
-        POSTGRES_PASSWORD: "sudmonster"
-        POSTGRES_DB: "sudmonster"
-      volumes:
-        - db-data:/data/db
-        - ./share/sql:/docker-entrypoint-initdb.d
+    restart: always
+    environment:
+      POSTGRES_USER: "sudmonster"
+      POSTGRES_PASSWORD: ${DB_PASS}
+      POSTGRES_DB: "sudmonster"
+    volumes:
+      - db-data:/data/db
+      - ./share/sql:/docker-entrypoint-initdb.d
+    #logging:
+    #  driver: loki
+    #  options:
+    #    loki-url: "http://95.216.217.126:3100/api/prom/push"
+    #    labels: "instance,job"
+    labels:
+      job: postgres
+      instance: sudmonster
 
-    redis:
-        image: redis:4.0.11
-        volumes:
-            - ./.docker/redis/data:/var/redis
-        restart: always
 
-    backend:
-        <<: *oi_sud
-        environment:
-          VIRTUAL_HOST: sudmonster.ovdinfo.org
-          VIRTUAL_PORT: 8081
-          LETSENCRYPT_HOST: sudmonster.ovdinfo.org
-          LETSENCRYPT_EMAIL: asta.ko@ovdinfo.org
 
-          DJANGO_MANAGE_MIGRATE: "on"
-          DJANGO_MANAGE_COLLECTSTATIC: "on"
+  redis:
+    container_name: sudmonster_redis
+    image: redis:4.0.11
+    volumes:
+      - ./.docker/redis/data:/var/redis
+      - ./build/redis/redis.conf:/usr/local/etc/redis/redis.conf
+    command:
+      - /usr/local/etc/redis/redis.conf
+    sysctls:
+      net.core.somaxconn: '511'
 
-        volumes:
-          - ./:/code
-          - ./.docker/static:/var/www/static
-          - ./.docker/media:/var/www/media
-        command: ["gunicorn", "oi_sud.wsgi:application", "-b", "0.0.0.0:8000", "--name", "oi_sud", "--reload"]
-        ports:
-          - "8081:8081"
+    restart: always
+    # logging:
+    #   driver: loki
+    #   options:
+    #     loki-url: "http://95.216.217.126:3100/api/prom/push"
+    #     labels: "instance,job"
+    labels:
+      job: redis
+      instance: sudmonster
 
-    test:
-        <<: *oi_sud
-        environment:
-          DJANGO_SETTINGS_MODULE: 'oi_sud.config.test'
-        command: ["echo", "'test'"]
 
-    celery_main:
-        <<: *oi_sud
-        command: ["celery", "-A", "oi_sud", "worker", "-l", "info", "-Q", "main", "-c", "1", "-n", "main" ]
+  backend:
+    <<: *oi_sud
+    container_name: sudmonster_backend
+    environment:
+      VIRTUAL_HOST: sm.ovdinfo.org
+      VIRTUAL_PORT: 8081
+      LETSENCRYPT_HOST: sm.ovdinfo.org
+      LETSENCRYPT_EMAIL: asta.ko@ovdinfo.org
 
-    celery_other:
-        <<: *oi_sud
-        command: ["celery", "-A", "oi_sud", "worker", "-l", "info", "-Q", "other", "-c", "8", "-n", "other" ]
+      DJANGO_MANAGE_MIGRATE: "on"
+      DJANGO_MANAGE_COLLECTSTATIC: "on"
 
-    celerybeat:
-        <<: *oi_sud
-        command: ["celery", "-A", "oi_sud", "beat", "-l", "info", "--pidfile", "/tmp/celerybeat.pid", "--schedule", "/tmp/celerybeat-schedule"]
+    volumes:
+      - ./:/code
+      - data-static:/var/www/static
+      - ./.docker/media:/var/www/media
+    command: ["gunicorn", "oi_sud.wsgi:application", "-b", "0.0.0.0:8081", "--name", "oi_sud", "--reload"]
+    ports:
+      - "8081:8081"
+    labels:
+      job: backend
+      instance: sudmonster
 
-    flower:
-      image: mher/flower
-      command: ["flower", "--broker=redis://redis:6379/0", "--port=8888"]
-      ports:
-         - 8888:8888
+  frontend:
+    <<: *oi_sud
+    #network_mode: host
+    image: oi-sud-monster-frontend:latest
+    container_name: sudmonster_frontend
+    working_dir: /cf/
+    volumes:
+      - ../oi-sud-monster-frontend/:/c
+    restart: always
+    ports:
+      - "3000:3000"
+    command:
+      "npm run start"
+    environment:
+      VIRTUAL_HOST: sudmonster.ovdinfo.org
+      VIRTUAL_PORT: 3000
+      LETSENCRYPT_HOST: sudmonster.ovdinfo.org
+      LETSENCRYPT_EMAIL: asta.ko@ovdinfo.org
+
+
+  test:
+    container_name: sudmonster_test
+    <<: *oi_sud
+    environment:
+      DJANGO_SETTINGS_MODULE: 'oi_sud.config.test'
+    command: ["echo", "'test'"]
+
+
+  celery_main:
+    container_name: sudmonster_celery_main
+    <<: *oi_sud
+    command: ["celery", "-A", "oi_sud", "worker", "-l", "info", "-Q", "main", "-c", "1", "-n", "main", "--max-tasks-per-child=1" ]
+    labels:
+      job: celery
+      instance: sudmonster
+
+  celery_other:
+    container_name: sudmonster_celery_other
+    <<: *oi_sud
+    command: ["celery", "-A", "oi_sud", "worker", "-l", "info", "-Q", "other", "-c", "8", "-n", "other",
+    ]
+    labels:
+      job: celery
+      instance: sudmonster
+
+  celerybeat:
+    container_name: sudmonster_celerybeat
+    <<: *oi_sud
+    command: ["celery", "-A", "oi_sud", "beat", "-l", "info", "--scheduler", "django_celery_beat.schedulers:DatabaseScheduler", "--pidfile", "/tmp/celerybeat.pid", "--schedule", "/tmp/celerybeat-schedule"]
+
+    labels:
+      job: celery
+      instance: sudmonster
+
+  flower:
+    container_name: sudmonster_flower
+    <<: *oi_sud
+
+    image: mher/flower
+    command: ["flower", "--broker=redis://redis:6379/0", "--port=8888"]
+    ports:
+      - 8888:8888
+    labels:
+      job: flower
+      instance: sudmonster
 
 
 volumes:
@@ -88,4 +173,4 @@ volumes:
 networks:
   default:
     external:
-      name: webproxy
+      name: webproxy2

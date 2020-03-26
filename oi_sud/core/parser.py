@@ -1,13 +1,10 @@
+import re
 
-import datetime
 import requests
-from requests import Request, Session
+from requests import Request
 from requests.packages.urllib3.util.retry import Retry
 from requests_futures.sessions import FuturesSession
-from urllib.parse import urlparse
-from user_agent import generate_user_agent, generate_navigator
-
-from oi_sud.core.consts import *
+from user_agent import generate_user_agent
 
 
 class CommonParser(object):
@@ -24,12 +21,13 @@ class CommonParser(object):
             session.mount('https://', a)
             session.mount('http://', a)
             rs = (session.get(u, hooks={
-                'response': callback}) for u in urls)
+                'response': callback
+                }) for u in urls)
             for r in rs:
                 resp = r.result()
                 print(resp)
 
-    def send_get_request(self, url, gen_useragent=False):
+    def send_get_request(self, url, gen_useragent=True, extended=False):
         """accessory function for sending requests"""
         import urllib3
         urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -41,8 +39,20 @@ class CommonParser(object):
         req = Request('GET', url)
         prepped = req.prepare()
 
-        #if gen_useragent:
-        prepped.headers['User-Agent'] = generate_user_agent()
+        if gen_useragent:
+            prepped.headers['User-Agent'] = generate_user_agent()
 
         r = session.send(prepped, verify=False)
+        if extended:
+
+            try:
+                pattern = re.compile(r"filename\*?=.*\.([a-z0-9]+)")
+                txt = r.headers['Content-Disposition']
+                exten = pattern.search(txt, re.UNICODE).group(1)
+            except Exception:
+                txt = ''
+                exten = ''
+
+            return r, r.status_code, r.content, exten
+
         return r.text, r.status_code

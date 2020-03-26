@@ -5,21 +5,21 @@ x-global-environment: &global-environment
   C_PROJECT_STACK: __C_PROJECT_STACK__
 
 x-projectname: &projectname
-    env_file: .env
-    image: __C_PROJECT_NAME__-virtualenv-test:latest
-    environment:
-        <<: *global-environment
-    volumes:
-        - ./:/code
-    restart: on-failure
+  env_file: .env
+  image: __C_PROJECT_NAME__-virtualenv-test:latest
+  environment:
+    <<: *global-environment
+  volumes:
+    - ./:/code
+  restart: on-failure
 
 services:
-    backend:
-        <<: *projectname
-        command: ["gunicorn", "projectname.application:app", "-b", "0.0.0.0:8000", "--name", "projectname", "--reload"]
-        ports:
-          - 8000
+  backend:
+    <<: *projectname
+    command: ["gunicorn", "projectname.application:app", "-b", "0.0.0.0:8000", "--name", "projectname", "--reload"]
+    ports:
+      - 8000
 
-    test:
-        <<: *projectname
-        command: ["echo", "'test'"]
+  test:
+    <<: *projectname
+    command: ["echo", "'test'"]

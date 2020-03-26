@@ -21,20 +21,21 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # See https://docs.djangoproject.com/en/2.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'gl)+h@c5pg_9i(8mwzpah_h5#*lr1u13w1xl_h-*60(gb=+%j^'
+SECRET_KEY = os.environ.get('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
 DEBUG_REQUESTS = False
 
-ALLOWED_HOSTS = ['oi_sud.ovdinfo.org']
+ALLOWED_HOSTS = ['sm.ovdinfo.org, sudmonster.ovdinfo.org']
 
+BASE_URL = 'https://sm.ovdinfo.org'
 # Application definition
 
 INSTALLED_APPS = [
 
-    #'suit',
+    # 'suit',
     'jet',
     'django.contrib.admin',
     'django.contrib.auth',
@@ -42,10 +43,24 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'celery_progress',
+    'rest_framework',
+    'rest_framework.authtoken',
+    'rest_framework_expiring_authtoken',
+    'corsheaders',
+    'django_extensions',
+    'django_filters',
+    'django_celery_results',
+    'django_celery_beat',
+    'django.contrib.postgres',
+    'reversion',  # https://github.com/etianen/django-reversion
+    'reversion_compare',  # https://github.com/jedie/django-reversion-compare
     'oi_sud.core',
     'oi_sud.courts.apps.CourtsConfig',
     'oi_sud.codex.apps.CodexConfig',
-    'oi_sud.cases.apps.CasesConfig'
+    'oi_sud.cases.apps.CasesConfig',
+    'oi_sud.users.apps.UsersConfig',
+
 ]
 
 MIDDLEWARE = [
@@ -56,14 +71,47 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
+]
+
+CORS_ORIGIN_ALLOW_ALL = True
+CORS_ALLOW_CREDENTIALS = True
+CORS_ORIGIN_WHITELIST = (
+    # TODO - set this properly for production
+    'https://sudmonster.ovdinfo.org',
+    #'http://127.0.0.1:8082',
+)
+
+CORS_ALLOW_HEADERS = [
+    'accept',
+    'accept-encoding',
+    'authorization',
+    'content-type',
+    'dnt',
+    'origin',
+    'user-agent',
+    'x-csrftoken',
+    'x-requested-with',
+]
+
+CORS_ALLOW_METHODS = [
+    'DELETE',
+    'GET',
+    'OPTIONS',
+    'PATCH',
+    'POST',
+    'PUT',
 ]
 
 ROOT_URLCONF = 'oi_sud.urls'
 
+APPEND_SLASH = True
+TEMP_DIR = os.path.join(BASE_DIR, 'templates')
+
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [TEMP_DIR],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -110,6 +158,8 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+AUTH_USER_MODEL = 'users.CustomUser'
+
 # Internationalization
 # https://docs.djangoproject.com/en/2.1/topics/i18n/
 
@@ -134,7 +184,7 @@ STATIC_ROOT = '/var/www/static'
 # CELERY
 
 CELERY_BROKER_URL = os.environ.get('BROKER_URL', 'redis://redis:6379/0')
-CELERY_RESULT_BACKEND = os.environ.get('BROKER_URL', 'redis://redis:6379/0')
+# CELERY_RESULT_BACKEND = os.environ.get('BROKER_URL', 'redis://redis:6379/0')
 CELERY_ACCEPT_CONTENT = ['application/json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
@@ -144,38 +194,100 @@ CELERY_IMPORTS = ('oi_sud.cases.tasks')
 
 CELERYD_MAX_TASKS_PER_CHILD = 1
 
+CELERY_RESULT_BACKEND = 'django-db'
+
+CELERY_CACHE_BACKEND = 'django-cache'
+
 CELERY_ROUTES = {
-                    'oi_sud.cases.tasks.main_get_koap_cases': {
-                        'queue': 'main'
-                    },
-                    'oi_sud.cases.tasks.get_koap_cases': {
-                        'queue': 'other'
-                    },
-
-                    'oi_sud.cases.tasks.main_get_uk_cases': {
-                        'queue': 'main'
-                    },
-                    'oi_sud.cases.tasks.get_uk_cases': {
-                        'queue': 'other'
-                    },
-
-                }
-
-
-CELERY_BEAT_SCHEDULE = {
-    'get-cases': {
-        'task': 'oi_sud.cases.tasks.main_get_koap_cases',
-        'schedule': crontab(minute='*/1')
+    'oi_sud.cases.tasks.main_get_cases': {
+        'queue': 'main'
     },
-    'get-uk-cases': {
-        'task': 'oi_sud.cases.tasks.main_get_uk_cases',
-        'schedule': crontab(minute='*/1')
+
+    'oi_sud.cases.tasks.get_cases_from_region': {
+        'queue': 'main'
+    },
+    'oi_sud.cases.tasks.get_uk_cases': {
+        'queue': 'other'
+    },
+
+    'oi_sud.cases.tasks.get_koap_cases': {
+        'queue': 'other'
     },
 
 }
+
+# CELERY_BEAT_SCHEDULE = {
+#     'get-cases': {
+#         'task': 'oi_sud.cases.tasks.main_get_cases',
+#         'schedule': crontab(minute='*/1')
+#     },
+#
+# }
 
 JET_THEME = 'light-gray'
 
 JET_SIDE_MENU_COMPACT = True
 
 TEST_MODE = False
+
+JET_SIDE_MENU_ITEMS = [
+
+    {'app_label': 'codex', 'items': [
+        {'name': 'koapcodexarticle'},
+        {'name': 'ukcodexarticle'},
+    ]},
+    {'app_label': 'cases', 'items': [
+        {'name': 'koapcase'},
+        {'name': 'ukcase'},
+        {'name': 'defendant'},
+    ]},
+    {'app_label': 'courts', 'items': [
+        {'name': 'court'},
+        {'name': 'judge'},
+    ]},
+
+   # {'app_label': 'django_celery_results', 'items': [
+   #     {'name': 'taskresult'},
+        # {'label': 'Running tasks', 'url': '/admin/active_celery_tasks', 'url_blank': True},
+   # ]},
+   # {'app_label': 'django_celery_beat', 'items': [
+   #     {'name': 'intervalschedule'},
+   #     {'name': 'periodictask'},
+
+   # ]},
+
+    {'app_label': 'API', 'items': [
+        {'label': 'Счетчик дел', 'url': '/api/v1/countcases'},
+        {'label': 'Дела подробно', 'url': '/api/v1/cases'},
+        {'label': 'Тексты решений', 'url': '/api/v1/casestexts?format=admin'},
+    ]},
+
+]
+
+REST_FRAMEWORK = {
+
+    'DEFAULT_PERMISSION_CLASSES': (
+        # By default we set everything to admin,
+        #   then open endpoints on a case-by-case basis
+         'rest_framework.permissions.IsAuthenticated',
+    ),
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        #'rest_framework.authentication.TokenAuthentication',
+        'oi_sud.core.api_utils.BTokenAuthentication',
+       # 'rest_framework_simplejwt.authentication.JWTAuthentication',
+        'rest_framework.authentication.SessionAuthentication',
+    ),
+    'DEFAULT_FILTER_BACKENDS': ['django_filters.rest_framework.DjangoFilterBackend'],
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'DATETIME_FORMAT': "%Y-%m-%d %H:%M",
+    'PAGE_SIZE': 10,
+    'DEFAULT_RENDERER_CLASSES': [
+        'rest_framework.renderers.JSONRenderer',
+        'rest_framework.renderers.BrowsableAPIRenderer',
+        'rest_framework.renderers.AdminRenderer'
+    ]
+}
+from datetime import timedelta
+
+# Add reversion models to admin interface:
+ADD_REVERSION_ADMIN=True

@@ -1,13 +1,11 @@
-import pytest
-import requests
 import time
 
+import pytest
 from oi_sud.core.parser import CommonParser
 
-#
+
 @pytest.mark.skip
 def test_requests(capsys):
-
     urls = ['http://gvs.adg.sudrf.ru', 'http://gvs.bkr.sudrf.ru', 'http://kyahinskygvs.bur.sudrf.ru',
             'http://ulanudegvs.bur.sudrf.ru', 'http://mgvs.dag.sudrf.ru', 'http://nalchikskygvs.kbr.sudrf.ru',
             'http://petrozavodskygvs.kar.sudrf.ru', 'http://gvs.komi.sudrf.ru', 'http://gvs.jak.sudrf.ru',
@@ -53,6 +51,6 @@ def test_requests(capsys):
     nstart_time = time.time()
     for u in urls:
         r, s = c.send_get_request(u)
-        #print(s)
+        # print(s)
     print("--- %s seconds ---" % (time.time() - nstart_time))
     assert False

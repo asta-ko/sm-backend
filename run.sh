@@ -20,7 +20,20 @@ elif [ ! -z "$(git tag --points-at HEAD)" ]; then
 else
   C_PROJECT_VERSION="$(git log -1 --pretty=%H)";
 fi
+
+echo $C_PROJECT_VERSION
+
+load_dotenv() {
+  if [[ ! -f .env ]] ; then
+      echo "Please provide .env file"
+      exit 1
+  fi
+
+  export $(grep -v '^#' .env | xargs -0)
+}
+
 C_PROJECT_STACK=
+load_dotenv
 C_PROJECT_REGISTRY="${CI_REGISTRY_URI:-default}"
 
 main() {
@@ -192,14 +205,7 @@ check_stack() {
     fi
 }
 
-load_dotenv() {
-  if [[ ! -f .env ]] ; then
-      echo "Please provide .env file"
-      exit 1
-  fi
 
-  export $(grep -v '^#' .env | xargs -0)
-}
 
 stack() {
     local STACK=dev
@@ -318,7 +324,7 @@ test_style() {
     echo "Running style checks"
     docker run \
         -v "${PWD}":/code \
-        --rm "$C_PROJECT_NAME"-virtualenv-test:latest \
+        --rm sudmonster-test:latest \
         flake8 --config=test/style/.flake8 .
 }
 
@@ -345,14 +351,14 @@ test_unit() {
 test_ci() {
     test_style
 
-    coverage_clean
+    #coverage_clean
 
     local TEST_STATUS=0
 
     test_unit --junitxml=./tmp/test/unit/report.xml || TEST_STATUS=$?
-    test_functional --junitxml=./tmp/test/functional/report.xml || TEST_STATUS=$?
+    #test_functional --junitxml=./tmp/test/functional/report.xml || TEST_STATUS=$?
 
-    coverage_report
+    #coverage_report
     exit $TEST_STATUS
 }
 
@@ -361,6 +367,7 @@ docker_() {
     shift
     case $CMD in
         build) docker_build "$@";;
+        buildtest) docker_build_test "$@";;
         buildrelease) docker_buildrelease "$@";;
         tagrelease) docker_tagrelease "$@";;
         pushrelease) docker_pushrelease "$@";;
@@ -370,11 +377,45 @@ docker_() {
 
 
 docker_build() {
-    docker build -t "$C_PROJECT_NAME"-virtualenv:latest -f build/virtualenv/Dockerfile build/virtualenv
+    if [ $STACK = 'dev' ]; then
+       docker_build_dev
+    elif [ $STACK = 'prod' ]; then
+       docker_build_prod
+    fi
+}
+
+docker_build_dev() {
+    docker build -t "$C_PROJECT_NAME"-frontend-test:latest -f ../frontend/Dockerfile-nuxt-dev ../frontend   --no-cache
     docker build -t "$C_PROJECT_NAME"-virtualenv-test:latest -f build/virtualenv/Dockerfile-test build/virtualenv
 }
 
+docker_build_test() {
+    docker build -t sudmonster-test:latest -f build/virtualenv/Dockerfile-test build/virtualenv
+}
 
+docker_build_prod() {
+    docker build -t "$C_PROJECT_NAME"-virtualenv:latest -f build/virtualenv/Dockerfile build/virtualenv #PROD
+    docker build -t "$C_PROJECT_NAME"-frontend:latest -f ../oi-sud-monster-frontend/Dockerfile-nuxt .
+    # ./oi-sud-monster-frontend #PROD
+}
+
+docker_buildrelease() {
+    docker build -t "$C_PROJECT_NAME"-virtualenv-test:latest -f build/virtualenv/Dockerfile-test build/virtualenv
+    docker build -t "$C_PROJECT_NAME"-virtualenv:latest -f build/virtualenv/Dockerfile build/virtualenv
+
+    docker build -f build/release/Dockerfile-test -t backend-test:$C_PROJECT_VERSION --build-arg VIRTUALENV_IMAGE="$C_PROJECT_NAME"-virtualenv-test:latest .
+    docker build -f build/release/Dockerfile -t backend:$C_PROJECT_VERSION --build-arg VIRTUALENV_IMAGE="$C_PROJECT_NAME"-virtualenv:latest .
+}
+
+docker_tagrelease() {
+  local  REGISTRY_URI=$C_PROJECT_REGISTRY
+  docker tag backend:$C_PROJECT_VERSION asta-ko/registry.gitlab.com/ovdinfo/oi-sudmonster/backend:$C_PROJECT_VERSION
+}
+
+docker_pushrelease() {
+  local  REGISTRY_URI=$C_PROJECT_REGISTRY
+  docker push asta-ko/registry.gitlab.com/ovdinfo/oi-sudmonster/backend:$C_PROJECT_VERSION
+}
 
 
 get_upgrade_scripts_versions() {

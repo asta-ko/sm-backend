@@ -1,6 +1,5 @@
 from django.core.management.base import BaseCommand
 
-from oi_sud.courts.models import Court
 from oi_sud.courts.parser import moscow_courts_parser
 
 

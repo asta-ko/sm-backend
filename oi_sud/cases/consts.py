@@ -10,7 +10,8 @@ EVENT_TYPES = (
     (8, 'Направление копии постановления (определения) в соотв. с ч. 2 ст. 29.11 КоАП РФ'),
     (9, 'Протокол (материалы дела) НЕ БЫЛИ возвращены в ТРЕХДНЕВНЫЙ срок'),
     (10,
-     'Направленная копия постановления (определения) ВЕРНУЛАСЬ с отметкой о НЕВОЗМОЖНОСТИ ВРУЧЕНИЯ (п. 29.1 Пост. Пленума ВС от 19.12.2013 № 40)'),
+     'Направленная копия постановления (определения) ВЕРНУЛАСЬ с отметкой о НЕВОЗМОЖНОСТИ ВРУЧЕНИЯ (п. 29.1 Пост. '
+     'Пленума ВС от 19.12.2013 № 40)'),
     (11, 'Производство по делу возобновлено'),
     (12, 'Регистрация поступившего в суд дела'),
     (13, 'Передача материалов дела судье'),
@@ -34,7 +35,8 @@ EVENT_TYPES = (
     (31, 'Вступило в законную силу'),
     (32, 'Оставлено без рассмотрения в связи с пропуском срока обжалования'),
     (33,
-     'Направленная копия решения (определения) ВЕРНУЛАСЬ с отметкой о НЕВОЗМОЖНОСТИ ВРУЧЕНИЯ (п. 29.1 Пост. Пленума ВС от 19.12.2013 № 40)'),
+     'Направленная копия решения (определения) ВЕРНУЛАСЬ с отметкой о НЕВОЗМОЖНОСТИ ВРУЧЕНИЯ (п. 29.1 Пост. Пленума '
+     'ВС от 19.12.2013 № 40)'),
     (34, 'Вынесено постановление о назначении судебного заседания'),
     (35, 'Снято с апелляционного рассмотрения'),
     (36, 'Дело отправлено мировому судье'),
@@ -45,8 +47,112 @@ EVENT_TYPES = (
     (41, 'Продление срока рассмотрения'),
     (42, 'Материалы дела сданы в канцелярию'),
     (43, 'Дело сдано в канцелярию'),
-
-)
+    (44, 'Направлено по подведомственности'),
+    (45, 'Производство по делу прекращено'),
+    (46, 'Направленная копия постановления (определения) ВЕРНУЛАСЬ'),
+    (47, 'Производство по жалобе прекращено'),
+    (48, 'Судебное заседание для решения вопроса об избрании/продлении меры пресечения'),
+    (49, 'Регистрация ходатайства/заявления лица, участвующего в деле'),
+    (50, 'Изучение поступившего ходатайства/заявления'),
+    (51, 'Прокурором в течение 5-суток НЕ устранены препятствия для рассмотрения дела судом'),
+    (52, 'Дело сдано в отдел судебного делопроизводства после рассмотрения ходатайства/заявления'),
+    (54, 'Возвращено'),
+    (55, 'Возвращено без рассмотрения'),
+    (56, 'Возвращено на новое рассмотрение'),
+    (57, 'Вступило в силу'),
+    (58, 'Вынесено на заседание Президиума'),
+    (59, 'Вынесено определение суда апелляционной инстанции'),
+    (60, 'Вынесено постановление суда апелляционной инстанции'),
+    (61, 'Вынесен приговор'),
+    (62, 'Дело истребовано'),
+    (63, 'Дело истребовано (производство возбуждено)'),
+    (64, 'Дело получено'),
+    (65, 'Другое постановление с изменением решения'),
+    (66, 'Другое постановление с отменой решения'),
+    (67, 'Завершено'),
+    (68, 'Зарегистрировано'),
+    (69, 'Изменено'),
+    (70, 'Изменить определение (постановление) частично'),
+    (71, 'Изменить постановление (решение)'),
+    (72, 'Изменить судебное постановление'),
+    (73, 'Иное определение не по существу дела (районный суд)'),
+    (74, 'Назначена беседа'),
+    (75, 'Назначена новая беседа'),
+    (76, 'Назначено оглашение приговора или иного судебного акта'),
+    (77, 'Назначено постановление приговора или иного судебного акта'),
+    (78, 'Назначено предварительное слушание'),
+    (79, 'Назначено предварительное судебное заседание'),
+    (80, 'Назначено судебное заседание'),
+    (81, 'Не подано'),
+    (82, 'Обжаловано'),
+    (83, 'Объединено'),
+    (84, 'Оставить определение (постановление) без изменения'),
+    (85, 'Оставить постановление (решение) без изменения, а жалобу/протест без удовлетворения'),
+    (86, 'Оставить приговор (или иное решение) без изменения, жалобу - без удовлетворения'),
+    (87, 'Оставить судебное постановление без изменения, жалобу без удовлетворения'),
+    (88, 'Оставлено без движения'),
+    (89, 'Оставлено без изменений'),
+    (90, 'Оставлено без изменения'),
+    (91, 'Оставлено без рассмотрения'),
+    (92, 'Отказано в истребовании дела'),
+    (93, 'Отказано в принятии'),
+    (94, 'Отказано в рассмотрении'),
+    (95, 'Отказано в удовлетворении'),
+    (96, 'Отклонено'),
+    (97, 'Отложено'),
+    (98, 'Отменено'),
+    (99, 'Отменено апелляцией'),
+    (100, 'Отменено по новым (в/о) обстоятельстам'),
+    (101, 'Отменено частично'),
+    (102, 'Отменить определение (постановление), дело возвратить прокурору, в орган следствия'),
+    (103, 'Отменить определение (постановление), дело прекратить'),
+    (104, 'Отменить определение (постановление) полностью, вынести новое решение'),
+    (105, 'Отменить определение (постановление) полностью, вынести решение по существу'),
+    (106, 'Отменить определение (постановление) полностью, дело вернуть на новое рассмотрение'),
+    (107, 'Отменить определение (постановление) частично, вынести решение по существу'),
+    (108, 'Отменить определение (постановление) частично, дело вернуть на новое рассмотрение'),
+    (109, 'Отменить постановление (решение), дело вернуть на новое рассмотрение'),
+    (110, 'Отменить постановление (решение), дело направить на рассмотрение по подведомственности'),
+    (111, 'Отменить постановление (решение), дело направить на рассмотрение по подсудности'),
+    (112, 'Отменить постановление (решение), дело прекратить'),
+    (113, 'Отменить судебное постановление полностью, дело направить на новое рассмотрение'),
+    (114, 'Отменить судебное постановление полностью, дело направить по подведомственности'),
+    (115, 'Отменить судебное постановление полностью, дело направить по подсудности'),
+    (116, 'Отменить судебное постановление полностью, оставить заявление без рассмотрения'),
+    (117, 'Отменить судебное постановление полностью, прекратить производство по делу'),
+    (118, 'Отменить судебное постановление полностью, принять новое решение'),
+    (119, 'Отменить судебное постановление частично, дело направить на новое рассмотрение'),
+    (120, 'Отменить судебное постановление частично, дело направить по подведомственности '),
+    (121, 'Отменить судебное постановление частично, дело направить по подсудности'),
+    (122, 'Отменить судебное постановление частично, оставить заявление без рассмотрения'),
+    (123, 'Отменить судебное постановление частично, прекратить производство по делу'),
+    (124, 'Отменить судебное постановление частично, принять новое решение'),
+    (125, 'Отозвано'),
+    (126, 'Передано в другой орган'),
+    (127, 'Передано в иной орган'),
+    (128, 'Передано по подведомственности'),
+    (129, 'Передано по подведомственности '),
+    (130, 'Передано по подсудности'),
+    (131, 'Перерыв'),
+    (132, 'Подготовка к рассмотрению'),
+    (133, 'Постановление приговора'),
+    (134, 'Постановление (решение) не пересматривалось'),
+    (135, 'Прекращено'),
+    (136, 'Принудительные меры к невменяемому'),
+    (137, 'Принудительные меры к невменяемым'),
+    (138, 'Принято к рассмотрению'),
+    (139, 'Приостановлено'),
+    (140, 'Присоединено'),
+    (141, 'Проведена беседа'),
+    (142, 'Рассмотрение'),
+    (143, 'Рассмотрено'),
+    (144, 'Решение не по существу не пересматривалось'),
+    (145, 'Снято с рассмотрения'),
+    (146, 'Удовлетворено'),
+    (147, 'Удовлетворено частично'),
+    (148, 'Предварительное судебное заседание'),
+    (149, 'Оглашение приговора или иного судебного акта'),
+    )
 
 EVENT_RESULT_TYPES = (
     (0, 'Назначено предварительное слушание'),
@@ -64,10 +170,12 @@ EVENT_RESULT_TYPES = (
     (12, 'Постановление приговора'),
     (13, 'Провозглашение приговора окончено'),
     (14,
-     'Оглашение резолютивной части постановления о назначении административного наказания (изготовление постановления в полном объеме отложено)'),
+     'Оглашение резолютивной части постановления о назначении административного наказания (изготовление постановления '
+     'в полном объеме отложено)'),
     (15, 'Передано по подведомственности'),
     (16,
-     'Оглашение резолютивной части постановления о прекращении производства (изготовление постановления в полном объеме отложено)'),
+     'Оглашение резолютивной части постановления о прекращении производства (изготовление постановления в полном '
+     'объеме отложено)'),
     (17, 'Объявлен перерыв'),
     (18, 'Оставлено без изменения'),
     (19, 'Отменено с возвращением на новое рассмотрение'),
@@ -78,8 +186,36 @@ EVENT_RESULT_TYPES = (
     (24, 'Изменено'),
     (25, 'Дело рассмотрено по существу'),
     (26, 'Апелляционное производство прекращено'),
-    (27, 'Отменено с направлением по подведомственности')
-)
+    (27, 'Отменено с направлением по подведомственности'),
+    (28, 'Жалоба (протест) на определение (постановление) не по существу дела - рассмотрена'),
+    (29, 'Регистрация поступившего в суд дела'),
+    (30, 'Суд удалился в совещательную комнату для постановления приговора'),
+    (31, 'Передача материалов дела судье'),
+    (32, 'Дело направлено по подсудности'),
+    (33, 'Вынесено постановление о назначении судебного заседания'),
+    (34, 'Решение в отношении поступившего уголовного дела'),
+    (35, 'Предварительное слушание'),
+    (36, 'Отзыв жалобы (представления)'),
+    (37, 'Судебное заседание'),
+    (38, 'Дело сдано в отдел судебного делопроизводства'),
+    (39, 'Дело оформлено'),
+    (40, 'Провозглашение приговора'),
+    (41, 'Рассмотрение завершено'),
+    (42, 'Отложено'),
+    (44, 'Дело направлено по подведомственности прокурору, в орган следствия, дознания'),
+    (45, 'Дело передано в архив'),
+    (46, 'Производство по делу возобновлено'),
+    (47, 'Назначено судебное заседание для рассмотрения ходатайства/заявления'),
+    (48, 'Ходатайство/заявление УДОВЛЕТВОРЕНО'),
+    (49, 'Регистрация ходатайства/заявления лица, участвующего в деле'),
+    (50, 'Дело отправлено мировому судье'),
+    (51, 'Снято с апелляционного рассмотрения'),
+    (52, 'Ходатайство/заявление ОТКЛОНЕНО'),
+    (53, 'Перерыв'),
+    (55, 'Постановление приговора или иного судебного акта'),
+    (56, 'Приостановлено'),
+
+    )
 
 RESULT_TYPES = (
     (0, 'Апелляционное ПРОИЗВОДСТВО ПРЕКРАЩЕНО'),
@@ -94,7 +230,8 @@ RESULT_TYPES = (
     (9, 'Уголовное дело ПРЕКРАЩЕНО'),
     (10, 'Отмена'),
     (11,
-     'Вынесено определение о возвращении протокола об АП и др. материалов дела в орган, долж. лицу ... в случае составления протокола и оформления других материалов дела неправомочными лицами, ...'),
+     "Вынесено определение о возвращении протокола об АП и др. материалов дела в орган, долж. лицу ... в случае "
+     "составления протокола и оформления других материалов дела неправомочными лицами, ..."),
     (12, 'Вынесено определение о передаче дела по подведомственности (ст 29.9 ч.2 п.2 и ст 29.4 ч.1 п.5)'),
     (13, 'Вынесено постановление о назначении административного наказания'),
     (14, 'Вынесено постановление о прекращении производства по делу об адм. правонарушении'),
@@ -108,8 +245,15 @@ RESULT_TYPES = (
     (22, 'Отменено с направлением по подведомственности'),
     (23, 'Жалоба (протест) на определение (постановление) не по существу дела - рассмотрена'),
     (24, 'Направлено по подведомственности'),
-    (25, 'Производство по делу прекращено')
-)
+    (25, 'Производство по делу прекращено'),
+    (26, 'Вынесено определение о передаче дела судье, в орган, должностному лицу, уполномоченному ...'),
+    (27, 'Дело присоединено к другому делу'),
+    (28, 'ВОЗВРАЩЕНО ПРОКУРОРУ в порядке ст. 237 УПК РФ'),
+    (29, 'Возвращено без рассмотрения'),
+    (30, 'Возвращено без рассмотрения в связи с пропуском срока обжалования'),
+    (31, 'Приостановлено'),
+    (32, 'Вынесено постановление суда апелляционной инстанции'),
+    )
 
 APPEAL_RESULT_TYPES = (
     (1, 'Отмена'),
@@ -121,124 +265,160 @@ APPEAL_RESULT_TYPES = (
     (7, 'Оставлено без рассмотрения в связи с пропуском срока обжалования'),
     (8, 'Отменено с возвращением на новое рассмотрение'),
     (9, 'Отменено с направлением по подведомственности'),
-    (10,'Отменено с прекращением производства'),
-    (11,'Производство по жалобе прекращено'),
-    (12,'вынесено иное определение не по существу дела'),
-    (13,'Без изменения'),
-    (14,'Отменено с возвращением дела на новое рассмотрение'),
-    (15,'Отменено с прекращением производства по делу'),
-    (16,'Оставлено без рассмотрения или возвращено'),
-    (17,'производство прекращено'),
-    (18,'Отменено'),
+    (10, 'Отменено с прекращением производства'),
+    (11, 'Производство по жалобе прекращено'),
+    (12, 'вынесено иное определение не по существу дела'),
+    (13, 'Без изменения'),
+    (14, 'Отменено с возвращением дела на новое рассмотрение'),
+    (15, 'Отменено с прекращением производства по делу'),
+    (16, 'Оставлено без рассмотрения или возвращено'),
+    (17, 'производство прекращено'),
+    (18, 'Отменено'),
+    (19, 'другие апелляционные определения/постановления С УДОВЛЕТВОРЕНИЕМ ЖАЛОБ И ПРЕДСТАВЛЕНИЙ'),
+    (20, 'судебный акт ОСТАВЛЕН БЕЗ ИЗМЕНЕНИЯ'),
+    (21, 'ОБВИНИТЕЛЬНЫЙ приговор ОТМЕНЕН'),
+    (22, 'ОБВИНИТЕЛЬНЫЙ приговор ИЗМЕНЕН'),
+    (23, 'Замечания на протокол ОТКЛОНЕНЫ ЧАСТИЧНО'),
+    (24, 'Замечания на протокол ОТКЛОНЕНЫ ПОЛНОСТЬЮ'),
+    (25, 'решение на решение: Без изменения'),
+    (26, 'СНЯТО с рассмотрения'),
+    (27, 'Представление (жалоба) ОТОЗВАНЫ'),
+    (28, 'ОПРАВДАТЕЛЬНЫЙ приговор ОТМЕНЕН'),
+    (29, 'ОПРАВДАТЕЛЬНЫЙ приговор ОТМЕНЕН в части оправдания по МЕНЕЕ ТЯЖКОМУ преступлению'),
+    (30, 'ОПРЕДЕЛЕНИЕ (постановление) ОТМЕНЕНО'),
 
+    )
 
-)
+adm_type_one_params_string = '/modules.php?name=sud_delo&srv_num=1&name_op=r&delo_id=DELOID&case_type=CASETYPE&new=0' \
+                             '&delo_table=DELOTABLE&nc=1'
 
-adm_type_one_params_string = '/modules.php?name=sud_delo&srv_num=1&name_op=r&delo_id=DELOID&case_type=CASETYPE&new=0&delo_table=DELOTABLE&nc=1'
+adm2_type_one_params_string = '/modules.php?name=sud_delo&srv_num=1&name_op=r&delo_id=DELOID&case_type=CASETYPE&new=0' \
+                              '&delo_table=DELOTABLE&nc=1'
 
-adm2_type_one_params_string = '/modules.php?name=sud_delo&srv_num=1&name_op=r&delo_id=DELOID&case_type=CASETYPE&new=0&delo_table=DELOTABLE&nc=1'
+adm_type_one_params_dict = {
+    'last_name': 'adm_parts__NAMES',
+    'case_number': 'adm_case__CASE_NUMBERSS',
+    'case_uid': 'adm_case__JUDICIAL_UIDSS',
+    'protocol_number': 'adm_case__PR_NUMBERSS',
+    'entry_date_from': 'adm_case__ENTRY_DATE1D',
+    'entry_date_to': 'adm_case__ENTRY_DATE2D',
+    'judge': 'ADM_CASE__JUDGE',
+    'result_date_from': 'adm_case__RESULT_DATE1D',
+    'result_date_to': 'adm_case__RESULT_DATE2D',
+    'case_result': 'ADM_CASE__RESULT',
+    'articles': 'adm_parts__LAW_ARTICLESS',
+    'publish_date_from': 'adm_document__PUBL_DATE1D',
+    'publish_date_to': 'adm_document__PUBL_DATE2D',
+    'validity_date_from': 'ADM_CASE__VALIDITY_DATE1D',
+    'validity_date_to': 'ADM_CASE__VALIDITY_DATE2D'
+    }
 
-adm_type_one_params_dict = {'last_name': 'adm_parts__NAMES',
-                            'case_number': 'adm_case__CASE_NUMBERSS',
-                            'case_uid': 'adm_case__JUDICIAL_UIDSS',
-                            'protocol_number': 'adm_case__PR_NUMBERSS',
-                            'entry_date_from': 'adm_case__ENTRY_DATE1D',
-                            'entry_date_to': 'adm_case__ENTRY_DATE2D',
-                            'judge': 'ADM_CASE__JUDGE',
-                            'result_date_from': 'adm_case__RESULT_DATE1D',
-                            'result_date_to': 'adm_case__RESULT_DATE2D',
-                            'case_result': 'ADM_CASE__RESULT',
-                            'articles': 'adm_parts__LAW_ARTICLESS',
-                            'publish_date_from': 'adm_document__PUBL_DATE1D',
-                            'publish_date_to': 'adm_document__PUBL_DATE2D',
-                            'validity_date_from': 'ADM_CASE__VALIDITY_DATE1D',
-                            'validity_date_to': 'ADM_CASE__VALIDITY_DATE2D'
-                            }
+adm_type_two_params_string = '/modules.php?name_op=r&nc=1&name=sud_delo&srv_num=1&_deloId=DELOID&case__vnkod=XXX' \
+                             '&process-type=DELOID_CASETYPE_0'
 
-adm_type_two_params_string = '/modules.php?name_op=r&nc=1&name=sud_delo&srv_num=1&_deloId=DELOID&case__vnkod=XXX&process-type=DELOID_CASETYPE_0'
+adm_type_two_params_dict = {
+    'last_name': 'part__namess',
+    'case_number': 'case__case_numberss',
+    'case_uid': 'case__judicial_uidss',
+    'protocol_number': 'case__pr_numberss',
+    'entry_date_from': 'case__entry_date1d',
+    'entry_date_to': 'case__entry_date2d',
+    'judge': 'case__judge',
+    'result_date_from': 'case__result_date1d',
+    'result_date_to': 'case__result_date2d',
+    'case_result': 'case__result',
+    'articles': 'parts__law_articless',
+    'publish_date_from': 'document__publ_date1d',
+    'publish_date_to': 'document__publ_date2d',
+    'validity_date_from': 'case__validity_date1d',
+    'validity_date_to': 'case__validity_date2d'
+    }
 
-adm_type_two_params_dict = {'last_name': 'part__namess',
-                            'case_number': 'case__case_numberss',
-                            'case_uid': 'case__judicial_uidss',
-                            'protocol_number': 'case__pr_numberss',
-                            'entry_date_from': 'case__entry_date1d',
-                            'entry_date_to': 'case__entry_date2d',
-                            'judge': 'case__judge',
-                            'result_date_from': 'case__result_date1d',
-                            'result_date_to': 'case__result_date2d',
-                            'case_result': 'case__result',
-                            'articles': 'parts__law_articless',
-                            'publish_date_from': 'document__publ_date1d',
-                            'publish_date_to': 'document__publ_date2d',
-                            'validity_date_from': 'case__validity_date1d',
-                            'validity_date_to': 'case__validity_date2d'
-                            }
+cr_type_one_params_string = '/modules.php?name=sud_delo&srv_num=1&name_op=r&delo_id=DELOID&case_type=CASETYPE&new=0' \
+                            '&delo_table=DELOTABLE&nc=1'
 
-cr_type_one_params_string = '/modules.php?name=sud_delo&srv_num=1&name_op=r&delo_id=DELOID&case_type=CASETYPE&new=0&delo_table=DELOTABLE&nc=1'
+cr_type_one_params_dict = {
+    'last_name': 'U1_DEFENDANT__NAMESS',
+    'case_number': 'U1_CASE__CASE_NUMBERSS',
+    'case_uid': 'U1_CASE__JUDICIAL_UIDSS',
+    'entry_date_from': 'U1_CASE__ENTRY_DATE1D',
+    'entry_date_to': 'U1_CASE__ENTRY_DATE2D',
+    'judge': 'U1_CASE__JUDGE',
+    'result_date_from': 'U1_CASE__RESULT_DATE1D',
+    'result_date_to': 'U1_CASE__RESULT_DATE2D',
+    'case_result': 'U1_CASE__RESULT',
+    'articles': 'U1_DEFENDANT__LAW_ARTICLESS',
+    'publish_date_from': 'U1_DOCUMENT__PUBL_DATE1D',
+    'publish_date_to': 'U1_DOCUMENT__PUBL_DATE2D',
+    'validity_date_from': 'U1_CASE__VALIDITY_DATE1D',
+    'validity_date_to': 'U1_CASE__VALIDITY_DATE2D'
+    }
 
-cr_type_one_params_dict = {'last_name': 'U1_DEFENDANT__NAMESS',
-                           'case_number': 'U1_CASE__CASE_NUMBERSS',
-                           'case_uid': 'U1_CASE__JUDICIAL_UIDSS',
-                           'entry_date_from': 'U1_CASE__ENTRY_DATE1D',
-                           'entry_date_to': 'U1_CASE__ENTRY_DATE2D',
-                           'judge': 'U1_CASE__JUDGE',
-                           'result_date_from': 'U1_CASE__RESULT_DATE1D',
-                           'result_date_to': 'U1_CASE__RESULT_DATE2D',
-                           'case_result': 'U1_CASE__RESULT',
-                           'articles': 'U1_DEFENDANT__LAW_ARTICLESS',
-                           'publish_date_from': 'U1_DOCUMENT__PUBL_DATE1D',
-                           'publish_date_to': 'U1_DOCUMENT__PUBL_DATE2D',
-                           'validity_date_from': 'U1_CASE__VALIDITY_DATE1D',
-                           'validity_date_to': 'U1_CASE__VALIDITY_DATE2D'
-                           }
+cr_type_two_params_string = '/modules.php?name_op=r&name=sud_delo&srv_num=1&_deloId=DELOID&case__case_type=CASETYPE' \
+                            '&_new=0&case__vnkod=XXX&case__num_build=1&case__case_numberss=&part__namess=&process' \
+                            '-type=DELOID_CASETYPE_0&case__ss='
 
-cr_type_two_params_string = '/modules.php?name_op=r&name=sud_delo&srv_num=1&_deloId=DELOID&case__case_type=CASETYPE&_new=0&case__vnkod=XXX&case__num_build=1&case__case_numberss=&part__namess=&process-type=DELOID_CASETYPE_0&case__ss='
+cr_type_two_params_dict = {
+    'last_name': 'parts__namess',
+    'case_number': 'case__case_numberss',
+    'case_uid': 'case__judicial_uidss',
+    'entry_date_from': 'case__entry_date1d',
+    'entry_date_to': 'case__entry_date2d',
+    'judge': 'case__judge',
+    'result_date_from': 'case__result1d',
+    'result_date_to': 'case__result1d',
+    'case_result': 'case__result',
+    'articles': 'parts__law_articless',
+    'publish_date_from': 'document__publ_date1d',
+    'publish_date_to': 'document__publ_date2d',
+    'validity_date_from': 'case__validity_date1d',
+    'validity_date_to': 'case__validity_date2d'
+    }
 
-cr_type_two_params_dict = {'last_name': 'parts__namess',
-                           'case_number': 'case__case_numberss',
-                           'case_uid': 'case__judicial_uidss',
-                           'entry_date_from': 'case__entry_date1d',
-                           'entry_date_to': 'case__entry_date2d',
-                           'judge': 'case__judge',
-                           'result_date_from': 'case__result1d',
-                           'result_date_to': 'case__result1d',
-                           'case_result': 'case__result',
-                           'articles': 'parts__law_articless',
-                           'publish_date_from': 'document__publ_date1d',
-                           'publish_date_to': 'document__publ_date2d',
-                           'validity_date_from': 'case__validity_date1d',
-                           'validity_date_to': 'case__validity_date2d'
-                           }
+moscow_params_dict = {
+    'last_name': 'participant',
+    'case_number': 'caseNumber',
+    'case_uid': 'uid',
+    'entry_date_from': 'caseDateFrom',
+    'entry_date_to': 'caseDateTo',
+    'judge': 'judge',
+    'result_date_from': 'caseFinalDateFrom',
+    'result_date_to': 'caseFinalDateTo',
+    'case_result': 'publishingState',
+    'articles': 'codex',
+    'publish_date_from': 'docsDateFrom',
+    'publish_date_to': 'docsDateTo',
+    'validity_date_from': 'caseLegalForceDateFrom',
+    'validity_date_to': 'caseLegalForceDateTo',
+    'instance': 'instance',
+    'processType': 'processType',
+    }
 
-moscow_params_dict = {'last_name': 'participant',
-                           'case_number': 'caseNumber',
-                           'case_uid': 'uid',
-                           'entry_date_from': 'caseDateFrom',
-                           'entry_date_to': 'caseDateTo',
-                           'judge': 'judge',
-                           'result_date_from': 'caseFinalDateFrom',
-                           'result_date_to': 'caseFinalDateTo',
-                           'case_result': 'publishingState',
-                           'articles': 'codex',
-                           'publish_date_from': 'docsDateFrom',
-                           'publish_date_to': 'docsDateTo',
-                           'validity_date_from': 'caseLegalForceDateFrom',
-                           'validity_date_to': 'caseLegalForceDateTo',
-                           'instance':'instance',
-                           'processType':'processType',
-                           }
+msudrf_params_dict = {}
 
 site_type_dict = {
-    '1': {'koap': {'string': adm_type_one_params_string, 'params_dict': adm_type_one_params_dict},
-          'uk': {'string': cr_type_one_params_string, 'params_dict': cr_type_one_params_dict}},
-    '2': {'koap': {'string': adm_type_two_params_string, 'params_dict': adm_type_two_params_dict},
-          'uk': {'string': cr_type_two_params_string, 'params_dict': cr_type_two_params_dict}},
-}
+    '1': {
+        'koap': {'string': adm_type_one_params_string, 'params_dict': adm_type_one_params_dict},
+        'uk': {'string': cr_type_one_params_string, 'params_dict': cr_type_one_params_dict}
+        },
+    '2': {
+        'koap': {'string': adm_type_two_params_string, 'params_dict': adm_type_two_params_dict},
+        'uk': {'string': cr_type_two_params_string, 'params_dict': cr_type_two_params_dict}
+        },
+    }
 
-site_types_by_codex = {'koap': {'1': {'string': adm_type_one_params_string, 'params_dict': adm_type_one_params_dict},
-                                '2': {'string': adm_type_two_params_string, 'params_dict': adm_type_two_params_dict}},
-                       'uk': {'1': {'string': cr_type_one_params_string, 'params_dict': cr_type_one_params_dict},
-                              '2': {'string': cr_type_two_params_string, 'params_dict': cr_type_two_params_dict}}}
+site_types_by_codex = {
+    'koap': {
+        '1': {'string': adm_type_one_params_string, 'params_dict': adm_type_one_params_dict},
+        '2': {'string': adm_type_two_params_string, 'params_dict': adm_type_two_params_dict}
+        },
+    'uk': {
+        '1': {'string': cr_type_one_params_string, 'params_dict': cr_type_one_params_dict},
+        '2': {'string': cr_type_two_params_string, 'params_dict': cr_type_two_params_dict}
+        }
+    }
 
-instances_dict = {'koap': {'1': ('1500001', '0', 'adm_case'), '2': ('1502001', '0', 'adm1_case')},
-                  'uk': {'1': ('1540006', '0', 'u1_case'), '2': ('1540006', '50780001', 'u1_case')}}
+instances_dict = {
+    'koap': {'1': ('1500001', '0', 'adm_case'), '2': ('1502001', '0', 'adm1_case')},
+    'uk': {'1': ('1540006', '0', 'u1_case'), '2': ('1540006', '50780001', 'u1_case')}
+    }

@@ -1,7 +1,7 @@
 import os
-from django.conf import settings
 
 import celery
+from django.conf import settings
 
 # import raven
 # from raven.contrib.celery import register_logger_signal, register_signal
@@ -29,11 +29,3 @@ app = Celery('oi_sud')
 
 app.config_from_object('django.conf:settings', namespace='CELERY')
 app.autodiscover_tasks(lambda: settings.INSTALLED_APPS)
-
-app.conf.ONCE = {
-  'backend': 'celery_once.backends.Redis',
-  'settings': {
-    'url': 'redis://redis:6379/0',
-    'default_timeout': 60 * 60 * 24 * 2
-  }
-}

@@ -1,0 +1,68 @@
+{% extends "admin/base_site.html" %}
+
+{% load static %}
+
+{% block content %}
+
+    <fieldset class="module">
+        {% if not tasks %}Currently no tasks running{% endif %}
+
+        {% for task in tasks %}
+
+            <h3>{{ task|get_item:"name" }}</h3><br>
+
+
+            <div class='progress-wrapper'>
+                <div id='progress-bar-{{ forloop.counter }}' class='progress-bar'
+                     style="background-color: #68a9ef; width: 0%;">
+                    &nbsp;
+                </div>
+            </div>
+            <div id="progress-bar-message-{{ forloop.counter }}">Waiting for progress to start...</div>
+
+        {% endfor %}
+
+    </fieldset>
+
+{% endblock %}
+
+{% block extrahead %}
+
+    <script src="{% static 'celery_progress/celery_progress.js' %}"></script>
+    <script>
+
+        document.addEventListener("DOMContentLoaded", function () {
+
+
+            {%
+            for task in tasks %};
+        var progressUrl;
+        {
+            {
+                forloop.counter
+            }
+        }
+        = "{% url 'task_status' task|get_item:'uuid' %}";
+        CeleryProgressBar.initProgressBar(progressUrl;
+        {
+            {
+                forloop.counter
+            }
+        }
+        ,
+        {
+            'progress-bar-{{ forloop.counter }}',
+                progressBarMessageId;
+        :
+            'progress-bar-message-{{ forloop.counter }}'
+        }
+        )
+        {%
+        endfor %
+        }
+        })
+
+
+    </script>
+
+{% endblock %}
