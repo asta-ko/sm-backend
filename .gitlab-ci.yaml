@@ -15,6 +15,7 @@ before_script:
 
 build:
   stage: build
+  only: merge_requests
   script:
     './run.sh docker buildtest'
     #docker build -t "backend-:latest -f build/virtualenv/Dockerfile-test build/virtualenv
@@ -24,6 +25,7 @@ build:
 test:
   stage: tests
   script: './run.sh test style'
+  only: merge_requests
 
 #deploy_run_sh:
 #  stage: deploy_prod
