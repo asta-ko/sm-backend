@@ -324,7 +324,7 @@ test_style() {
     echo "Running style checks"
     docker run \
         -v "${PWD}":/code \
-        --rm sudmonster-test:latest \
+        --rm "$C_PROJECT_NAME"-virtualenv-test:latest \
         flake8 --config=test/style/.flake8 .
 }
 
@@ -334,7 +334,7 @@ test_functional() {
 
     docker-compose run \
         -v "${PWD}":/code \
-        --rm test \
+        --rm "$C_PROJECT_NAME"-virtualenv-test:latest \
         py.test -p no:cacheprovider test/functional "$@"
 }
 
@@ -344,7 +344,7 @@ test_unit() {
     docker-compose --compatibility up -d
     docker-compose run \
         -v "${PWD}":/code \
-        --rm test \
+        --rm "$C_PROJECT_NAME"-virtualenv-test:latest \
         python -m pytest --capture=sys -p no:cacheprovider test/unit "$@"
 }
 
@@ -381,16 +381,14 @@ docker_build() {
        docker_build_dev
     elif [ $STACK = 'prod' ]; then
        docker_build_prod
+    elif [ $STACK = 'test' ]; then
+       docker build -t "$C_PROJECT_NAME"-virtualenv-test:latest -f build/virtualenv/Dockerfile-test build/virtualenv
     fi
 }
 
 docker_build_dev() {
     docker build -t "$C_PROJECT_NAME"-frontend-test:latest -f ../frontend/Dockerfile-nuxt-dev ../frontend   --no-cache
     docker build -t "$C_PROJECT_NAME"-virtualenv-test:latest -f build/virtualenv/Dockerfile-test build/virtualenv
-}
-
-docker_build_test() {
-    docker build -t sudmonster-test:latest -f build/virtualenv/Dockerfile-test build/virtualenv
 }
 
 docker_build_prod() {
@@ -400,8 +398,8 @@ docker_build_prod() {
 }
 
 docker_buildrelease() {
-    docker build -t "$C_PROJECT_NAME"-virtualenv-test:latest -f build/virtualenv/Dockerfile-test build/virtualenv
-    docker build -t "$C_PROJECT_NAME"-virtualenv:latest -f build/virtualenv/Dockerfile build/virtualenv
+#    docker build -t "$C_PROJECT_NAME"-virtualenv-test:latest -f build/virtualenv/Dockerfile-test build/virtualenv
+#    docker build -t "$C_PROJECT_NAME"-virtualenv:latest -f build/virtualenv/Dockerfile build/virtualenv
 
     docker build -f build/release/Dockerfile-test -t backend-test:$C_PROJECT_VERSION --build-arg VIRTUALENV_IMAGE="$C_PROJECT_NAME"-virtualenv-test:latest .
     docker build -f build/release/Dockerfile -t backend:$C_PROJECT_VERSION --build-arg VIRTUALENV_IMAGE="$C_PROJECT_NAME"-virtualenv:latest .

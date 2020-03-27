@@ -1,4 +1,4 @@
-image: gitlab/dind
+image: tmaier/docker-compose:latest
 
 # Use the OverlayFS driver for improved performance.
 variables:
@@ -30,7 +30,7 @@ test:
   stage: tests
 
   script:
-    - 'cp env.orig .env'
+    - 'cp env.test.orig .env'
     - './run.sh stack'
     - './run.sh test style'
 #  only:
