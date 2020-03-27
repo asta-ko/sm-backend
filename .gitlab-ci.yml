@@ -1,4 +1,4 @@
-image: tmaier/docker-compose:latest
+image: docker
 
 # Use the OverlayFS driver for improved performance.
 variables:
@@ -14,10 +14,9 @@ stages:
 
 before_script:
   - docker info
-
-
-before_script:
   - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+  - apk add --no-cache py-pip
+  - pip install docker-compose
 
 #build:
 #  stage: build
