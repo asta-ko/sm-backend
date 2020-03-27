@@ -19,20 +19,20 @@ before_script:
 before_script:
   - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
 
-build:
-  stage: build
-#  only:
-#    - merge_requests
-  script:
-    - 'cp env.orig .env'
-    - './run.sh docker buildtest'
-    #docker build -t "backend-:latest -f build/virtualenv/Dockerfile-test build/virtualenv
-    #docker build -t "$C_PROJECT_NAME"-virtualenv:latest -f build/virtualenv/Dockerfile build/virtualenv
+#build:
+#  stage: build
+#  script:
+#    - 'cp env.orig .env'
+#    - './run.sh docker buildtest'
 
 
 test:
   stage: tests
-  script: './run.sh test style'
+
+  script:
+    - 'cp env.orig .env'
+    - './run.sh stack'
+    - './run.sh test style'
 #  only:
 #   - merge_requests
 
