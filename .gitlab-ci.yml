@@ -30,7 +30,7 @@ test:
   stage: tests
 
   script:
-    - 'cp env.orig .env'
+    - 'cp env.test.orig .env'
     - './run.sh stack'
     - './run.sh test style'
 #  only:
