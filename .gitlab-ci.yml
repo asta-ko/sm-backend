@@ -31,6 +31,7 @@ test:
 
   script:
     - 'cp env.orig .env'
+    - './run.sh stack'
     - './run.sh test style'
 #  only:
 #   - merge_requests
