@@ -27,8 +27,8 @@ before_script:
 
 test:
   stage: tests
-
   script:
+    - 'ls'
     - 'cp env.test.orig .env'
     - './run.sh stack'
     - './run.sh test style'
