@@ -1,10 +1,16 @@
+image: gitlab/dind
+
+# Use the OverlayFS driver for improved performance.
+variables:
+  DOCKER_DRIVER: overlay
+
+services:
+  - docker:dind
+
 stages:
   - build
   - tests
   #- deploy_prod
-
-services:
-  - docker:19.03.1-dind
 
 before_script:
   - docker info
