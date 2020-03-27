@@ -1,4 +1,4 @@
-image: gitlab/dind
+image: tmaier/docker-compose:latest
 
 # Use the OverlayFS driver for improved performance.
 variables:
