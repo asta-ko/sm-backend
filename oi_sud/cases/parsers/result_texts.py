@@ -47,7 +47,7 @@ class KoapPenaltyExtractor(object):
             }
 
         # определяем нужные в дальнейшем переменные
-        fine_not_found, arrest_not_found = True, True
+        fine_not_found, arrest_not_found, works_not_found = True, True, True
 
         # проверяем, не было ли дело прекращено
         pattern_prekr = re.compile(r'[П|п]роизводство.*прекратить|[П|п]рекратить.*производство')
