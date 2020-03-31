@@ -7,8 +7,10 @@ variables:
 services:
   - docker:dind
 
+cache:
+  key: coolkey
+
 stages:
-  - build
   - tests
   #- post_tests
   - deploy
@@ -17,9 +19,18 @@ before_script:
   - docker info
   - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
   - apk add --no-cache docker-compose bash
+  - eval $(ssh-agent -s)
+  - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
+  - mkdir -p ~/.ssh
+  - chmod 700 ~/.ssh
+
+
+
 
 test:
   stage: tests
+  only:
+    - merge_requests
   script:
     - 'ls'
     - 'cp env.test.orig .env'
@@ -38,7 +49,5 @@ deploy_prod:
   script:
     - ssh root@sudmonster.ovdinfo.org "cd /home/oi-sud-monster-frontend && git checkout master && git pull origin master && cd ../oi-sud-monster && git pull origin master && ./run.sh stack && exit"
   when: manual
-
-#deploy_run_sh:
-#  stage: deploy_prod
-#  script: './run.sh stack'
+  only:
+    - merge_requests
