@@ -291,3 +291,6 @@ from datetime import timedelta
 
 # Add reversion models to admin interface:
 ADD_REVERSION_ADMIN=True
+
+CHORD_UNLOCK_MAX_RETRIES=60
+
