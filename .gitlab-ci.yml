@@ -10,20 +10,13 @@ services:
 stages:
   - build
   - tests
-  #- deploy_prod
+  #- post_tests
+  - deploy
 
 before_script:
   - docker info
   - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
   - apk add --no-cache docker-compose bash
-
-
-#build:
-#  stage: build
-#  script:
-#    - 'cp env.orig .env'
-#    - './run.sh docker buildtest'
-
 
 test:
   stage: tests
@@ -32,8 +25,22 @@ test:
     - 'cp env.test.orig .env'
     - './run.sh stack'
     - './run.sh test style'
-#  only:
-#   - merge_requests
+
+#build_package:
+#  stage: post_tests
+#  script:
+#    - 'docker login -u gitlab-ci-token -p $CI_JOB_TOKEN $CI_REGISTRY'
+#    - 'docker build -t $CI_REGISTRY/sm_backend -f build/virtualenv/Dockerfile build/virtualenv'
+#    - 'docker push $CI_REGISTRY/sm_backend'
+
+deploy_prod:
+  stage: deploy
+  script:
+    - ssh root@sudmonster.ovdinfo.org "cd /home/oi-sud-monster-frontend && git checkout master && git pull origin master && cd ../oi-sud-monster && git pull origin master && ./run.sh stack && exit"
+  only:
+    - master
+  rules:
+    when: manual
 
 #deploy_run_sh:
 #  stage: deploy_prod
