@@ -21,6 +21,19 @@ weekday_regions = [  # Except SPb and Moscow
     [82, 83, 86, 87, 89, 92, 94, 95]
     ]
 
+from celery.signals import worker_init
+@worker_init.connect
+def limit_chord_unlock_tasks(worker, **kwargs):
+    """
+    Set max_retries for chord.unlock tasks to avoid infinitely looping
+    tasks. (see celery/celery#1700 or celery/celery#2725)
+    """
+    task = worker.app.tasks['celery.chord_unlock']
+    if task.max_retries is None:
+        retries = getattr(worker.app.conf, 'CHORD_UNLOCK_MAX_RETRIES', None)
+        task.max_retries = retries
+
+
 
 def get_start_date(delta_days):
     dt = datetime.now() - timedelta(days=delta_days)
@@ -191,8 +204,10 @@ def fix_chunk(ids):
 
 @shared_task
 def fix_moscow_cases():
-    cases = Case.objects.filter(result_text='', type=1, court__region='77')
+
+    cases = Case.objects.filter(result_text='', type = 1, court__region=77)
     cases_ids = cases.values_list('id', flat=True)
+    print(cases_ids,'cases_ids')
 
     chunked_cases = chunks(cases_ids, 10)
     for chunk in chunked_cases:
