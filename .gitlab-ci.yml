@@ -37,8 +37,6 @@ deploy_prod:
   stage: deploy
   script:
     - ssh root@sudmonster.ovdinfo.org "cd /home/oi-sud-monster-frontend && git checkout master && git pull origin master && cd ../oi-sud-monster && git pull origin master && ./run.sh stack && exit"
-  only:
-    - master
   rules:
     when: manual
 
