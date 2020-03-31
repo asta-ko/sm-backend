@@ -393,7 +393,7 @@ docker_build_dev() {
 
 docker_build_prod() {
     docker build -t "$C_PROJECT_NAME"-virtualenv:latest -f build/virtualenv/Dockerfile build/virtualenv #PROD
-    docker build -t "$C_PROJECT_NAME"-frontend:latest -f ../oi-sud-monster-frontend/Dockerfile-nuxt .
+    docker build -t "$C_PROJECT_NAME"-frontend:latest -f ../oi-sud-monster-frontend/Dockerfile-nuxt ../oi-sud-monster-frontend
     # ./oi-sud-monster-frontend #PROD
 }
 

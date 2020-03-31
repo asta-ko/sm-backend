@@ -102,9 +102,8 @@ services:
     #network_mode: host
     image: oi-sud-monster-frontend:latest
     container_name: sudmonster_frontend
-    working_dir: /cf/
     volumes:
-      - ../oi-sud-monster-frontend/:/c
+      - ../oi-sud-monster-frontend/:/frontend
     restart: always
     ports:
       - "3000:3000"
@@ -115,7 +114,6 @@ services:
       VIRTUAL_PORT: 3000
       LETSENCRYPT_HOST: sudmonster.ovdinfo.org
       LETSENCRYPT_EMAIL: asta.ko@ovdinfo.org
-
 
   test:
     container_name: sudmonster_test
