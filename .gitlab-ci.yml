@@ -34,8 +34,8 @@ test:
     - 'ls'
     - 'cp env.test.orig .env'
     - './run.sh stack'
-    - './run.sh unit'
     - './run.sh test style'
+    - './run.sh test unit'
 
 #build_package:
 #  stage: post_tests
