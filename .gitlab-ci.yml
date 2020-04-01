@@ -1,6 +1,5 @@
 image: docker
 
-# Use the OverlayFS driver for improved performance.
 variables:
   DOCKER_DRIVER: overlay
 
@@ -12,7 +11,6 @@ cache:
 
 stages:
   - tests
-  #- post_tests
   - deploy
 
 before_script:
