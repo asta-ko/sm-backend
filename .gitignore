@@ -61,3 +61,5 @@ ENV/
 
 frontend/
 node_modules/
+
+/docker-compose.yaml
