@@ -334,7 +334,7 @@ test_functional() {
 
     docker-compose run \
         -v "${PWD}":/code \
-        --rm "$C_PROJECT_NAME"-virtualenv-test:latest \
+        --rm test \
         py.test -p no:cacheprovider test/functional "$@"
 }
 
@@ -344,7 +344,7 @@ test_unit() {
     docker-compose --compatibility up -d
     docker-compose run \
         -v "${PWD}":/code \
-        --rm "$C_PROJECT_NAME"-virtualenv-test:latest \
+        --rm test \
         python -m pytest --capture=sys -p no:cacheprovider test/unit "$@"
 }
 
