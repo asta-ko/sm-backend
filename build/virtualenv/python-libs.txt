@@ -33,3 +33,5 @@ djangorestframework-expiring-authtoken
 rest-pandas
 matplotlib
 xlwt
+django-chunkator
+pip-chill
