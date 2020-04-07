@@ -263,7 +263,7 @@ class Case(models.Model):
             # сохраняем его в результат дела, если он пустой, и останавливаемся.
 
         try:
-            if not result.get('could_not_process'):  # если результат с ошибкой, сохраняем ошибку
+            if result.get('could_not_process'):  # если результат с ошибкой, сохраняем ошибку
                 CasePenalty.objects.create(type='error', case=self, is_hidden=False, defendant=self.defendants.first())
             else:
                 # если результат без ошибки, сохраняем наказание
