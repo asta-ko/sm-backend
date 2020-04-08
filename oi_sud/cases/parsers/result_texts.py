@@ -54,7 +54,10 @@ class KoapPenaltyExtractor(object):
         if pattern_prekr.search(decision_text) is not None:
             result['cancelled'] = True
             return result  # сразу отдаем результат
-        if 'подведомственности' in decision_text or 'на доработку' in decision_text:
+        pattern_forward = re.compile(r'.*(подведомственности|на доработку|направить по подсудности|'
+                                     r'.*направить (дело|протокол|материалы?) по подсудности)|'
+                                     r'(дело|протокол|материалы?) направить по подсудности.*')
+        if pattern_forward.search(decision_text) is not None:
             result['forward'] = True
             return result
 
@@ -88,7 +91,8 @@ class KoapPenaltyExtractor(object):
             pattern_vozvr = re.compile(r'в(озвратить|ернуть).*(протокол|дело|материал.?|постановление)|('
                                        r'дело|протокол|постановление|материал.?).*(возвратить|вернуть|передать)|('
                                        r'возвратить|вернуть|передать).*(дело|протокол|постановление|материал.?)|('
-                                       r'протокол|дела|материал).*подлеж(ит|ат) возврату')
+                                       r'протокол|дела|материал.?).*подлеж(ит|ат) возврату|('
+                                       r'дело|протокол|постановление|материал.?)? ?[В|в]озвращен.? сопроводительным письмом')
             if pattern_vozvr.search(decision_text) is not None and fine_not_found and arrest_not_found and \
                     works_not_found:
                 result['returned'] = True
