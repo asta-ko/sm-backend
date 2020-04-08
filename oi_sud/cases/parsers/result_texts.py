@@ -155,9 +155,9 @@ class KoapPenaltyExtractor(object):
 
     def get_compulsory_works(self, decision_text):
         patterns = [re.compile(
-            r'в? виде обязательных работ (на(?! срок)|на срок|сроком ?н?а?в?)?(?P<works_data>.{,40})'
+            r'в? виде обязательных работ (на(?! срок)|на срок|сроком ?н?а?(в )?)?(?P<works_data>.{,40})'
             r'(час(а|ов)|>|\*|&gt;|\.\.|--)'),
-            re.compile(r'в виде (?P<works_data>.{,40})([\d]* час(а|ов)) обязательных работ')]
+            re.compile(r'в виде (?P<works_data>.{,40})(час(а|ов)) обязательных работ')]
         works_hours = None
         not_found = True
         hidden = False
