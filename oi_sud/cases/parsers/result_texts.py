@@ -86,7 +86,8 @@ class KoapPenaltyExtractor(object):
 
             # проверяем, не было ли дело возвращено
             pattern_vozvr = re.compile(r'в(озвратить|ернуть).*(протокол|дело|материал.?|постановление)|('
-                                       r'дело|протокол|постановление|материал.?).*(возвратить|вернуть)')
+                                       r'дело|протокол|постановление|материал.?).*(возвратить|вернуть|передать)|('
+                                       r'возвратить|вернуть|передать).*(дело|протокол|постановление|материал.?)')
             if pattern_vozvr.search(decision_text) is not None and fine_not_found and arrest_not_found and \
                     works_not_found:
                 result['returned'] = True
