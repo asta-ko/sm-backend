@@ -50,11 +50,11 @@ class KoapPenaltyExtractor(object):
         fine_not_found, arrest_not_found, works_not_found = True, True, True
 
         # проверяем, не было ли дело прекращено
-        pattern_prekr = re.compile(r'[П|п]роизводство.*прекратить|[П|п]рекратить.*производство')
+        pattern_prekr = re.compile(r'[П|п]роизводство.*прекратить|[П|п]рекратить.*(производство|дело)')
         if pattern_prekr.search(decision_text) is not None:
             result['cancelled'] = True
             return result  # сразу отдаем результат
-        if 'подведомственности' in decision_text:
+        if 'подведомственности' in decision_text or 'на доработку' in decision_text:
             result['forward'] = True
             return result
 
