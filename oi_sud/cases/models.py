@@ -277,7 +277,7 @@ class Case(models.Model):
                         break
 
         except Exception as e:
-            print('saving error')
+            print('saving error', self.case_uid, self.get_admin_url())
             print(e)
 
         # TODO: добавить выдворения
