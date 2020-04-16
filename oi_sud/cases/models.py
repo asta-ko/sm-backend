@@ -6,6 +6,7 @@ from django.conf import settings
 from django.contrib.postgres.fields import ArrayField
 from django.contrib.postgres.indexes import GinIndex
 from django.contrib.postgres.search import SearchVectorField
+from django.db import IntegrityError
 from django.db import models
 from django.urls import reverse
 from django.utils import timezone
@@ -13,7 +14,6 @@ from oi_sud.cases.parsers.result_texts import kp_extractor
 from oi_sud.cases.utils import normalize_name, parse_name_and_get_gender
 from oi_sud.core.consts import region_choices
 from oi_sud.core.utils import DictDiffer, nullable
-from django.db import IntegrityError
 
 CASE_TYPES = (
     (1, 'Дело об административном правонарушении'),
@@ -107,7 +107,7 @@ class Case(models.Model):
         verbose_name_plural = 'Все дела'
         indexes = [
             GinIndex(fields=['text_search']),
-            models.Index(fields=['-entry_date','-result_date','result_type','appeal_result']),
+            models.Index(fields=['-entry_date', '-result_date', 'result_type', 'appeal_result']),
             ]
 
     def __str__(self):
@@ -267,7 +267,8 @@ class Case(models.Model):
 
         try:
             if result.get('could_not_process'):  # если результат с ошибкой, сохраняем 'нет данных'
-                CasePenalty.objects.create(type='no_data', case=self, is_hidden=False, defendant=self.defendants.first())
+                CasePenalty.objects.create(type='no_data', case=self, is_hidden=False,
+                                           defendant=self.defendants.first())
             else:
                 # если результат без ошибки, сохраняем наказание
                 for penalty_type in ['fine', 'arrest', 'works']:
@@ -283,7 +284,8 @@ class Case(models.Model):
         except Exception as e:
             print('saving error')
             print(e)
-            CasePenalty.objects.create(type='error', case=self, is_hidden=False, defendant=self.defendants.first()) #сохраняем ошибку
+            CasePenalty.objects.create(type='error', case=self, is_hidden=False, defendant=self.defendants.first())
+            # сохраняем ошибку
             print(self.case_uid, self.get_admin_url())
 
         # TODO: добавить выдворения

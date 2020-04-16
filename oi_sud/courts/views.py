@@ -1,4 +1,6 @@
 import django_filters
+from django.utils.decorators import method_decorator
+from django.views.decorators.cache import cache_page
 from django_filters.rest_framework import DjangoFilterBackend
 from oi_sud.core.consts import region_choices
 from oi_sud.courts.models import Court, Judge
@@ -6,8 +8,6 @@ from oi_sud.courts.serializers import CourtSerializer, CourtShortSerializer, Deb
 from rest_framework import filters
 from rest_framework import permissions
 from rest_framework.generics import ListAPIView
-from django.utils.decorators import method_decorator
-from django.views.decorators.cache import cache_page
 
 
 class CourtsDebugView(ListAPIView):

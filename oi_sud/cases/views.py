@@ -5,6 +5,8 @@ from django.db.models import Prefetch
 from django.db.utils import ProgrammingError
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
+from django.utils.decorators import method_decorator
+from django.views.decorators.cache import cache_page
 from django_filters.rest_framework import DjangoFilterBackend
 from django_filters.widgets import RangeWidget
 from oi_sud.cases.models import Case, CaseEvent, PENALTY_TYPES
@@ -17,9 +19,6 @@ from rest_framework.generics import RetrieveAPIView
 from rest_framework.renderers import AdminRenderer
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from django.utils.decorators import method_decorator
-from django.views.decorators.cache import cache_page
-
 
 
 def get_result_text(request, case_id):
@@ -126,7 +125,8 @@ class CaseFilter(django_filters.FilterSet):
     event_type_exclude = django_filters.ChoiceFilter(field_name="events__type", exclude=True,
                                                      choices=get_event_type_choices(),
                                                      label="В деле нет событий этого типа")
-    in_favorites = django_filters.BooleanFilter(field_name='in_favorites', method='filter_in_favorites',  label='В избранном')
+    in_favorites = django_filters.BooleanFilter(field_name='in_favorites', method='filter_in_favorites',
+                                                label='В избранном')
 
     # @property
     # def qs(self):
@@ -180,7 +180,7 @@ class CaseFilter(django_filters.FilterSet):
         lookup = '__'.join([name, 'in'])
         return queryset.filter(**{lookup: [int(x) for x in value]})
 
-    def filter_in_favorites(self,queryset,name, value):
+    def filter_in_favorites(self, queryset, name, value):
 
         if self.user:
             return queryset.filter(favorited_users=self.user)
@@ -217,28 +217,30 @@ class CaseFilterBackend(DjangoFilterBackend):
 
 
 class CasesView(ListAPIView):
-    #permission_classes = (permissions.IsAdminUser,)
+    # permission_classes = (permissions.IsAdminUser,)
     serializer_class = CaseSerializer
     filter_backends = [CaseFilterBackend, filters.OrderingFilter]
     filterset_class = CaseArticleFilter
     queryset = Case.objects.prefetch_related(Prefetch('events',
-                                                      queryset=CaseEvent.objects.order_by('date')), 'penalties', 'defendants',
+                                                      queryset=CaseEvent.objects.order_by('date')), 'penalties',
+                                             'defendants',
                                              'court', 'judge', 'codex_articles')
 
     ordering_fields = ['entry_date', 'result_date']
 
-    @method_decorator(cache_page(60*60*1))
+    @method_decorator(cache_page(60 * 60 * 1))
     def dispatch(self, *args, **kwargs):
         return super().dispatch(*args, **kwargs)
 
-class SimpleCasesView(CasesView):
 
+class SimpleCasesView(CasesView):
     serializer_class = SimpleCaseSerializer
-    queryset = Case.objects.prefetch_related('penalties','defendants','court','codex_articles')
+    queryset = Case.objects.prefetch_related('penalties', 'defendants', 'court', 'codex_articles')
     #
     # @method_decorator(cache_page(60*60*1))
     # def dispatch(self, *args, **kwargs):
     #     return super().dispatch(*args, **kwargs)
+
 
 class CaseView(RetrieveAPIView):
     permission_classes = (permissions.IsAdminUser,)
@@ -264,7 +266,6 @@ class CasesResultTypesView(APIView):
     def dispatch(self, *args, **kwargs):
         return super().dispatch(*args, **kwargs)
 
-
     def filter_queryset(self, queryset):
         for backend in list(self.filter_backends):
             queryset = backend().filter_queryset(self.request, queryset, self)
@@ -289,7 +290,6 @@ class CasesEventTypesView(APIView):  # TODO: may be add filtering
     #     for backend in list(self.filter_backends):
     #         queryset = backend().filter_queryset(self.request, queryset, self)
     #     return queryset
-
 
     @method_decorator(cache_page(60 * 60 * 24 * 2))
     def dispatch(self, *args, **kwargs):

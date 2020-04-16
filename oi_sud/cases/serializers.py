@@ -130,7 +130,8 @@ class SimpleCaseSerializer(SkipNullValuesMixin, serializers.ModelSerializer):
 
     class Meta:
         model = Case
-        fields = ['id','entry_date','result_date','in_favorites','court','codex_articles','defendants_simple','penalties','result_text_url']
+        fields = ['id', 'entry_date', 'result_date', 'in_favorites', 'court', 'codex_articles', 'defendants_simple',
+                  'penalties', 'result_text_url']
 
     def get_penalty(self, obj):
         if obj.penalties.first():

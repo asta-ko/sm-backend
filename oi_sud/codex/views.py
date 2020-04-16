@@ -1,13 +1,13 @@
 from collections import OrderedDict
 
+from django.utils.decorators import method_decorator
+from django.views.decorators.cache import cache_page
 from oi_sud.codex.models import CodexArticle
 from oi_sud.codex.serializers import CodexArticleSerializer
 from rest_framework import permissions
 from rest_framework.generics import ListAPIView
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from django.utils.decorators import method_decorator
-from django.views.decorators.cache import cache_page
 
 
 class CodexArticleListView(ListAPIView):

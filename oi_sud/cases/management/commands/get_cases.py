@@ -50,5 +50,3 @@ class Command(BaseCommand):
 
         RFCasesGetter(codex=codex).get_cases(instance, courts_ids=courts_ids, courts_limit=limit,
                                              entry_date_from=entry_date_from, custom_articles=articles)
-
---entry_date_from 01.01.2020 --articles 13.15 ч.1, 13.15 ч.2, 13.15 ч.3, 13.15 ч.4, 13.15 ч.5, 13.15 ч.6, 13.15 ч.7, 13.15 ч.8, 13.15 ч.9, 13.15 ч.10, 13.15 ч.10.1, 13.15 ч.10.2, 13.15 ч.11
