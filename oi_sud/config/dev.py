@@ -16,6 +16,17 @@ CORS_ORIGIN_WHITELIST = (
     'http://127.0.0.1:3000'
 )
 
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'sudmonster',
+        'USER': 'sudmonster',
+        'PASSWORD': 'okaysudmonster',
+        'HOST': '172.105.73.238',
+        'PORT': '5432',
+    }
+}
+
 # REST_FRAMEWORK = {
 #     'DEFAULT_FILTER_BACKENDS': ['django_filters.rest_framework.DjangoFilterBackend'],
 #     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',

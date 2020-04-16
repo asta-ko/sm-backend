@@ -6,9 +6,16 @@ from rest_framework import permissions
 from rest_framework.generics import ListAPIView
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from django.utils.decorators import method_decorator
+from django.views.decorators.cache import cache_page
 
 
 class CodexArticleListView(ListAPIView):
+
+    @method_decorator(cache_page(60 * 60 * 24 * 10))
+    def dispatch(self, *args, **kwargs):
+        return super().dispatch(*args, **kwargs)
+
     permission_classes = (permissions.IsAdminUser,)
     serializer_class = CodexArticleSerializer
     queryset = CodexArticle.objects.filter(active=True)
@@ -19,6 +26,10 @@ class CodexArticleListView(ListAPIView):
 
 class CodexArticleIListView(APIView):
     queryset = CodexArticle.objects.filter(active=True)
+
+    @method_decorator(cache_page(60 * 60 * 24 * 10))
+    def dispatch(self, *args, **kwargs):
+        return super().dispatch(*args, **kwargs)
 
     def get(self, request, format=None):
         data = OrderedDict()
@@ -46,3 +57,7 @@ class CodexArticleSearchView(ListAPIView):
     search_fields = ['article_number']
     filter_fields = ('codex')
     pagination_class = None
+
+    @method_decorator(cache_page(60 * 60 * 24 * 10))
+    def dispatch(self, *args, **kwargs):
+        return super().dispatch(*args, **kwargs)

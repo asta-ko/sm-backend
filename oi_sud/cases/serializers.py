@@ -106,6 +106,54 @@ class CaseSerializer(SkipNullValuesMixin, serializers.ModelSerializer):
             return obj.get_result_text_url()
 
 
+class SimpleCaseSerializer(SkipNullValuesMixin, serializers.ModelSerializer):
+    in_favorites = serializers.SerializerMethodField()
+    court = serializers.SerializerMethodField()
+    codex_articles = serializers.SerializerMethodField()
+    defendants_simple = serializers.SerializerMethodField()
+    result_text_url = serializers.SerializerMethodField()
+    penalties = PenaltySerializer(many=True, read_only=True)
+
+    def get_in_favorites(self, obj):
+        request = self.context.get("request")
+        if request and hasattr(request, "user"):
+            if request.user in obj.favorited_users.all():
+                return True
+            return False
+
+    def get_defendants_simple(self, obj):
+        if obj.defendants.count():
+            try:
+                return ', '.join(list([x.name_normalized for x in obj.defendants.all()]))
+            except TypeError:
+                return ''
+
+    class Meta:
+        model = Case
+        fields = ['id','entry_date','result_date','in_favorites','court','codex_articles','defendants_simple','penalties','result_text_url']
+
+    def get_penalty(self, obj):
+        if obj.penalties.first():
+            return obj.penalties.all().first()
+        else:
+            return None
+
+    def get_court(self, obj):
+        return str(obj.court)
+
+    def get_codex_articles(self, obj):
+        return [str(x) for x in obj.codex_articles.all()]
+
+    def get_defendants(self, obj):
+        if obj.defendants_hidden:
+            return 'hidden'
+        return [str(x) for x in obj.defendants.all()]
+
+    def get_result_text_url(self, obj):
+        if obj.result_text:
+            return obj.get_result_text_url()
+
+
 class CaseFullSerializer(CaseSerializer):
     class Meta:
         model = Case

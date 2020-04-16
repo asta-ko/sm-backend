@@ -47,7 +47,7 @@ class KoapPenaltyExtractor(object):
             }
 
         # определяем нужные в дальнейшем переменные
-        fine_not_found, arrest_not_found = True, True
+        fine_not_found, arrest_not_found, works_not_found = True, True, True
 
         # проверяем, не было ли дело прекращено
         pattern_prekr = re.compile(r'[П|п]роизводство.*прекратить|[П|п]рекратить.*производство')
@@ -148,29 +148,32 @@ class KoapPenaltyExtractor(object):
             return num
 
     def get_compulsory_works(self, decision_text):
-        pattern = re.compile(
-            r'в виде обязательных работ (на(?! срок)|на срок|сроком ?н?а?в?)?(?P<works_data>.{,'
-            r'40})(час(а|ов)|>|\*|&gt;|\.\.|--)')
+        patterns = [re.compile(
+            r'в виде обязательных работ (на(?! срок)|на срок|сроком ?н?а?в?)?(?P<works_data>.{,40})'
+            r'(час(а|ов)|>|\*|&gt;|\.\.|--)'),
+            re.compile(r'в виде (?P<works_data>.{,40})([\d]* час(а|ов)) обязательных работ')]
         works_hours = None
         not_found = True
         hidden = False
 
-        if pattern.search(decision_text):
-            works_data = pattern.search(decision_text).group('works_data')
-            pattern_hidden = re.compile(r'данные изъяты|_|\.|\*|-')
-            if pattern_hidden.search(works_data):
-                hidden = True
+        for pattern in patterns:
+            if pattern.search(decision_text):
+                works_data = pattern.search(decision_text).group('works_data')
+                pattern_hidden = re.compile(r'данные изъяты|_|\.|\*|-')
+                if pattern_hidden.search(works_data):
+                    hidden = True
+                    return works_hours, not_found, hidden
+                pattern_num = re.compile(r'(\d+)')
+                pattern_txt = re.compile(r'\(?([а-я\.|\s]+)\)?')
+                if pattern_num.search(works_data):
+                    works_hours = int(pattern_num.search(works_data).group(1))  # сумма штрафа числом
+                elif pattern_txt.search(works_data):
+                    txt = pattern_txt.search(works_data).group(1)
+                    txt.replace('осемь', 'восемь')
+                    works_hours = self.get_num_from_text(txt)
+                else:
+                    hidden = True
                 return works_hours, not_found, hidden
-            pattern_num = re.compile(r'(\d+)')
-            pattern_txt = re.compile(r'\(?([а-я\.|\s]+)\)?')
-            if pattern_num.search(works_data):
-                works_hours = int(pattern_num.search(works_data).group(1))  # сумма штрафа числом
-            elif pattern_txt.search(works_data):
-                txt = pattern_txt.search(works_data).group(1)
-                txt.replace('осемь', 'восемь')
-                works_hours = self.get_num_from_text(txt)
-            else:
-                hidden = True
         return works_hours, not_found, hidden
 
     def get_arrest(self, decision_text):

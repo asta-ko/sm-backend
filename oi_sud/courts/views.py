@@ -6,6 +6,8 @@ from oi_sud.courts.serializers import CourtSerializer, CourtShortSerializer, Deb
 from rest_framework import filters
 from rest_framework import permissions
 from rest_framework.generics import ListAPIView
+from django.utils.decorators import method_decorator
+from django.views.decorators.cache import cache_page
 
 
 class CourtsDebugView(ListAPIView):
@@ -51,6 +53,11 @@ class JudgeFilter(django_filters.FilterSet):
 
 
 class CourtsView(ListAPIView):
+
+    @method_decorator(cache_page(60 * 60 * 24 * 30))
+    def dispatch(self, *args, **kwargs):
+        return super().dispatch(*args, **kwargs)
+
     permission_classes = (permissions.IsAdminUser,)
     serializer_class = CourtSerializer
     queryset = Court.objects.all()
@@ -62,6 +69,11 @@ class CourtsView(ListAPIView):
 
 
 class CourtsSearchView(ListAPIView):
+
+    @method_decorator(cache_page(60 * 60 * 24 * 30))
+    def dispatch(self, *args, **kwargs):
+        return super().dispatch(*args, **kwargs)
+
     permission_classes = (permissions.IsAdminUser,)
     serializer_class = CourtShortSerializer
     queryset = Court.objects.all()

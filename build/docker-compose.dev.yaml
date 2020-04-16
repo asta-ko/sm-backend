@@ -26,7 +26,7 @@ services:
       POSTGRES_PASSWORD: "sudmonster"
       POSTGRES_DB: "sudmonster"
     volumes:
-      - db-data:/data/db
+      - ./postgres-data:/var/lib/postgresql/data
       - ./share/sql:/docker-entrypoint-initdb.d
 
   redis:
@@ -44,7 +44,7 @@ services:
       - ./:/code
       - ./.docker/static:/var/www/static
       - ./.docker/media:/var/www/media
-    command: ["gunicorn", "oi_sud.wsgi:application", "-b", "0.0.0.0:8081", "--name", "oi_sud", "--reload", "--log-level", "debug",  ]
+    command: ["gunicorn", "oi_sud.wsgi:application", "-b", "0.0.0.0:8081", "--name", "oi_sud", "--reload", "--log-level", "debug",  "-w", "5"]
     ports:
       - "8082:8081"
 

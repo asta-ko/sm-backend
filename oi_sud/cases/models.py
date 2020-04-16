@@ -13,6 +13,7 @@ from oi_sud.cases.parsers.result_texts import kp_extractor
 from oi_sud.cases.utils import normalize_name, parse_name_and_get_gender
 from oi_sud.core.consts import region_choices
 from oi_sud.core.utils import DictDiffer, nullable
+from django.db import IntegrityError
 
 CASE_TYPES = (
     (1, 'Дело об административном правонарушении'),
@@ -37,8 +38,8 @@ PENALTY_TYPES = (
     ('arrest', 'Арест'),
     ('term', 'Срок'),
     ('other', 'Другое'),
+    ('no_data', 'Нет данных'),
     ('error', 'Ошибка')
-
     )
 
 
@@ -67,7 +68,7 @@ class CaseManager(models.Manager):
 class Case(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    entry_date = models.DateField(verbose_name='Дата поступления', db_index=True)  # поступление в суд
+    entry_date = models.DateField(verbose_name='Дата поступления')  # поступление в суд
     result_date = models.DateField(verbose_name='Дата решения', **nullable)  # рассмотрение
     result_published_date = models.DateField(verbose_name='Дата публикации решения', **nullable)  # публикация решения
     result_valid_date = models.DateField(verbose_name='Решение вступило в силу', **nullable)  # решение вступило в силу
@@ -101,10 +102,12 @@ class Case(models.Model):
     objects = CaseManager()
 
     class Meta:
+
         verbose_name = 'Дело'
         verbose_name_plural = 'Все дела'
         indexes = [
-            GinIndex(fields=['text_search'])
+            GinIndex(fields=['text_search']),
+            models.Index(fields=['-entry_date','-result_date','result_type','appeal_result']),
             ]
 
     def __str__(self):
@@ -263,8 +266,8 @@ class Case(models.Model):
             # сохраняем его в результат дела, если он пустой, и останавливаемся.
 
         try:
-            if result.get('could_not_process'):  # если результат с ошибкой, сохраняем ошибку
-                CasePenalty.objects.create(type='error', case=self, is_hidden=False, defendant=self.defendants.first())
+            if result.get('could_not_process'):  # если результат с ошибкой, сохраняем 'нет данных'
+                CasePenalty.objects.create(type='no_data', case=self, is_hidden=False, defendant=self.defendants.first())
             else:
                 # если результат без ошибки, сохраняем наказание
                 for penalty_type in ['fine', 'arrest', 'works']:
@@ -275,10 +278,13 @@ class Case(models.Model):
                         CasePenalty.objects.create(type=penalty_type, case=self, defendant=self.defendants.first(),
                                                    **result[penalty_type])
                         break
-
+        except IntegrityError:
+            print('integrity error')
         except Exception as e:
             print('saving error')
             print(e)
+            CasePenalty.objects.create(type='error', case=self, is_hidden=False, defendant=self.defendants.first()) #сохраняем ошибку
+            print(self.case_uid, self.get_admin_url())
 
         # TODO: добавить выдворения
 
@@ -447,7 +453,7 @@ class Defendant(models.Model):
 
 
 class CasePenalty(models.Model):
-    type = models.CharField(max_length=10, choices=PENALTY_TYPES, **nullable)
+    type = models.CharField(max_length=10, choices=PENALTY_TYPES, db_index=True, **nullable)
     num = models.IntegerField(**nullable)
     is_hidden = models.BooleanField()
     case = models.ForeignKey(Case, related_name='penalties', on_delete=models.CASCADE)
@@ -458,13 +464,16 @@ class CasePenalty(models.Model):
         units_dict = {
             'works': 'в часах',
             'fine': 'в рублях',
-            'arrest': 'в сутках'
+            'arrest': 'в сутках',
+
             }
 
         if self.is_hidden:
             return f'{self.get_type_display()}: информация скрыта'
         elif self.type == 'error':
             return 'Ошибка при получении'
+        elif self.type == 'no_data':
+            return 'Нет данных'
         else:
             return f'{self.get_type_display()}: {self.num} ({units_dict[self.type]})'
 
