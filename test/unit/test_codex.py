@@ -7,3 +7,5 @@ from oi_sud.codex.models import CodexArticle
 def test_from_list(koap_articles, uk_articles):
     articles = CodexArticle.objects.get_from_list(['19.3 ч.1'])
     assert (len(articles))
+
+

@@ -1,6 +1,7 @@
+import json
+
 from django.core.management.base import BaseCommand
 from django_celery_results.models import TaskResult
-import json
 
 
 class Command(BaseCommand):

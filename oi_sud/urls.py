@@ -10,7 +10,7 @@ from oi_sud.cases.dataviews import (
     DataRegionsViewByMetrics, FrontCountCasesView,
     )
 from oi_sud.cases.views import (
-    CaseView, CasesEventTypesView, CasesResultTextView, CasesResultTypesView, CasesView,
+    CaseView, CasesEventTypesView, CasesResultTextView, CasesResultTypesView, CasesView, SimpleCasesView,
     get_result_text,
     )
 from oi_sud.codex.views import CodexArticleIListView, CodexArticleListView, CodexArticleSearchView
@@ -52,7 +52,8 @@ urlpatterns = [
     re_path(r'^api/v1/data/courts_by_metrics/.+\.[csv|xls|xlsx|png]', DataCourtsViewByMetrics.as_view()),
     path('api/v1/casesresulttypes/', CasesResultTypesView.as_view(), name='cases-result-types'),
     path('api/v1/caseseventstypes/', CasesEventTypesView.as_view(), name='cases-events-types'),
-    path('api/v1/cases/', CasesView.as_view(), name='case-list'),
+    path('api/v1/cases/', SimpleCasesView.as_view(), name='case-list'),
+    path('api/v1/casesfull/', CasesView.as_view(), name='case-list'),
     path('api/v1/casestexts/', CasesResultTextView.as_view(), name='case-result-list'),
     path('api/v1/cases/<int:pk>/', CaseView.as_view(), name='case-detail'),
     path('case/<int:case_id>/result.txt', get_result_text, name='case-result-text'),

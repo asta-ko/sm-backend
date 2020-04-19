@@ -5,10 +5,12 @@ from django.db.models import Prefetch
 from django.db.utils import ProgrammingError
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
+from django.utils.decorators import method_decorator
+from django.views.decorators.cache import cache_page
 from django_filters.rest_framework import DjangoFilterBackend
 from django_filters.widgets import RangeWidget
 from oi_sud.cases.models import Case, CaseEvent, PENALTY_TYPES
-from oi_sud.cases.serializers import CaseFullSerializer, CaseResultSerializer, CaseSerializer
+from oi_sud.cases.serializers import CaseFullSerializer, CaseResultSerializer, CaseSerializer, SimpleCaseSerializer
 from oi_sud.core.consts import region_choices
 from rest_framework import filters
 from rest_framework import permissions
@@ -73,6 +75,13 @@ def get_event_type_choices():
 
 
 class CaseFilter(django_filters.FilterSet):
+
+    def __init__(self, *args, **kwargs):
+        request = kwargs.get('request')
+        if request:
+            self.user = request.user
+        super().__init__(*args, **kwargs)
+
     entry_year_from = django_filters.NumberFilter(field_name="entry_date__year", lookup_expr='gte', label="Год (от)")
     entry_year_to = django_filters.NumberFilter(field_name="entry_date__year", lookup_expr='lte', label="Год (до)")
     judge_name = django_filters.CharFilter(field_name="judge__name", lookup_expr='icontains', label="Фамилия судьи")
@@ -83,7 +92,8 @@ class CaseFilter(django_filters.FilterSet):
         field_name='court__region',
         method='str_to_int',
         lookup_expr='in')
-    defendant = django_filters.CharFilter(field_name="defendants__last_name", lookup_expr='icontains', label="Ответчик")
+    defendant = django_filters.CharFilter(field_name="defendants__name_normalized",
+                                          lookup_expr='icontains', label="Ответчик")
     defendant_hidden = django_filters.BooleanFilter(field_name="defendants_hidden")
     penalty_type = django_filters.ChoiceFilter(field_name="penalties__type", choices=PENALTY_TYPES)
     has_penalty = django_filters.BooleanFilter(field_name="penalties", method='filter_has_penalty',
@@ -116,17 +126,19 @@ class CaseFilter(django_filters.FilterSet):
     event_type_exclude = django_filters.ChoiceFilter(field_name="events__type", exclude=True,
                                                      choices=get_event_type_choices(),
                                                      label="В деле нет событий этого типа")
+    in_favorites = django_filters.BooleanFilter(field_name='in_favorites', method='filter_in_favorites',
+                                                label='В избранном')
 
-    @property
-    def qs(self):
-        if not hasattr(self, '_qs'):
-            qs = self.queryset.all()
-            if self.is_bound:
-                # ensure form validation before filtering
-                self.errors
-                qs = self.filter_queryset(qs)
-            self._qs = qs
-        return self._qs
+    # @property
+    # def qs(self):
+    #     if not hasattr(self, '_qs'):
+    #         qs = self.queryset.all()
+    #         if self.is_bound:
+    #             # ensure form validation before filtering
+    #             self.errors
+    #             qs = self.filter_queryset(qs)
+    #         self._qs = qs
+    #     return self._qs
 
     def filter_queryset(self, queryset):
         """
@@ -169,6 +181,13 @@ class CaseFilter(django_filters.FilterSet):
         lookup = '__'.join([name, 'in'])
         return queryset.filter(**{lookup: [int(x) for x in value]})
 
+    def filter_in_favorites(self, queryset, name, value):
+
+        if self.user:
+            return queryset.filter(favorited_users=self.user)
+        else:
+            return Case.objects.none()
+
     def filter_result_search(self, queryset, name, value):
         return queryset.filter(text_search=SearchQuery(value, config='russian', search_type='phrase'))
 
@@ -199,15 +218,29 @@ class CaseFilterBackend(DjangoFilterBackend):
 
 
 class CasesView(ListAPIView):
-    permission_classes = (permissions.IsAdminUser,)
+    # permission_classes = (permissions.IsAdminUser,)
     serializer_class = CaseSerializer
     filter_backends = [CaseFilterBackend, filters.OrderingFilter]
     filterset_class = CaseArticleFilter
     queryset = Case.objects.prefetch_related(Prefetch('events',
-                                                      queryset=CaseEvent.objects.order_by('date')), 'defendants',
+                                                      queryset=CaseEvent.objects.order_by('date')), 'penalties',
+                                             'defendants',
                                              'court', 'judge', 'codex_articles')
 
     ordering_fields = ['entry_date', 'result_date']
+
+    @method_decorator(cache_page(60 * 60 * 1))
+    def dispatch(self, *args, **kwargs):
+        return super().dispatch(*args, **kwargs)
+
+
+class SimpleCasesView(CasesView):
+    serializer_class = SimpleCaseSerializer
+    queryset = Case.objects.prefetch_related('penalties', 'defendants', 'court', 'codex_articles')
+    #
+    # @method_decorator(cache_page(60*60*1))
+    # def dispatch(self, *args, **kwargs):
+    #     return super().dispatch(*args, **kwargs)
 
 
 class CaseView(RetrieveAPIView):
@@ -229,6 +262,10 @@ class CasesResultTextView(ListAPIView):
 
 
 class CasesResultTypesView(APIView):
+
+    @method_decorator(cache_page(60 * 60 * 24 * 2))
+    def dispatch(self, *args, **kwargs):
+        return super().dispatch(*args, **kwargs)
 
     def filter_queryset(self, queryset):
         for backend in list(self.filter_backends):
@@ -254,6 +291,10 @@ class CasesEventTypesView(APIView):  # TODO: may be add filtering
     #     for backend in list(self.filter_backends):
     #         queryset = backend().filter_queryset(self.request, queryset, self)
     #     return queryset
+
+    @method_decorator(cache_page(60 * 60 * 24 * 2))
+    def dispatch(self, *args, **kwargs):
+        return super().dispatch(*args, **kwargs)
 
     def get_queryset(self):
         return CaseEvent.objects.distinct('type').order_by('type')

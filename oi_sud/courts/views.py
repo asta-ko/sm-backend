@@ -1,4 +1,6 @@
 import django_filters
+from django.utils.decorators import method_decorator
+from django.views.decorators.cache import cache_page
 from django_filters.rest_framework import DjangoFilterBackend
 from oi_sud.core.consts import region_choices
 from oi_sud.courts.models import Court, Judge
@@ -51,6 +53,11 @@ class JudgeFilter(django_filters.FilterSet):
 
 
 class CourtsView(ListAPIView):
+
+    @method_decorator(cache_page(60 * 60 * 24 * 30))
+    def dispatch(self, *args, **kwargs):
+        return super().dispatch(*args, **kwargs)
+
     permission_classes = (permissions.IsAdminUser,)
     serializer_class = CourtSerializer
     queryset = Court.objects.all()
@@ -62,6 +69,11 @@ class CourtsView(ListAPIView):
 
 
 class CourtsSearchView(ListAPIView):
+
+    @method_decorator(cache_page(60 * 60 * 24 * 30))
+    def dispatch(self, *args, **kwargs):
+        return super().dispatch(*args, **kwargs)
+
     permission_classes = (permissions.IsAdminUser,)
     serializer_class = CourtShortSerializer
     queryset = Court.objects.all()
