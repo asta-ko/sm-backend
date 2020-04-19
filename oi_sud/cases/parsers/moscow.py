@@ -1,6 +1,6 @@
 # coding=utf-8
 import re
-import traceback
+
 from bs4 import BeautifulSoup
 from dateparser.conf import settings as dateparse_settings
 from django.utils.timezone import get_current_timezone
@@ -116,12 +116,11 @@ class MoscowParser(CourtSiteParser):
 
         return all_cases_urls
 
-
     def try_to_parse_result_text(self, parser, filename):
         try:
-            text =  parser.process(filename, 'utf-8')
+            text = parser.process(filename, 'utf-8')
             return text
-        except:
+        except Exception as e:
             print('could not process')
             return ''
 
@@ -144,7 +143,6 @@ class MoscowParser(CourtSiteParser):
             docx = self.try_to_parse_result_text(DocXParser(), filename)
             if not docx:
                 return self.try_to_parse_result_text(DocParser(), filename)
-
 
     def get_raw_case_information(self, url):
 
@@ -320,7 +318,9 @@ class MoscowParser(CourtSiteParser):
             trs = table_acts.findAll('tr')
             for tr in trs:
                 tds = tr.findAll('td')
-                if len(tds) > 1 and any(element in tds[1].text for element in ['Приговор', 'Решение по жалобе', 'Постановление', 'Определение о возвращении']):
+                if len(tds) > 1 and any(element in tds[1].text for element in
+                                        ['Приговор', 'Решение по жалобе', 'Постановление',
+                                         'Определение о возвращении']):
                     if tds[2].find('a'):
                         link = 'https://www.mos-gorsud.ru' + tds[2].find('a')['href']
                         text = self.url_to_str(link)
