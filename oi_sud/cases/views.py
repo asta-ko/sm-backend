@@ -92,7 +92,7 @@ class CaseFilter(django_filters.FilterSet):
         field_name='court__region',
         method='str_to_int',
         lookup_expr='in')
-    defendant = django_filters.CharFilter(field_name="defendants__last_name", lookup_expr='icontains', label="Ответчик")
+    defendant = django_filters.CharFilter(field_name="defendants__name_normalized", lookup_expr='icontains', label="Ответчик")
     defendant_hidden = django_filters.BooleanFilter(field_name="defendants_hidden")
     penalty_type = django_filters.ChoiceFilter(field_name="penalties__type", choices=PENALTY_TYPES)
     has_penalty = django_filters.BooleanFilter(field_name="penalties", method='filter_has_penalty',
