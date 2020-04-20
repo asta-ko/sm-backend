@@ -282,7 +282,7 @@ class Case(models.Model):
         except IntegrityError:
             print('integrity error')
         except Exception as e:
-            print('saving error')
+            print('saving error', self.case_uid, self.get_admin_url())
             print(e)
             CasePenalty.objects.create(type='error', case=self, is_hidden=False, defendant=self.defendants.first())
             # сохраняем ошибку
