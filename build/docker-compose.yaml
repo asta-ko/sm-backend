@@ -39,7 +39,7 @@ services:
       POSTGRES_PASSWORD: ${DB_PASS}
       POSTGRES_DB: "sudmonster"
     volumes:
-      - db-data:/data/db
+      - ./.docker/psql-data:/var/lib/postgresql/data:rw
       - ./share/sql:/docker-entrypoint-initdb.d
     #logging:
     #  driver: loki
