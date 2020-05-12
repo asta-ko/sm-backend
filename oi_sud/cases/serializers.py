@@ -13,6 +13,10 @@ class CaseEventSerializer(SkipNullValuesMixin, serializers.ModelSerializer):
 
 class DefendantSerializer(SkipNullValuesMixin, serializers.ModelSerializer):
     gender = serializers.CharField(source='get_gender_display')
+    full_name = serializers.SerializerMethodField()
+
+    def get_full_name(self, obj):
+        return ' '.join([x for x in [obj.last_name, obj.first_name, obj.middle_name] if x is not None])
 
     class Meta:
         model = Defendant
