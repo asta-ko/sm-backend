@@ -93,7 +93,7 @@ class CaseFilter(django_filters.FilterSet):
         method='str_to_int',
         lookup_expr='in')
     defendant = django_filters.CharFilter(field_name="defendants__name_normalized",
-                                          lookup_expr='icontains', label="Ответчик")
+                                          lookup_expr='startswith', label="Ответчик")
     defendant_hidden = django_filters.BooleanFilter(field_name="defendants_hidden")
     penalty_type = django_filters.ChoiceFilter(field_name="penalties__type", choices=PENALTY_TYPES)
     has_penalty = django_filters.BooleanFilter(field_name="penalties", method='filter_has_penalty',
@@ -218,7 +218,7 @@ class CaseFilterBackend(DjangoFilterBackend):
 
 
 class CasesView(ListAPIView):
-    # permission_classes = (permissions.IsAdminUser,)
+    permission_classes = (permissions.IsAdminUser,)
     serializer_class = CaseSerializer
     filter_backends = [CaseFilterBackend, filters.OrderingFilter]
     filterset_class = CaseArticleFilter
