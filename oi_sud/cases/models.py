@@ -273,20 +273,17 @@ class Case(models.Model):
                 # если результат без ошибки, сохраняем наказание
                 for penalty_type in ['fine', 'arrest', 'works']:
                     if result.get(penalty_type):
-                        if result[penalty_type].get('num') and int(result[penalty_type].get('num')) > 8000000:
-                            CasePenalty.objects.create(type='error', is_hidden=False, case=self,
-                                                       defendant=self.defendants.first())
                         CasePenalty.objects.create(type=penalty_type, case=self, defendant=self.defendants.first(),
                                                    **result[penalty_type])
                         break
         except IntegrityError:
             print('integrity error')
         except Exception as e:
-            print('saving error', self.case_uid, self.get_admin_url())
+            print('saving error', self.get_admin_url())
             print(e)
+            CasePenalty.objects.filter(case=self).delete()
             CasePenalty.objects.create(type='error', case=self, is_hidden=False, defendant=self.defendants.first())
             # сохраняем ошибку
-            print(self.case_uid, self.get_admin_url())
 
         # TODO: добавить выдворения
 
