@@ -84,8 +84,8 @@ class CaseFilter(django_filters.FilterSet):
 
     entry_year_from = django_filters.NumberFilter(field_name="entry_date__year", lookup_expr='gte', label="Год (от)")
     entry_year_to = django_filters.NumberFilter(field_name="entry_date__year", lookup_expr='lte', label="Год (до)")
-    judge_name = django_filters.CharFilter(field_name="judge__name", lookup_expr='icontains', label="Фамилия судьи")
-    court_city = django_filters.CharFilter(field_name="court__city", lookup_expr='icontains',
+    judge_name = django_filters.CharFilter(field_name="judge__name", lookup_expr='istartswith', label="Фамилия судьи")
+    court_city = django_filters.CharFilter(field_name="court__city", lookup_expr='istartswith',
                                            label="Город/Населенный пункт")
     regions = django_filters.MultipleChoiceFilter(
         choices=region_choices,
@@ -93,7 +93,7 @@ class CaseFilter(django_filters.FilterSet):
         method='str_to_int',
         lookup_expr='in')
     defendant = django_filters.CharFilter(field_name="defendants__name_normalized",
-                                          lookup_expr='startswith', label="Ответчик")
+                                          lookup_expr='istartswith', label="Ответчик")
     defendant_hidden = django_filters.BooleanFilter(field_name="defendants_hidden")
     penalty_type = django_filters.ChoiceFilter(field_name="penalties__type", choices=PENALTY_TYPES)
     has_penalty = django_filters.BooleanFilter(field_name="penalties", method='filter_has_penalty',
