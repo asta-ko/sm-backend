@@ -1,7 +1,6 @@
-import traceback
-
 import editdistance
 import reversion
+import logging
 from django.conf import settings
 from django.contrib.postgres.fields import ArrayField
 from django.contrib.postgres.indexes import GinIndex
@@ -14,6 +13,8 @@ from oi_sud.cases.parsers.result_texts import kp_extractor
 from oi_sud.cases.utils import normalize_name, parse_name_and_get_gender
 from oi_sud.core.consts import region_choices
 from oi_sud.core.utils import DictDiffer, nullable
+
+logger = logging.getLogger(__name__)
 
 CASE_TYPES = (
     (1, 'Дело об административном правонарушении'),
@@ -59,10 +60,11 @@ class CaseManager(models.Manager):
                 for event in item['events']:
                     event['case'] = case
                     CaseEvent.objects.create(**event)
-                print('saved case ', case)
+                logger.debug(f'Saved new case: {case}')
                 return case
-            except Exception:
-                print(traceback.format_exc())
+            except Exception as e:
+                logger.error(f'Failed to save case: {e}')
+                logger.debug(item)
 
 
 class Case(models.Model):
@@ -169,19 +171,16 @@ class Case(models.Model):
             url = self.url
             if self.court.site_type != 3:
                 url = url + '&nc=1'
-            # print(url)
             raw_data = parser.get_raw_case_information(url)
             fresh_data = {i: j for i, j in parser.serialize_data(raw_data).items() if j is not None}
             fresh_data['case'] = {k: v for k, v in fresh_data['case'].items() if v is not None}
             self.update_if_needed(fresh_data)
-        except:  # NOQA
-            print('error: ', self.url)
-            print(traceback.format_exc())
+        except Exception as e:  # NOQA
+            logger.error(f'Failed to update case: {e}, case admin url: {self.get_admin_url()}, case url: {self.url}')
 
     def update_if_needed(self, fresh_data):
 
         old_data = self.serialize()
-        # print(old_data, fresh_data)
 
         if not old_data['case'].get('result_text') and fresh_data['case'].get('result_text'):
             fresh_data['case']['result_published_date'] = timezone.now()
@@ -191,13 +190,13 @@ class Case(models.Model):
         with reversion.create_revision():
             diff_keys = []
             if fresh_data['case'] != old_data['case']:
-                print(f'Updating case... {self}')
+                logger.debug(f'Updating case... {self}')
                 diff_keys += DictDiffer(fresh_data['case'], old_data['case']).get_all_diff_keys()
                 self.__dict__.update(fresh_data['case'])
                 self.save()
 
             if fresh_data['defenses'] != old_data['defenses']:
-                print(f'Updating case defendants... {self}')
+                logger.debug(f'Updating case defendants... {self}')
                 for d in fresh_data['defenses']:
                     articles = d['codex_articles']
                     defendant = d['defendant']
@@ -207,7 +206,7 @@ class Case(models.Model):
                 diff_keys.append('defenses')
 
             if fresh_data['events'] != old_data['events']:
-                print(f'Updating case events... {self}')
+                logger.debug(f'Updating case events... {self}')
                 for event in fresh_data['events']:
                     event['case'] = self
                     obj, created = CaseEvent.objects.update_or_create(**event)
@@ -277,10 +276,9 @@ class Case(models.Model):
                                                    **result[penalty_type])
                         break
         except IntegrityError:
-            print('integrity error')
+            logger.warning(f'Saving penalty integrity error {self.get_admin_url()}')
         except Exception as e:
-            print('saving error', self.get_admin_url())
-            print(e)
+            logger.error(f'Saving penalty error {e}: {self.get_admin_url()}')
             CasePenalty.objects.filter(case=self).delete()
             CasePenalty.objects.create(type='error', case=self, is_hidden=False, defendant=self.defendants.first())
             # сохраняем ошибку

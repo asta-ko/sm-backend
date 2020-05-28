@@ -24,8 +24,7 @@ class CommonParser(object):
                 'response': callback
                 }) for u in urls)
             for r in rs:
-                resp = r.result()
-                print(resp)
+                r.result()
 
     def send_get_request(self, url, gen_useragent=True, extended=False):
         """accessory function for sending requests"""

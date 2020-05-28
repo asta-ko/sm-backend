@@ -1,3 +1,4 @@
+import logging
 import re
 import time
 
@@ -12,6 +13,8 @@ from oi_sud.codex.models import CodexArticle
 from oi_sud.core.parser import CommonParser
 from oi_sud.core.utils import get_query_key
 from oi_sud.courts.models import Court
+
+logger = logging.getLogger(__name__)
 
 dateparse_settings.TIMEZONE = str(get_current_timezone())
 dateparse_settings.RETURN_AS_TIMEZONE_AWARE = False
@@ -41,14 +44,11 @@ class RFCourtSiteParser(CourtSiteParser):
     def get_cases_urls(self, url=None):
         # Получаем все урлы дел в данном суде
 
-        print(url, 'url')
-
         if not url:
             url = self.url
         txt, status_code = self.send_get_request(url)
         if status_code != 200:
-            print("GET error: ", status_code)
-            print('Unable to save cases')
+            logging.error(f"GET error: unable to get rf cases - {status_code} {url}")
             return None
         first_page = BeautifulSoup(txt, 'html.parser')
         pages_number = self.get_pages_number(first_page)  # TODO CHANGE
@@ -64,7 +64,7 @@ class RFCourtSiteParser(CourtSiteParser):
             for url in pages_urls:
                 txt, status_code = self.send_get_request(url)
                 if status_code != 200:
-                    print("GET error: ", status_code)
+                    logging.error(f"GET error: rf cases - {status_code} {url}")
                     continue
                 page = BeautifulSoup(txt, 'html.parser')
                 all_pages.append(page)
@@ -78,11 +78,10 @@ class RFCourtSiteParser(CourtSiteParser):
                 all_cases_urls += urls
             except AttributeError:
                 pass
-
-        if all_cases_urls == []:
-            print(self.court, '...Got no cases urls')
+        if not all_cases_urls:
+            logger.debug('Getting rf cases... Got no cases urls')
         else:
-            print(self.court, '...Got all cases urls')
+            logger.debug(f'Getting rf cases... Got {len(all_cases_urls)} cases urls')
 
         return all_cases_urls
 
@@ -202,7 +201,6 @@ class RFCourtSiteParser(CourtSiteParser):
         for tr in trs:
             if 'Информация скрыта' in tr.text:
                 defendants_hidden = True
-                print(defendants_hidden, 'hidden')
 
             if 'ФИО' in tr.text or 'статей' in tr.text \
                     or 'Фамилия' in tr.text \
@@ -215,7 +213,6 @@ class RFCourtSiteParser(CourtSiteParser):
             if len(tds) > defendant_index and len(tds) > codex_articles_index:
                 defendant = tds[defendant_index].text.strip()
                 codex_articles = tds[codex_articles_index].text.strip()
-                print(defendant, codex_articles)
                 defenses.append({'defendant': defendant, 'codex_articles': codex_articles})
 
         return defenses, defendants_hidden
@@ -264,7 +261,7 @@ class FirstParser(RFCourtSiteParser):
         # получаем текст решения
         txt, status_code = self.send_get_request(url)
         if status_code != 200:
-            print("GET error: ", status_code)
+            logging.error(f"GET error: rf case result text - {status_code} {url}")
             return None
         page = BeautifulSoup(txt, 'html.parser')
         result_text_span = page.find('span')
@@ -299,7 +296,7 @@ class FirstParser(RFCourtSiteParser):
         case_info = {}
         txt, status_code = self.send_get_request(url)
         if status_code != 200:
-            print("GET error: ", status_code)
+            logging.error(f"GET error: rf case - {status_code} {url}")
             return
         page = BeautifulSoup(txt, 'html.parser')
         case_info['case_number'] = page.find('div', class_='casenumber').text.replace('ДЕЛО № ', '')
@@ -390,7 +387,7 @@ class SecondParser(RFCourtSiteParser):
         case_info = {}
         txt, status_code = self.send_get_request(url)
         if status_code != 200:
-            print("GET error: ", status_code)
+            logging.error(f"GET error: rf case - {status_code} {url}")
             return None
         page = BeautifulSoup(txt, 'html.parser')
         case_info['case_number'] = page.find('div', class_='case-num').text.replace('дело № ', '').replace('ДЕЛО № ',
@@ -502,7 +499,6 @@ class RFCasesGetter(CommonParser):
                 url = self.generate_url(court, params, instance)
                 if court.site_type == 2:
                     url = url.replace('XXX', court.vn_kod)
-                    print(url, 'urlll')
                     result = SecondParser(court=court, stage=instance, codex=self.codex, url=url).save_cases()
                     all_results[court.title] = result
                 elif court.site_type == 1:
@@ -510,12 +506,11 @@ class RFCasesGetter(CommonParser):
                     all_results[court.title] = result
 
             except Exception as e:
-                print(e)
+                logger.error(f'Error getting rf cases {e}')
 
                 court.not_available = True
                 court.save()
                 all_results[court.title] = 'error'
-
-        print("--- %s seconds ---" % (time.time() - start_time))
-        print(all_results)
+        logger.info("--- %s seconds ---" % (time.time() - start_time))
+        logger.info(all_results)
         return all_results

@@ -60,7 +60,6 @@ INSTALLED_APPS = [
     'oi_sud.codex.apps.CodexConfig',
     'oi_sud.cases.apps.CasesConfig',
     'oi_sud.users.apps.UsersConfig',
-    #'oi_sud.presets.apps.PresetsConfig'
 
 ]
 
@@ -73,7 +72,6 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-
 ]
 
 CORS_ORIGIN_ALLOW_ALL = True
@@ -310,3 +308,16 @@ ADD_REVERSION_ADMIN=True
 
 CHORD_UNLOCK_MAX_RETRIES=60
 
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': 'DEBUG',
+    },
+}

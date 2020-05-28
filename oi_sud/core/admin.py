@@ -14,12 +14,10 @@ def get_item(dictionary, key):
 
 def admin_celery_view(request):
     r = requests.get('http://flower:8888/api/tasks?state=STARTED')
-    print(r.json())
 
     arr = []
     for k, v in r.json().items():
         arr.append(v)
-    print(arr)
     context = {
         'title': 'Celery running tasks',
         'tasks': arr,

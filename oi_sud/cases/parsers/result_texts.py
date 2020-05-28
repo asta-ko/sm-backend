@@ -1,6 +1,9 @@
+import logging
 import re
 
 import pymorphy2
+
+logger = logging.getLogger(__name__)
 
 
 class KoapPenaltyExtractor(object):
@@ -51,7 +54,8 @@ class KoapPenaltyExtractor(object):
 
         # проверяем, не было ли дело прекращено
         pattern_prekr = re.compile(
-            r'([П|п]роизводство|[Д|д]ел(о|а)).*прекратить|[П|п]рекратить.*(производство|дел(о|а))'
+            r'([П|п]роизводство|[Д|д]ел(о|а)).*прекратить|[П|п]рекратить.*(производство|дел(о|а))|'
+            r'.*([П|п]роизводство|[П|п]роизводство по делу|[Д|д]ел(о|а)|[П|п]о делу).*подлежит прекращению'
         )
         if pattern_prekr.search(decision_text) is not None:
             result['cancelled'] = True
@@ -106,8 +110,7 @@ class KoapPenaltyExtractor(object):
                 return result  # сразу отдаем результат
 
         except Exception as e:
-            print('error parsing')
-            print(e)
+            logging.error(f'Error parsing case result text: {e}')
 
         # проверяем, что мы получили какие-то данные, и если нет, прописываем ошибку в словарь результата
         is_result_empty = True
@@ -236,10 +239,12 @@ class KoapPenaltyExtractor(object):
 
         hidden_pattern_2 = re.compile(r'штраф(а|у|ом)? в? ?(<данные изъяты>|<?\.\.\.>?)|'
                                       r'штраф(а|у|ом)? в размере (<данные изъяты>|<?\.\.\.>?)')
-        pattern = re.compile(
-            r'штраф(а|у|ом)?,? (в доход государства )?(в сумме|в размере|размером|в размер|в)? ?(?P<fine>.+?) ?руб')
-        pattern_2 = re.compile(r'наказание в виде (административного )?(штрафа )?(в размере )?'
-                               r'(?P<fine>.+?)(\(.*\))?(руб|рублей)')
+
+        patterns = [re.compile(r'штраф(а|у|ом)?,? (в доход государства )'
+                               r'?(в сумме|в размере|размером|в размер|в|в виде|не менее)? ?(?P<fine>.+?) ?руб'),
+                    re.compile(r'наказание в виде (административного )?(штрафа )?(в размере )?(в виде )?(не менее )?'
+                    r'(?P<fine>.+?)(\(.*\))?(руб|рублей)')
+                    ]
         hidden_pattern = re.compile(
             r'штраф(а|у|ом)? (в доход государства )?(в сумме|в размере|размером|в размер)')
 
@@ -248,10 +253,9 @@ class KoapPenaltyExtractor(object):
         hidden = False
         fine = None
         # находим в строке с размером штрафа суммы, написанные цифрами, и суммы, написанные буквами
-        if pattern.search(decision_text):
-            fine = pattern.search(decision_text).group('fine')
-        elif pattern_2.search(decision_text):
-            fine = pattern_2.search(decision_text).group('fine')
+        for pattern in patterns:
+            if pattern.search(decision_text):
+                fine = pattern.search(decision_text).group('fine')
 
         if hidden_pattern_2.search(decision_text.lower()):
             not_found = False
