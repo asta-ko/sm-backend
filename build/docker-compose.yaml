@@ -152,6 +152,21 @@ services:
         labels: "instance,job"
         max-size: "1m"
 
+  celery_grouper:
+    container_name: sudmonster_celery_grouper
+    <<: *oi_sud
+    command: ["celery", "-A", "oi_sud", "worker", "-l", "info", "-Q", "grouper", "-c", "5", "-n", "grouper", "-Ofair"
+    ]
+    labels:
+      job: celery
+      instance: sudmonster
+    logging:
+      driver: loki
+      options:
+        loki-url: "https://loki.ovdinfo.org/api/prom/push"
+        labels: "instance,job"
+        max-size: "1m"
+
   celerybeat:
     container_name: sudmonster_celerybeat
     <<: *oi_sud
