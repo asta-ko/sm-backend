@@ -1,6 +1,9 @@
+import logging
 from django.db import models
 
 from oi_sud.core.utils import nullable
+
+logger = logging.getLogger(__name__)
 
 CODEX_CHOICES = (
     ('uk', 'УК'),
@@ -13,8 +16,7 @@ class ArticlesManager(models.Manager):
         articles = []
         for item in articles_list:  # ['19.3 ч.1',] -- для тестирования
             item_list = item.split(' ч.')
-            print(item_list)
-            print(len(item_list))
+
             article = item_list[0]
             if len(item_list) > 1:
 
@@ -25,15 +27,10 @@ class ArticlesManager(models.Manager):
             params = {'article_number': article}
             if part:
                 params['part'] = part
-            print(params, 'params')
             if codex:
                 params['codex'] = codex
-
             filtered_articles = super().get_queryset().filter(**params)
-            f_a = super().get_queryset().filter(article_number='20.2')
-            print(f_a)
-
-            print(filtered_articles, 'a')
+            logging.debug(f'filtered_articles{filtered_articles}')
             for a in filtered_articles:
                 articles.append(a)
         return articles

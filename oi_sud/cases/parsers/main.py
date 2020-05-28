@@ -1,4 +1,4 @@
-import traceback
+import logging
 
 import dateparser
 import pytz
@@ -11,6 +11,8 @@ from oi_sud.codex.models import CodexArticle
 from oi_sud.core.parser import CommonParser
 from oi_sud.courts.models import Judge
 from pytz import utc
+
+logger = logging.getLogger(__name__)
 
 dateparse_settings.TIMEZONE = str(get_current_timezone())
 dateparse_settings.RETURN_AS_TIMEZONE_AWARE = False
@@ -72,8 +74,7 @@ class CourtSiteParser(CommonParser):
                 result['proccessed'] += 1
                 result['new'] += 1
             except Exception as e:
-                print('error: ', case_url, e)
-                print(traceback.format_exc())
+                logging.error(f'Failed to save case: {case_url}, {e}')
                 result['errors'] += 1
                 result['error_urls'].append(case_url)
 

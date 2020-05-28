@@ -1,6 +1,9 @@
+import logging
 import re
 
 import pymorphy2
+
+logger = logging.getLogger(__name__)
 
 
 class KoapPenaltyExtractor(object):
@@ -107,8 +110,7 @@ class KoapPenaltyExtractor(object):
                 return result  # сразу отдаем результат
 
         except Exception as e:
-            print('error parsing')
-            print(e)
+            logging.error(f'Error parsing case result text: {e}')
 
         # проверяем, что мы получили какие-то данные, и если нет, прописываем ошибку в словарь результата
         is_result_empty = True
@@ -238,7 +240,8 @@ class KoapPenaltyExtractor(object):
         hidden_pattern_2 = re.compile(r'штраф(а|у|ом)? в? ?(<данные изъяты>|<?\.\.\.>?)|'
                                       r'штраф(а|у|ом)? в размере (<данные изъяты>|<?\.\.\.>?)')
 
-        patterns = [re.compile(r'штраф(а|у|ом)?,? (в доход государства )?(в сумме|в размере|размером|в размер|в|в виде|не менее)? ?(?P<fine>.+?) ?руб'),
+        patterns = [re.compile(r'штраф(а|у|ом)?,? (в доход государства )'
+                               r'?(в сумме|в размере|размером|в размер|в|в виде|не менее)? ?(?P<fine>.+?) ?руб'),
                     re.compile(r'наказание в виде (административного )?(штрафа )?(в размере )?(в виде )?(не менее )?'
                     r'(?P<fine>.+?)(\(.*\))?(руб|рублей)')
                     ]

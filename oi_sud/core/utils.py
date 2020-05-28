@@ -1,6 +1,8 @@
+import logging
 import re
-
 from urllib.parse import parse_qs, urlparse
+
+logger = logging.getLogger(__name__)
 
 
 def get_query_key(url, field):
@@ -20,7 +22,7 @@ def get_city_from_address(address_string):
     m = re.search(r'((город|деревня|поселок|село)\s*[А-Яа-я-\s0-9ё]+),', address_string)
     if m:
         return m.group(1)
-    print('Nothing found, address string ', address_string)
+    logger.warning('Getting city from address: nothing found, address string ', address_string)
 
 
 def chunks(l, n):
@@ -56,15 +58,16 @@ class DictDiffer(object):
         self.intersect = self.set_current.intersection(self.set_past)
 
     def added(self):
-        print(self.set_current - self.intersect, 'added')
+        logger.debug(f'Dict diff - added: {self.set_current - self.intersect}')
         return self.set_current - self.intersect
 
     def removed(self):
-        print(self.set_past - self.intersect, 'removed')
+        logger.debug(f'Dict diff - removed: {self.set_past - self.intersect}')
         return self.set_past - self.intersect
 
     def changed(self):
-        print(set(o for o in self.intersect if self.past_dict[o] != self.current_dict[o]), 'changed')
+        logger.debug(
+            f'Dict diff - changed: {set(o for o in self.intersect if self.past_dict[o] != self.current_dict[o])}')
         return set(o for o in self.intersect if self.past_dict[o] != self.current_dict[o])
 
     def unchanged(self):
