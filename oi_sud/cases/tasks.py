@@ -41,9 +41,9 @@ def get_start_date(delta_days):
 
 
 @shared_task  # (base=QueueOnce, once={'graceful': True})
-def main_get_cases(newest=False):
+def main_get_cases(newest=False, codex=None):
     for region in region_choices:
-        get_cases_from_region.s(region=region[0], newest=newest).apply_async(queue='main')
+        get_cases_from_region.s(region=region[0], newest=newest, codex=codex).apply_async(queue='main')
 
 
 @shared_task
@@ -65,7 +65,7 @@ def update_cases_by_week_day():
 
 
 @shared_task  # (bind=True)
-def get_cases_from_region(region=78, newest=False):
+def get_cases_from_region(region=78, newest=False, codex=None):
     # progress_recorder = ProgressRecorder(self)
     callback = group_by_region.si(region=region).set(queue="other")
     header = []
@@ -74,11 +74,18 @@ def get_cases_from_region(region=78, newest=False):
     chunked_courts = chunks(region_courts.values_list('id', flat=True), 10)
 
     for chunk in chunked_courts:
-        header += [get_koap_cases_first.si(chunk, newest=newest).set(queue="other"),
-                   get_koap_cases_second.si(chunk, newest=newest).set(queue="other"),
-                   get_uk_cases_first.si(chunk, newest=newest).set(queue="other"),
-                   get_uk_cases_second.si(chunk, newest=newest).set(queue="other")
-                   ]
+
+        if not codex:
+            header += [get_koap_cases_first.si(chunk, newest=newest).set(queue="other"),
+                       get_koap_cases_second.si(chunk, newest=newest).set(queue="other"),
+                       get_uk_cases_first.si(chunk, newest=newest).set(queue="other"),
+                       get_uk_cases_second.si(chunk, newest=newest).set(queue="other")]
+        elif codex == 'koap':
+            header += [get_koap_cases_first.si(chunk, newest=newest).set(queue="other"),
+                       get_koap_cases_second.si(chunk, newest=newest).set(queue="other")]
+        elif codex == 'uk':
+            header += [get_uk_cases_first.si(chunk, newest=newest).set(queue="other"),
+                       get_uk_cases_second.si(chunk, newest=newest).set(queue="other")]
 
     # result_progress, result = progress_chord(header)(callback)
     # result.apply_async()

@@ -130,6 +130,12 @@ services:
     labels:
       job: celery
       instance: sudmonster
+    logging:
+      driver: loki
+      options:
+        loki-url: "https://loki.ovdinfo.org/api/prom/push"
+        labels: "instance,job"
+        max-size: "1m"
 
   celery_other:
     container_name: sudmonster_celery_other
@@ -139,6 +145,12 @@ services:
     labels:
       job: celery
       instance: sudmonster
+    logging:
+      driver: loki
+      options:
+        loki-url: "https://loki.ovdinfo.org/api/prom/push"
+        labels: "instance,job"
+        max-size: "1m"
 
   celerybeat:
     container_name: sudmonster_celerybeat
