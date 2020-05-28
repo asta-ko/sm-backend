@@ -31,8 +31,7 @@ def limit_chord_unlock_tasks(worker, **kwargs):
     """
     task = worker.app.tasks['celery.chord_unlock']
     if task.max_retries is None:
-        retries = getattr(worker.app.conf, 'CHORD_UNLOCK_MAX_RETRIES', None)
-        task.max_retries = retries
+        task.max_retries = 15
 
 
 def get_start_date(delta_days):
@@ -41,9 +40,13 @@ def get_start_date(delta_days):
 
 
 @shared_task  # (base=QueueOnce, once={'graceful': True})
-def main_get_cases(newest=False, codex=None):
-    for region in region_choices:
-        get_cases_from_region.s(region=region[0], newest=newest, codex=codex).apply_async(queue='main')
+def main_get_cases(newest=False, codex=None, custom_regions=None):
+    if not custom_regions:
+        for region in region_choices:
+            get_cases_from_region.s(region=region[0], newest=newest, codex=codex).apply_async(queue='main')
+    else:
+        for region in custom_regions:
+            get_cases_from_region.s(region=region, newest=newest, codex=codex).apply_async(queue='main')
 
 
 @shared_task
