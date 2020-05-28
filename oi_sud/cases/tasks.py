@@ -70,7 +70,7 @@ def update_cases_by_week_day():
 @shared_task  # (bind=True)
 def get_cases_from_region(region=78, newest=False, codex=None):
     # progress_recorder = ProgressRecorder(self)
-    callback = group_by_region.si(region=region).set(queue="other")
+    callback = group_by_region.si(region=region).set(queue="grouper")
     header = []
 
     region_courts = Court.objects.exclude(type=9).filter(region=region)
@@ -159,7 +159,7 @@ def get_moscow_uk_cases_second(newest=False):
 
 @shared_task
 def get_moscow_cases(newest=False):
-    callback = group_moscow_cases.si().set(queue="other")
+    callback = group_moscow_cases.si().set(queue="grouper")
     header = []
 
     header += [get_moscow_koap_cases_first.si(newest=newest).set(queue="other"),
@@ -233,4 +233,4 @@ def update_spb():
 @shared_task
 def group_all():
     for region in [x for x in dict(region_choices).keys() if x not in [77, 78]]:
-        group_by_region.s(region).apply_async(queue="other")
+        group_by_region.s(region).apply_async(queue="grouper")
