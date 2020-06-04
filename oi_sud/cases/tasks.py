@@ -74,7 +74,7 @@ def get_cases_from_region(region=78, newest=False, codex=None):
     header = []
 
     region_courts = Court.objects.exclude(type=9).filter(region=region)
-    chunked_courts = chunks(region_courts.values_list('id', flat=True), 10)
+    chunked_courts = chunks(region_courts.values_list('id', flat=True), 2)
 
     for chunk in chunked_courts:
 

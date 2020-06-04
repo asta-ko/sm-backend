@@ -60,6 +60,7 @@ INSTALLED_APPS = [
     'oi_sud.codex.apps.CodexConfig',
     'oi_sud.cases.apps.CasesConfig',
     'oi_sud.users.apps.UsersConfig',
+    'oi_sud.presets.apps.PresetsConfig'
 
 ]
 

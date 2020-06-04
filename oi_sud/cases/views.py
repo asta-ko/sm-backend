@@ -94,6 +94,7 @@ class CaseFilter(django_filters.FilterSet):
         lookup_expr='in')
     defendant = django_filters.CharFilter(field_name="defendants__name_normalized",
                                           lookup_expr='istartswith', label="Ответчик")
+    defendant_gender = django_filters.CharFilter(field_name='defendants__gender', method='filter_defendant_gender',label='Пол ответчика')
     defendant_hidden = django_filters.BooleanFilter(field_name="defendants_hidden")
     penalty_type = django_filters.ChoiceFilter(field_name="penalties__type", choices=PENALTY_TYPES)
     has_penalty = django_filters.BooleanFilter(field_name="penalties", method='filter_has_penalty',
@@ -175,6 +176,14 @@ class CaseFilter(django_filters.FilterSet):
         # construct the full lookup expression.
         lookup = '__'.join([name, 'isnull'])
         return queryset.filter(**{lookup: not value})
+
+    def filter_defendant_gender(self, queryset, name, value):
+        if value == 'm':
+            return queryset.filter(defendants__gender='2')
+        elif value == 'f':
+            return queryset.filter(defendants__gender='1')
+        elif value == 'na':
+            return queryset.filter(defendants__gender__isnull=True)
 
     def str_to_int(self, queryset, name, value):
         # construct the full lookup expression.

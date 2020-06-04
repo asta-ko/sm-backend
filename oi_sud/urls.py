@@ -18,6 +18,8 @@ from oi_sud.core.admin import admin_celery_view, get_progress
 from oi_sud.core.views import DebugView
 from oi_sud.courts.views import CourtsDebugView, CourtsSearchView, CourtsView, JudgesSearchView
 from oi_sud.users.views import CurrentUserView, LogoutView
+from oi_sud.presets.views import FilterPresetViewSet, FilterPresetCategoryViewSet
+from rest_framework.routers import DefaultRouter
 from rest_framework_expiring_authtoken.views import obtain_expiring_auth_token
 
 admin.site.site_header = 'OVD-info Sud Monster'
@@ -27,6 +29,10 @@ def current_datetime(request):
     now = datetime.datetime.now()
     html = "<html><body>It is now %s.</body></html>" % now
     return HttpResponse(html)
+
+router = DefaultRouter()
+router.register(r'api/v1/presets', FilterPresetViewSet, basename='preset')
+router.register(r'api/v1/presetcategories', FilterPresetCategoryViewSet, basename='presetcategory')
 
 
 urlpatterns = [
@@ -63,6 +69,8 @@ urlpatterns = [
     path('admin/active_celery_tasks/', admin_celery_view),
     path('admin/', admin.site.urls),
     ]
+
+urlpatterns += router.urls
 
 if settings.DEBUG:
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
