@@ -10,7 +10,7 @@ from oi_sud.cases.dataviews import (
     DataRegionsViewByMetrics, FrontCountCasesView,
     )
 from oi_sud.cases.views import (
-    CaseView, CasesEventTypesView, CasesResultTextView, CasesResultTypesView, CasesView, SimpleCasesView,
+    CaseView, CasesEventTypesView, CasesResultTextView, CasesResultTypesView, CasesView, CasesFlexView, SimpleCasesView,
     get_result_text,
     )
 from oi_sud.codex.views import CodexArticleIListView, CodexArticleListView, CodexArticleSearchView
@@ -21,6 +21,7 @@ from oi_sud.users.views import CurrentUserView, LogoutView
 from oi_sud.presets.views import FilterPresetViewSet, FilterPresetCategoryViewSet
 from rest_framework.routers import DefaultRouter
 from rest_framework_expiring_authtoken.views import obtain_expiring_auth_token
+from rest_framework.urlpatterns import format_suffix_patterns
 
 admin.site.site_header = 'OVD-info Sud Monster'
 
@@ -35,7 +36,13 @@ router.register(r'api/v1/presets', FilterPresetViewSet, basename='preset')
 router.register(r'api/v1/presetcategories', FilterPresetCategoryViewSet, basename='presetcategory')
 
 
-urlpatterns = [
+urlpatterns = format_suffix_patterns([
+    path('api/v1/data/casesflex/export', CasesFlexView.as_view(), name='flex-case-list'),
+
+    path('api/v1/data/regions_by_metrics/export', DataRegionsViewByMetrics.as_view()),
+    path('api/v1/data/metrics_by_years/export', DataMetricsViewByYears.as_view()),
+    path('api/v1/data/courts_by_metrics/export', DataCourtsViewByMetrics.as_view()),
+    ]) + [
     path('check/', current_datetime),
     path('api/v1/users/me/', CurrentUserView.as_view(), name='current-user'),
     path('api/v1/token/', obtain_expiring_auth_token, name='token_obtain_pair'),
@@ -50,12 +57,6 @@ urlpatterns = [
     path('api/v1/judgessearch/', JudgesSearchView.as_view(), name='judges-search'),
     path('api/v1/countcases/', CountCasesView.as_view()),
     path('api/v1/frontcountcases/', FrontCountCasesView.as_view()),
-    path('api/v1/data/metrics_by_years/', DataMetricsViewByYears.as_view()),
-    re_path(r'^api/v1/data/metrics_by_years/.+\.[csv|xls|xlsx|png]', DataMetricsViewByYears.as_view()),
-    path('api/v1/data/regions_by_metrics/', DataRegionsViewByMetrics.as_view()),
-    re_path(r'^api/v1/data/regions_by_metrics/.+\.[csv|xls|xlsx|png]', DataRegionsViewByMetrics.as_view()),
-    path('api/v1/data/courts_by_metrics/', DataCourtsViewByMetrics.as_view()),
-    re_path(r'^api/v1/data/courts_by_metrics/.+\.[csv|xls|xlsx|png]', DataCourtsViewByMetrics.as_view()),
     path('api/v1/casesresulttypes/', CasesResultTypesView.as_view(), name='cases-result-types'),
     path('api/v1/caseseventstypes/', CasesEventTypesView.as_view(), name='cases-events-types'),
     path('api/v1/cases/', SimpleCasesView.as_view(), name='case-list'),
@@ -63,14 +64,19 @@ urlpatterns = [
     path('api/v1/casestexts/', CasesResultTextView.as_view(), name='case-result-list'),
     path('api/v1/cases/<int:pk>/', CaseView.as_view(), name='case-detail'),
     path('case/<int:case_id>/result.txt', get_result_text, name='case-result-text'),
+    path('api/v1/data/regions_by_metrics/', DataRegionsViewByMetrics.as_view()),
+    path('api/v1/data/metrics_by_years/', DataMetricsViewByYears.as_view()),
+    path('api/v1/data/courts_by_metrics/', DataCourtsViewByMetrics.as_view()),
     path('jet/', include('jet.urls', 'jet')),
     re_path(r'^celery_progress/(?P<task_id>[\w-]+)$', get_progress, name='task_status'),
-
     path('admin/active_celery_tasks/', admin_celery_view),
     path('admin/', admin.site.urls),
     ]
 
+
+
 urlpatterns += router.urls
+
 
 if settings.DEBUG:
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

@@ -183,7 +183,9 @@ all_metrics = {
     'penalties_arrests_hidden': 'Всего арестов зацензурено',
     'penalties_works_hidden': 'Всего работ зацензурено',
     'defendants_hidden': 'Ответчики зацензурены',
-
+    'defendants_f': 'Пол Ж',
+    'defendants_m': 'Пол М',
+    'defendants_na': 'Пол ?'
     }
 
 RESULTS_FORWARDED = ['Дело присоединено к другому делу', 'Направлено по подведомственности',
@@ -259,6 +261,12 @@ class DataView(PandasSimpleView):
             filters['result_date__isnull'] = False
         if name == 'defendants_hidden':
             filters['defendants_hidden'] = True
+        if name == 'defendants_f':
+            filters['defendants__gender'] = 1
+        if name == 'defendants_m':
+            filters['defendants__gender'] = 2
+        if name == 'defendants_na':
+            filters['defendants__gender__isnull'] = True
         if name == 'penalties_all':
             filters['penalties__isnull'] = False
         if name == 'penalties_hidden':
