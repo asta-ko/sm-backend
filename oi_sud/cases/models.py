@@ -1,6 +1,7 @@
+import logging
+
 import editdistance
 import reversion
-import logging
 from django.conf import settings
 from django.contrib.postgres.fields import ArrayField
 from django.contrib.postgres.indexes import GinIndex
@@ -10,7 +11,7 @@ from django.db import models
 from django.urls import reverse
 from django.utils import timezone
 from oi_sud.cases.parsers.result_texts import kp_extractor
-from oi_sud.cases.utils import normalize_name, parse_name_and_get_gender
+from oi_sud.cases.utils import get_gender, normalize_name, parse_name
 from oi_sud.core.consts import region_choices
 from oi_sud.core.utils import DictDiffer, nullable
 
@@ -389,7 +390,7 @@ class DefendantManager(models.Manager):
     @staticmethod
     def create_from_name(name, region):
 
-        names, gender = parse_name_and_get_gender(name)
+        names = parse_name(name)
         normalized_name = normalize_name(name)
         if len(names) and Defendant.objects.filter(region=region, last_name=names[0], first_name=names[1],
                                                    middle_name=names[2]).exists():  # Совпадают регион и ФИО полностью
@@ -413,10 +414,17 @@ class DefendantManager(models.Manager):
                 'region': region,
                 'name_normalized': normalized_name
                 }
+
+            gender = None
+
             if len(names):
                 d_dict['last_name'] = names[0]
                 d_dict['first_name'] = names[1]
                 d_dict['middle_name'] = names[2]
+                gender = get_gender(names[1], names[0])
+            else:
+                gender = get_gender(None, normalized_name.split(' ')[0])
+
             if gender:
                 d_dict['gender'] = gender
             defendant = Defendant(**d_dict)
@@ -443,6 +451,12 @@ class Defendant(models.Model):
 
     def normalize_name(self):
         return normalize_name(self.name)
+
+    def get_gender(self):
+        if self.first_name:
+            return get_gender(self.first_name, self.last_name)
+        else:
+            return get_gender(None, self.name_normalized.split(' ')[0])
 
     class Meta:
         verbose_name = 'Ответчик'

@@ -10,7 +10,9 @@ from django.views.decorators.cache import cache_page
 from django_filters.rest_framework import DjangoFilterBackend
 from django_filters.widgets import RangeWidget
 from oi_sud.cases.models import Case, CaseEvent, PENALTY_TYPES
-from oi_sud.cases.serializers import CaseFullSerializer, CaseResultSerializer, CaseSerializer, SimpleCaseSerializer
+from oi_sud.cases.serializers import (
+    CaseFlexSerializer, CaseFullSerializer, CaseResultSerializer, CaseSerializer, SimpleCaseSerializer,
+    )
 from oi_sud.core.consts import region_choices
 from rest_framework import filters
 from rest_framework import permissions
@@ -19,6 +21,7 @@ from rest_framework.generics import RetrieveAPIView
 from rest_framework.renderers import AdminRenderer
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_pandas import (PandasCSVRenderer, PandasExcelRenderer, PandasView)
 
 
 def get_result_text(request, case_id):
@@ -94,6 +97,8 @@ class CaseFilter(django_filters.FilterSet):
         lookup_expr='in')
     defendant = django_filters.CharFilter(field_name="defendants__name_normalized",
                                           lookup_expr='istartswith', label="Ответчик")
+    defendant_gender = django_filters.CharFilter(field_name='defendants__gender', method='filter_defendant_gender',
+                                                 label='Пол ответчика')
     defendant_hidden = django_filters.BooleanFilter(field_name="defendants_hidden")
     penalty_type = django_filters.ChoiceFilter(field_name="penalties__type", choices=PENALTY_TYPES)
     has_penalty = django_filters.BooleanFilter(field_name="penalties", method='filter_has_penalty',
@@ -176,6 +181,14 @@ class CaseFilter(django_filters.FilterSet):
         lookup = '__'.join([name, 'isnull'])
         return queryset.filter(**{lookup: not value})
 
+    def filter_defendant_gender(self, queryset, name, value):
+        if value == 'm':
+            return queryset.filter(defendants__gender='2')
+        elif value == 'f':
+            return queryset.filter(defendants__gender='1')
+        elif value == 'na':
+            return queryset.filter(defendants__gender__isnull=True)
+
     def str_to_int(self, queryset, name, value):
         # construct the full lookup expression.
         lookup = '__'.join([name, 'in'])
@@ -232,6 +245,11 @@ class CasesView(ListAPIView):
     @method_decorator(cache_page(60 * 60 * 1))
     def dispatch(self, *args, **kwargs):
         return super().dispatch(*args, **kwargs)
+
+
+class CasesFlexView(PandasView, CasesView):
+    serializer_class = CaseFlexSerializer
+    renderer_classes = [PandasCSVRenderer, PandasExcelRenderer]
 
 
 class SimpleCasesView(CasesView):
