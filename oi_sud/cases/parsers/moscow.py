@@ -65,6 +65,7 @@ class MoscowParser(CourtSiteParser):
         for ev in events:
             ev_cols = ev.findAll('td')
             href = 'https://mos-gorsud.ru' + ev_cols[0]('a')[0]['href']
+            href = href.split('?')[0]
             # проверка на точное соотстветствие, иначе смешает, например, ч.6 и ч.6.1
             if ev_cols[4].text.strip() != self.get_article_string():
                 logger.warning(
