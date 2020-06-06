@@ -1,6 +1,7 @@
 from oi_sud.cases.models import Case, CaseEvent, CasePenalty, Defendant
 from oi_sud.core.api_utils import SkipNullValuesMixin
 from rest_framework import serializers
+from rest_pandas.serializers import PandasSerializer
 from reversion.models import Version
 
 
@@ -34,7 +35,10 @@ class PenaltySerializer(SkipNullValuesMixin, serializers.ModelSerializer):
         exclude = ['id', 'case', 'defendant']
 
 
-class CaseSerializer(SkipNullValuesMixin, serializers.ModelSerializer):
+from rest_flex_fields import FlexFieldsModelSerializer
+
+
+class BaseCaseSerializer(SkipNullValuesMixin, serializers.ModelSerializer):
     in_favorites = serializers.SerializerMethodField()
     judge = serializers.SerializerMethodField()
     court = serializers.SerializerMethodField()
@@ -49,6 +53,7 @@ class CaseSerializer(SkipNullValuesMixin, serializers.ModelSerializer):
     api_url = serializers.HyperlinkedIdentityField(view_name='case-detail')
     result_text_url = serializers.SerializerMethodField()
     penalties = PenaltySerializer(many=True, read_only=True)
+    penalty = serializers.SerializerMethodField()
     linked_cases = serializers.HyperlinkedRelatedField(
         many=True,
         read_only=True,
@@ -108,6 +113,17 @@ class CaseSerializer(SkipNullValuesMixin, serializers.ModelSerializer):
     def get_result_text_url(self, obj):
         if obj.result_text:
             return obj.get_result_text_url()
+
+
+class CaseSerializer(BaseCaseSerializer, SkipNullValuesMixin):
+    pass
+
+
+class CaseFlexSerializer(FlexFieldsModelSerializer, BaseCaseSerializer):
+    class Meta:
+        list_serializer_class = PandasSerializer
+        model = Case
+        exclude = ['result_text', 'advocates', 'text_search']
 
 
 class SimpleCaseSerializer(SkipNullValuesMixin, serializers.ModelSerializer):

@@ -65,6 +65,7 @@ class MoscowParser(CourtSiteParser):
         for ev in events:
             ev_cols = ev.findAll('td')
             href = 'https://mos-gorsud.ru' + ev_cols[0]('a')[0]['href']
+            href = href.split('?')[0]
             # проверка на точное соотстветствие, иначе смешает, например, ч.6 и ч.6.1
             if ev_cols[4].text.strip() != self.get_article_string():
                 logger.warning(
@@ -123,17 +124,18 @@ class MoscowParser(CourtSiteParser):
             text = parser.process(filename, 'utf-8')
             return text
         except Exception as e:
-            logger.critical('Could not process moscow result text file')
             return ''
 
     def url_to_str(self, url):
         """ выгружает текст из файла doc / docx, загружаемого по ссылке """
         file_res, status, content, extension = self.send_get_request(url, extended=True)
-        if not extension:
-            extension = 'docx'
+
         bytes0 = content  # file_res#[2]
-        filename = "txt." + extension
+        filename = "txt"
+        if extension:
+            filename += f'.{extension}'
         f = open(filename, 'wb')
+
         f.write(bytes0)
         f.close()
 
@@ -143,8 +145,12 @@ class MoscowParser(CourtSiteParser):
             return self.try_to_parse_result_text(DocParser(), filename)
         elif not extension:
             docx = self.try_to_parse_result_text(DocXParser(), filename)
-            if not docx:
+            if docx:
+                return docx
+            else:
                 return self.try_to_parse_result_text(DocParser(), filename)
+        else:
+            logger.critical(f'{url}: Could not process moscow result text file')
 
     def get_raw_case_information(self, url):
 

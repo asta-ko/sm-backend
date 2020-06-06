@@ -44,7 +44,7 @@ services:
       - ./:/code
       - ./.docker/static:/var/www/static
       - ./.docker/media:/var/www/media
-    command: ["gunicorn", "oi_sud.wsgi:application", "-b", "0.0.0.0:8081", "--name", "oi_sud", "--reload", "--log-level", "debug",  "-w", "5"]
+    command: ["gunicorn", "oi_sud.wsgi:application", "-b", "0.0.0.0:8081", "--name", "oi_sud", "--reload", "--log-level", "info",  "-w", "5"]
     ports:
       - "8082:8081"
 
