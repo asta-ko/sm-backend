@@ -333,7 +333,7 @@ class CasesStreamingView(CasesView):
             if 'fields' in self.request.GET else None)
         return context
 
-    queryset = Case.objects.all()
+    #queryset = Case.objects.all()
 
 
 class SimpleCasesView(CasesView):
