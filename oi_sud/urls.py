@@ -10,7 +10,7 @@ from oi_sud.cases.dataviews import (
     DataRegionsViewByMetrics, FrontCountCasesView,
     )
 from oi_sud.cases.views import (
-    CaseView, CasesEventTypesView, CasesResultTextView, CasesResultTypesView, CasesView, CasesFlexView, SimpleCasesView,
+    CaseView, CasesEventTypesView, CasesResultTextView, CasesResultTypesView, CasesView, CasesStreamingView, CasesFlexView, SimpleCasesView,
     get_result_text,
     )
 from oi_sud.codex.views import CodexArticleIListView, CodexArticleListView, CodexArticleSearchView
@@ -37,7 +37,7 @@ router.register(r'api/v1/presetcategories', FilterPresetCategoryViewSet, basenam
 
 
 urlpatterns = format_suffix_patterns([
-    path('api/v1/data/casesflex/export', CasesFlexView.as_view(), name='flex-case-list'),
+    #path('api/v1/data/casesflex/export', CasesFlexView.as_view(), name='flex-case-list'),
 
     path('api/v1/data/regions_by_metrics/export', DataRegionsViewByMetrics.as_view()),
     path('api/v1/data/metrics_by_years/export', DataMetricsViewByYears.as_view()),
@@ -67,6 +67,8 @@ urlpatterns = format_suffix_patterns([
     path('api/v1/data/regions_by_metrics/', DataRegionsViewByMetrics.as_view()),
     path('api/v1/data/metrics_by_years/', DataMetricsViewByYears.as_view()),
     path('api/v1/data/courts_by_metrics/', DataCourtsViewByMetrics.as_view()),
+    path('api/v1/data/casescsv/export', CasesStreamingView.as_view(), name='flex-case-list'),
+
     path('jet/', include('jet.urls', 'jet')),
     re_path(r'^celery_progress/(?P<task_id>[\w-]+)$', get_progress, name='task_status'),
     path('admin/active_celery_tasks/', admin_celery_view),
