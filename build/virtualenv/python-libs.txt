@@ -59,5 +59,3 @@ zipp==3.1.0
 django-redis
 django-chunkator
 djangorestframework-csv
-greenlet
-gevent
