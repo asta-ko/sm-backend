@@ -35,7 +35,6 @@ class PenaltySerializer(SkipNullValuesMixin, serializers.ModelSerializer):
         exclude = ['id', 'case', 'defendant']
 
 
-from rest_flex_fields import FlexFieldsModelSerializer
 
 
 class BaseCaseSerializer(SkipNullValuesMixin, serializers.ModelSerializer):
@@ -119,11 +118,6 @@ class CaseSerializer(BaseCaseSerializer, SkipNullValuesMixin):
     pass
 
 
-class CaseFlexSerializer(FlexFieldsModelSerializer, BaseCaseSerializer):
-    class Meta:
-        list_serializer_class = PandasSerializer
-        model = Case
-        exclude = ['result_text', 'advocates', 'text_search']
 
 
 class SimpleCaseSerializer(SkipNullValuesMixin, serializers.ModelSerializer):
@@ -191,7 +185,7 @@ class CSVSerializer(SimpleCaseSerializer):
         return str(self.obj.judge)
 
     def get_defendants_gender(self, obj):
-        return ', '.join([x.gender or '-' for x in obj.defendants.all()])
+        return ', '.join([x.get_gender_display() or '-' for x in obj.defendants.all()])
 
     def get_court_city(self, obj):
         return obj.court.city
