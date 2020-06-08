@@ -174,11 +174,21 @@ class CSVSerializer(SimpleCaseSerializer):
     region = serializers.SerializerMethodField()
     defendants_gender = serializers.SerializerMethodField()
     penalty  = serializers.SerializerMethodField()
+    penalty_type = serializers.SerializerMethodField()
+    penalty_value = serializers.SerializerMethodField()
     class Meta:
         model = Case
         fields = ['id', 'entry_date', 'result_date', 'in_favorites', 'court', 'codex_articles', 'defendants_simple',
-                  'penalty', 'result_text_url', 'court_city', 'region','type', 'stage','url','appeal_date','defendants_gender','judge',
+                  'penalty', 'penalty_type', 'penalty_value','result_type','result_text_url', 'court_city', 'region','type', 'stage','url','appeal_date','defendants_gender','judge',
                   ]
+
+    def get_penalty_type(self, obj):
+        return obj.penalties.first().get_type_display() if obj.penalties.exists() else None
+
+
+    def get_penalty_value(self, obj):
+        return obj.penalties.first().num if obj.penalties.all().exists() else None
+
 
 
     def get_judge(self,obj):
