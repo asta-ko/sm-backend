@@ -28,13 +28,6 @@ from rest_framework_csv.misc import Echo
 from django.core.paginator import Paginator
 from django.http import StreamingHttpResponse
 
-class Echo(object):
-    """An object that implements just the write method of the file-like
-    interface.
-    """
-    def write(self, value):
-        """Write the value by returning it, instead of storing in a buffer."""
-        return value+"\n"
 
 class BatchCSVStreamingRenderer(CSVStreamingRenderer):
 
@@ -312,19 +305,24 @@ class CasesView(ListAPIView):
 class CasesStreamingView(CasesView):
     renderer_classes = [BatchCSVStreamingRenderer]
     pagination_class = None
+    permission_classes = ()
     paginator = None
     paginate_by = None
     paginate_by_param = None
     serializer_class = CSVSerializer
     def list(self, request, *args, **kwargs):
-        queryset = self.get_queryset()
+
+        queryset = self.filter_queryset(self.get_queryset())
         context = self.get_renderer_context()
-        return StreamingHttpResponse(
+
+        response =  StreamingHttpResponse(
             request.accepted_renderer.render({
                 'queryset': queryset,
                 'serializer': self.get_serializer_class(),
-            }, context)
-)
+            }, context, content_type="text/csv"))
+        response['Content-Disposition'] = 'attachment; filename="export.csv"'
+        return response
+
     def dispatch(self, *args, **kwargs):
         return super().dispatch(*args, **kwargs)
 
