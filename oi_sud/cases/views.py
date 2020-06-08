@@ -22,7 +22,7 @@ from rest_framework.renderers import AdminRenderer
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_csv.renderers import CSVStreamingRenderer
-from rest_pandas import (PandasCSVRenderer, PandasExcelRenderer, PandasView)
+
 
 
 def get_result_text(request, case_id):
@@ -246,12 +246,6 @@ class CasesView(ListAPIView):
     @method_decorator(cache_page(60 * 60 * 1))
     def dispatch(self, *args, **kwargs):
         return super().dispatch(*args, **kwargs)
-
-
-class CasesFlexView(PandasView, CasesView):
-    serializer_class = CaseFlexSerializer
-    renderer_classes = [PandasCSVRenderer, PandasExcelRenderer]
-
 
 class CasesStreamingView(CasesView):
     renderer_classes = [CSVStreamingRenderer]

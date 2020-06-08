@@ -10,7 +10,7 @@ from oi_sud.cases.dataviews import (
     DataRegionsViewByMetrics, FrontCountCasesView,
     )
 from oi_sud.cases.views import (
-    CaseView, CasesEventTypesView, CasesResultTextView, CasesResultTypesView, CasesView, CasesStreamingView, CasesFlexView, SimpleCasesView,
+    CaseView, CasesEventTypesView, CasesResultTextView, CasesResultTypesView, CasesView, CasesStreamingView, SimpleCasesView,
     get_result_text,
     )
 from oi_sud.codex.views import CodexArticleIListView, CodexArticleListView, CodexArticleSearchView
@@ -37,8 +37,6 @@ router.register(r'api/v1/presetcategories', FilterPresetCategoryViewSet, basenam
 
 
 urlpatterns = format_suffix_patterns([
-    #path('api/v1/data/casesflex/export', CasesFlexView.as_view(), name='flex-case-list'),
-
     path('api/v1/data/regions_by_metrics/export', DataRegionsViewByMetrics.as_view()),
     path('api/v1/data/metrics_by_years/export', DataMetricsViewByYears.as_view()),
     path('api/v1/data/courts_by_metrics/export', DataCourtsViewByMetrics.as_view()),
