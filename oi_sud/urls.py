@@ -65,7 +65,7 @@ urlpatterns = format_suffix_patterns([
     path('api/v1/data/regions_by_metrics/', DataRegionsViewByMetrics.as_view()),
     path('api/v1/data/metrics_by_years/', DataMetricsViewByYears.as_view()),
     path('api/v1/data/courts_by_metrics/', DataCourtsViewByMetrics.as_view()),
-    path('api/v1/data/casescsv/export', CasesStreamingView.as_view(), name='flex-case-list'),
+    path('api/v1/data/casescsv/export.csv', CasesStreamingView.as_view(), name='flex-case-list'),
 
     path('jet/', include('jet.urls', 'jet')),
     re_path(r'^celery_progress/(?P<task_id>[\w-]+)$', get_progress, name='task_status'),
