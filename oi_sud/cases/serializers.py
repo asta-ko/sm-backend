@@ -163,7 +163,7 @@ class SimpleCaseSerializer(SkipNullValuesMixin, serializers.ModelSerializer):
         return str(obj.court)
 
     def get_codex_articles(self, obj):
-        return [str(x) for x in obj.codex_articles.all()]
+        return ', '.join([str(x) for x in obj.codex_articles.all()])
 
     def get_defendants(self, obj):
         if obj.defendants_hidden:
@@ -173,6 +173,38 @@ class SimpleCaseSerializer(SkipNullValuesMixin, serializers.ModelSerializer):
     def get_result_text_url(self, obj):
         if obj.result_text:
             return obj.get_result_text_url()
+
+
+class CSVSerializer(SimpleCaseSerializer):
+    court_city = serializers.SerializerMethodField()
+    region = serializers.SerializerMethodField()
+    defendants_gender = serializers.SerializerMethodField()
+    penalty  = serializers.SerializerMethodField()
+    class Meta:
+        model = Case
+        fields = ['id', 'entry_date', 'result_date', 'in_favorites', 'court', 'codex_articles', 'defendants_simple',
+                  'penalty', 'result_text_url', 'court_city', 'region','type', 'stage','url','appeal_date','defendants_gender','judge',
+                  ]
+
+
+    def get_judge(self,obj):
+        return str(self.obj.judge)
+
+    def get_defendants_gender(self, obj):
+        return ', '.join([x.gender or '-' for x in obj.defendants.all()])
+
+    def get_court_city(self, obj):
+        return obj.court.city
+
+    def get_region(self, obj):
+        return obj.court.region
+
+    def get_penalty(self, obj):
+        if obj.penalties.first():
+            return obj.penalties.all().first()
+        else:
+            return None
+
 
 
 class CaseFullSerializer(CaseSerializer):

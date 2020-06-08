@@ -11,7 +11,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 from django_filters.widgets import RangeWidget
 from oi_sud.cases.models import Case, CaseEvent, PENALTY_TYPES
 from oi_sud.cases.serializers import (
-    CaseFlexSerializer, CaseFullSerializer, CaseResultSerializer, CaseSerializer, SimpleCaseSerializer,
+    CSVSerializer, CaseFlexSerializer, CaseFullSerializer, CaseResultSerializer, CaseSerializer, SimpleCaseSerializer,
     )
 from oi_sud.core.consts import region_choices
 from rest_framework import filters
@@ -21,7 +21,8 @@ from rest_framework.generics import RetrieveAPIView
 from rest_framework.renderers import AdminRenderer
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_pandas import (PandasCSVRenderer, PandasExcelRenderer, PandasView)
+from rest_framework_csv.renderers import CSVStreamingRenderer
+
 
 
 def get_result_text(request, case_id):
@@ -246,10 +247,28 @@ class CasesView(ListAPIView):
     def dispatch(self, *args, **kwargs):
         return super().dispatch(*args, **kwargs)
 
+class CasesStreamingView(CasesView):
+    renderer_classes = [CSVStreamingRenderer]
+    pagination_class = None
+    paginator = None
+    paginate_by = None
+    paginate_by_param = None
+    serializer_class = CSVSerializer
 
-class CasesFlexView(PandasView, CasesView):
-    serializer_class = CaseFlexSerializer
-    renderer_classes = [PandasCSVRenderer, PandasExcelRenderer]
+    def dispatch(self, *args, **kwargs):
+        return super().dispatch(*args, **kwargs)
+
+    def get_renderer_context(self):
+        context = super().get_renderer_context()
+        context['header'] = (
+            self.request.GET['fields'].split(',')
+            if 'fields' in self.request.GET else None)
+        return context
+
+    queryset = Case.objects.prefetch_related(Prefetch('events',
+                                                      queryset=CaseEvent.objects.order_by('date')), 'penalties',
+                                             'defendants',
+                                             'court', 'judge', 'codex_articles')
 
 
 class SimpleCasesView(CasesView):
