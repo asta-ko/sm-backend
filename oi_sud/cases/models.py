@@ -390,8 +390,8 @@ class DefendantManager(models.Manager):
     @staticmethod
     def create_from_name(name, region):
 
-        names = parse_name(name)
-        normalized_name = normalize_name(name)
+        names = parse_name(name)[0]  # Пробуем получить ФИО
+        normalized_name = normalize_name(name)  # точно получаем нормализованное имя
         if len(names) and Defendant.objects.filter(region=region, last_name=names[0], first_name=names[1],
                                                    middle_name=names[2]).exists():  # Совпадают регион и ФИО полностью
             return Defendant.objects.filter(region=region, last_name=names[0], first_name=names[1],
