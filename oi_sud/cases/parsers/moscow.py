@@ -66,8 +66,8 @@ class MoscowParser(CourtSiteParser):
             ev_cols = ev.findAll('td')
             href = 'https://mos-gorsud.ru' + ev_cols[0]('a')[0]['href']
             href = href.split('?')[0]
-            # проверка на точное соотстветствие, иначе смешает, например, ч.6 и ч.6.1
-            if ev_cols[4].text.strip() != self.get_article_string():
+            # проверка на точное соотстветствие, иначе смешает, например, ч.6 и ч.6.1 (только для КОАП, в УК эта колонка пустая)
+            if ev_cols[4].text.strip() != self.get_article_string() and self.article.codex == 'koap':
                 logger.warning(
                     f'Moscow parsing: article string went wrong - {self.get_article_string()}, '
                     f'{ev_cols[4].text.strip()}')
@@ -210,7 +210,7 @@ class MoscowParser(CourtSiteParser):
             'Осужденный (оправданный, обвиняемый)': 'uk_defense',
             'Лицо': 'uk_defense',
             'Подсудимый': 'uk_defense'
-            }
+        }
         defense = {}
         for key in content_dict.keys():
             if key in dict_names.keys():
@@ -259,7 +259,7 @@ class MoscowParser(CourtSiteParser):
             event_names = {
                 'Стадия': 'type', 'date': 'date', 'time': 'time', 'courtroom': 'courtroom',
                 'Результат': 'result', 'Основание': 'reason'
-                }
+            }
             # выгружаем таблицу с прошедшими заседаниями (центральная нижняя)
             heads = [head.string.strip() for head in table[0].findAll('th')]
             results = [result.string.strip() for result in table[0].findAll('td')]
