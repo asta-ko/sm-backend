@@ -29,6 +29,24 @@ from django.core.paginator import Paginator
 from django.http import StreamingHttpResponse
 
 
+class BatchPaginator(Paginator):
+    def __init__(self,*args, **kwargs):
+        p_range = kwargs.pop('page_range')
+        super().__init__(*args, **kwargs)
+        self.p_range = p_range
+
+    @property
+    def page_range(self):
+        """
+        Return a 1-based range of pages for iterating through within
+        a template for loop.
+        """
+        if self.p_range:
+            return self.p_range
+        return range(1, self.num_pages + 1)
+
+
+
 class BatchCSVStreamingRenderer(CSVStreamingRenderer):
     """
     a CSV renderer that works with large querysets returning a generator
@@ -37,8 +55,6 @@ class BatchCSVStreamingRenderer(CSVStreamingRenderer):
     """
 
     def render(self, data, renderer_context={}, *args, **kwargs):
-        if 'queryset' not in data:
-            return data
 
         csv_buffer = Echo()
         csv_writer = csv.writer(csv_buffer)
@@ -46,7 +62,26 @@ class BatchCSVStreamingRenderer(CSVStreamingRenderer):
         queryset = data['queryset']
         serializer = data['serializer']
 
-        paginator = Paginator(queryset, 50)
+        from_item = None
+        to_item = None
+
+        page_range = None
+
+
+        limits = renderer_context.get('limits')
+        if limits and len(limits) == 2:
+            from_item = limits[0]//50 +1 or 1
+            to_item = limits[1]//50
+            if to_item%50:
+                to_item+=1
+            page_range = range(from_item, to_item)
+        elif limits and len(limits) == 1:
+            to_item = limits[0]//50 + 1
+            if limits[0]%50:
+                to_item+=1
+            page_range = range(1,to_item)
+
+        paginator = BatchPaginator(queryset, 50, page_range=page_range)
 
         #  rendering the header or label field was taken from the tablize
         #  method in django rest framework csv
@@ -59,7 +94,10 @@ class BatchCSVStreamingRenderer(CSVStreamingRenderer):
         if header:
             yield csv_writer.writerow(header)
 
+
+
         for page in paginator.page_range:
+
             serialized = serializer(
                 paginator.page(page).object_list, many=True
             ).data
@@ -281,7 +319,7 @@ class CaseArticleFilter(CaseFilter):
 
 class CaseFilterBackend(DjangoFilterBackend):
 
-    # filter_class = CaseFilter
+    #filter_class = CaseFilter
 
     def filter_queryset(self, request, queryset, view):
         filter_class = self.get_filter_class(view, queryset)
@@ -334,6 +372,9 @@ class CasesStreamingView(CasesView):
 
     def get_renderer_context(self):
         context = super().get_renderer_context()
+        context['limits'] = ([int(x) for x in self.request.GET['limits'].split(',')]
+            if 'limits' in self.request.GET else None)
+
         context['header'] = (
             self.request.GET['fields'].split(',')
             if 'fields' in self.request.GET else None)

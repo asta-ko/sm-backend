@@ -164,12 +164,15 @@ class KoapPenaltyExtractor(object):
             return num
 
     def get_compulsory_works(self, decision_text):
+
         patterns = [re.compile(
-            r'в? виде обязательных работ (.*)(на(?! срок)|на срок|сроком ?н?а?(в )?)?(?P<works_data>.{,40})'
+            r'(в)? виде обязательных работ (на (срок )?|сроком (на |в )?)?(?P<works_data>.{,40})'
             r'(час(а|ов)|>|\*|&gt;|\.\.|--)'),
+            re.compile(r'(на (срок )?|сроком (на |в )?)(?P<works_data>.{,40})(час(а|ов)|>|\*|&gt;|\.\.|--)'),
             re.compile(r'в виде (?P<works_data>.{,40})(час(а|ов)) обязательных работ'),
             re.compile(r'наказание - (?P<works_data>.{,40})(час(а|ов)) обязательных работ')
         ]
+
         works_hours = None
         not_found = True
         hidden = False
@@ -237,15 +240,16 @@ class KoapPenaltyExtractor(object):
 
     def get_fine(self, decision_text):
 
-        hidden_pattern_2 = re.compile(r'штраф(а|у|ом)? в? ?(<данные изъяты>|<?\.\.\.>?)|'
-                                      r'штраф(а|у|ом)? в размере (<данные изъяты>|<?\.\.\.>?)')
+        hidden_pattern = re.compile(r'штраф(а|у|ом)? в? ?(<данные изъяты>|<?\.\.\.>?)|'
+                                    r'штраф(а|у|ом)? в размере (<данные изъяты>|<?\.\.\.>?)')
 
         patterns = [re.compile(r'штраф(а|у|ом)?,? (в доход государства )'
                                r'?(в сумме|в размере|размером|в размер|в|в виде|не менее)? ?(?P<fine>.+?) ?руб'),
                     re.compile(r'наказание в виде (административного )?(штрафа )?(в размере )?(в виде )?(не менее )?'
                     r'(?P<fine>.+?)(\(.*\))?(руб|рублей)')
                     ]
-        hidden_pattern = re.compile(
+
+        hidden_pattern_2 = re.compile(
             r'штраф(а|у|ом)? (в доход государства )?(в сумме|в размере|размером|в размер)')
 
         fine_num = None
@@ -257,7 +261,7 @@ class KoapPenaltyExtractor(object):
             if pattern.search(decision_text):
                 fine = pattern.search(decision_text).group('fine')
 
-        if hidden_pattern_2.search(decision_text.lower()):
+        if hidden_pattern.search(decision_text.lower()):
             not_found = False
             hidden = True
         elif fine:
@@ -282,7 +286,7 @@ class KoapPenaltyExtractor(object):
             if not fine_num:
                 hidden = True
 
-        elif hidden_pattern.search(decision_text.lower()):
+        elif hidden_pattern_2.search(decision_text.lower()):
             not_found = False
             hidden = True
         return fine_num, not_found, hidden
