@@ -240,7 +240,7 @@ CELERY_ROUTES = {
 #
 # }
 
-JET_THEME = 'light-gray'
+JET_THEME = 'oi-orange'
 
 JET_SIDE_MENU_COMPACT = True
 

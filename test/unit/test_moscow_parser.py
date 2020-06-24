@@ -8,38 +8,44 @@ from oi_sud.codex.models import CodexArticle
 #@pytest.mark.skip
 @pytest.mark.django_db
 def test_moscow_getter(moscow_courts, koap_articles):
-    MoscowCasesGetter().get_cases(1, 'koap', articles_list=['5.38'])
+    MoscowCasesGetter().get_cases(1, 'koap', articles_list=['20.2 ч.5'])
     assert len(Case.objects.all())
     assert (len(CaseEvent.objects.all()))
 
 
-@pytest.mark.skip
+#@pytest.mark.skip
 @pytest.mark.django_db
 def test_save_case(moscow_courts, koap_articles):
+    cases_urls=['https://mos-gorsud.ru/rs/timiryazevskij/services/cases/admin/details/4ff27edb-bf19-4526-ac73-ff89095cf666',
+                'https://www.mos-gorsud.ru/rs/nikulinskij/services/cases/admin/details/2163d66f-6364-4290-986f-98ee6b16b658']
     url = 'https://mos-gorsud.ru/mgs/search?courtAlias=&uid=&instance=1&processType=3&codex=ст.+19.34%2C+Ч.2'
-    cases_urls = [
-        'https://mos-gorsud.ru/rs/meshchanskij/services/cases/admin/'
-        'details/e759cbf7-cacd-4642-91c1-7a8479cfe270?documentMainArticle='
-        '%D1%81%D1%82.+19.34%2C+%D0%A7.2&formType=fullForm',
-        'https://mos-gorsud.ru/rs/tverskoj/services/cases/admin/'
-        'details/c694e8b1-d345-4933-af40-25a3ad4ba819?'
-        'documentMainArticle=%D1%81%D1%82.+19.34%2C+%D0%A7.2&formType=fullForm']
+    # cases_urls = [
+    #     'https://mos-gorsud.ru/rs/meshchanskij/services/cases/admin/'
+    #     'details/e759cbf7-cacd-4642-91c1-7a8479cfe270?documentMainArticle='
+    #     '%D1%81%D1%82.+19.34%2C+%D0%A7.2&formType=fullForm',
+    #     'https://mos-gorsud.ru/rs/tverskoj/services/cases/admin/'
+    #     'details/c694e8b1-d345-4933-af40-25a3ad4ba819?'
+    #     'documentMainArticle=%D1%81%D1%82.+19.34%2C+%D0%A7.2&formType=fullForm']
     article = CodexArticle.objects.filter(article_number=19.34, part=2).first()
     MoscowParser(url=url, stage=1, codex='koap', article=article).save_cases(urls=cases_urls)
     assert (len(Case.objects.all()) == 2)
 
 
-#@pytest.mark.skip
+@pytest.mark.skip
 @pytest.mark.django_db
 def test_get_raw_case_info(moscow_courts, koap_articles):
-    url = 'https://mos-gorsud.ru/rs/tverskoj/services/cases/admin/details/' \
-          'c694e8b1-d345-4933-af40-25a3ad4ba819?documentMainArticle=%D1%81%D1%82.+19.34%2C+%D0%A7.2&formType=fullForm'
+    url = 'https://www.mos-gorsud.ru/rs/nikulinskij/services/cases/admin/details/2163d66f-6364-4290-986f-98ee6b16b658'
+    #'https://mos-gorsud.ru/rs/timiryazevskij/services/cases/admin/details/4ff27edb-bf19-4526-ac73-ff89095cf666'#'https://mos-gorsud.ru/rs/timiryazevskij/services/cases/admin/details/0e45130b-8365-4c45-9279-ed69af0c6552'#'https://mos-gorsud.ru/rs/tverskoj/services/cases/admin/details/' \
+          #'c694e8b1-d345-4933-af40-25a3ad4ba819?documentMainArticle=%D1%81%D1%82.+19.34%2C+%D0%A7.2&formType=fullForm'
     case_info = MoscowParser().get_raw_case_information(url)
+    print(case_info['defenses'])
     assert case_info
-    assert case_info['events'] != {}
+    assert case_info['events'] != []
+    assert case_info['result_text'] != ''
+    assert False
 
 
-#@pytest.mark.skip
+@pytest.mark.skip
 @pytest.mark.django_db
 def test_urls_getter(koap_articles):
     url = 'https://mos-gorsud.ru/mgs/search?courtAlias=&uid=&instance=1&processType=3&codex=ст.+19.34%2C+Ч.2'

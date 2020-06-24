@@ -1,28 +1,26 @@
+import editdistance
+import pandas as pd
 import pymorphy2
 
 morph = pymorphy2.MorphAnalyzer()
 
-import pandas as pd
-
-dfru = pd.read_csv('russian_names.csv')
-
-ru_male_names = set(dfru[dfru['Gender'] == 'М']['Name'])
-ru_female_names = set(dfru[dfru['Gender'] == 'Ж']['Name'])
-
-male_2_endings = ['ов', 'ий', 'ев', 'ин']
-female_2_endings = ['ая', 'ва', 'на']
+ru_male_names = pd.read_csv('ru_male_names.csv')
+ru_female_names = pd.read_csv('ru_female_names.csv')
 
 
 def get_gender_score(name, surname):
+    male_2_endings = ['ов', 'ий', 'ев', 'ин']
+    female_2_endings = ['ая', 'ва', 'на']
+
     gender_score = 0
 
-    if name and name in ru_female_names:
+    if name and (ru_female_names['0'] == name).any():
         gender_score += 1
 
     if surname[-2:] in female_2_endings:
         gender_score += 1
 
-    if name and name in ru_male_names:
+    if name and (ru_male_names['0'] == name).any():
         gender_score -= 1
 
     if surname[-2:] in male_2_endings:
@@ -50,14 +48,6 @@ def get_gender(first_name, last_name):
     gender = get_gender_score(first_name, last_name)
 
     if gender > 0:
-        gender_letter = 'f'
-    elif gender == 0:
-        gender_letter = 'na'
-    elif gender < 0:
-        gender_letter = 'm'
-    print(last_name, first_name or '-', gender_letter)
-
-    if gender > 0:
         return 1
     elif gender == 0:
         return None
@@ -66,7 +56,6 @@ def get_gender(first_name, last_name):
 
 
 def parse_name(name):
-
     def is_first_name(parsed_word):
         return any('Name' in p.tag for p in parsed_word)
 
@@ -87,6 +76,7 @@ def parse_name(name):
         return last_name, first_name, middle_name
     return ()
 
+
 # def create_zip(name, text):
 #     with open(os.path.join(PROJ_DIR, "_tmp_file_"), "w+") as f:
 #         f.write(text)
@@ -95,3 +85,48 @@ def parse_name(name):
 #                          zipfile.ZIP_DEFLATED)
 #     zf.write(os.path.join(PROJ_DIR, "_tmp_file_"), "/file.txt")
 #     zf.close()
+
+
+def get_or_create_from_name(name, region, model, gender_needed=True):
+    names = parse_name(name)
+    normalized_name = normalize_name(name)
+    if len(names) == 3 and model.objects.filter(region=region, last_name=names[0], first_name=names[1],
+                                                middle_name=names[2]).exists():  # Совпадают регион и ФИО полностью
+        return model.objects.filter(region=region, last_name=names[0], first_name=names[1],
+                                    middle_name=names[2]).first()
+    elif model.objects.filter(name_normalized=normalized_name,
+                              region=region).exists():  # Совпадают регион, фамилия и инициалы
+        qs = model.objects.filter(name_normalized=normalized_name, region=region)
+        if not len(names):  # не можем проверить, отдаем первое совпадение
+            return qs.first()
+        else:
+            for d in qs:
+                if d.first_name and d.middle_name:
+                    e = editdistance.eval(f'{names[1]} {names[2]}', f'{d.first_name} {d.middle_name}')
+                    if e <= 3:  # проверяем, что это то же самое имя и отчество и учитываем возможность опечаток
+                        return d
+            return qs.first()  # если не можем проверить, берем первое попавшееся
+    else:
+
+        d_dict = {
+            'region': region,
+            'name_normalized': normalized_name
+        }
+
+        gender = None
+
+        if len(names) == 3:
+            d_dict['last_name'] = names[0]
+            d_dict['first_name'] = names[1]
+            d_dict['middle_name'] = names[2]
+            if gender_needed:
+                gender = get_gender(names[1], names[0])
+        elif gender_needed:
+            gender = get_gender(None, normalized_name.split(' ')[0])
+
+        if gender_needed and gender:
+            d_dict['gender'] = gender
+
+        item = model(**d_dict)
+        item.save()
+        return item

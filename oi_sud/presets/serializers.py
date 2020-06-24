@@ -33,7 +33,7 @@ class PresetSerializer(serializers.ModelSerializer):
 
     def get_human_readable(self, obj):
 
-        #Needed for rendering tags on frontend
+        # Needed for rendering tags on frontend
 
         params = obj.get_params.items()
         keys = obj.get_params.keys()
@@ -44,7 +44,7 @@ class PresetSerializer(serializers.ModelSerializer):
                 date_min = dateparser.parse(obj.get_params[d + "_min"], date_formats=['%d.%m.%Y'])
                 date_min_str = dateformat.format(date_min, 'd E Y')
                 date_max = dateparser.parse(obj.get_params[d + "_max"], date_formats=['%d.%m.%Y'])
-                date_max_str = dateformat.format(date_min, 'd E Y')
+                date_max_str = dateformat.format(date_max, 'd E Y')
                 final[d] = f"{date_min_str} — {date_max_str}"
 
         for k, v in params:
