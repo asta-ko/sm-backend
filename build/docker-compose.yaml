@@ -90,7 +90,7 @@ services:
       - ./:/code
       - data-static:/var/www/static
       - ./.docker/media:/var/www/media
-    command: ["gunicorn", "oi_sud.wsgi:application", "-k", "gevent", "-b", "0.0.0.0:8081", "--name", "oi_sud", "--reload", "-t", "120", "--workers", "5"]
+    command: ["gunicorn", "oi_sud.wsgi:application", "-k", "gevent", "-b", "0.0.0.0:8081", "--name", "oi_sud", "--reload", "-t", "720", "--workers", "5"]
     ports:
       - "8081:8081"
     labels:
@@ -126,7 +126,7 @@ services:
   celery_main:
     container_name: sudmonster_celery_main
     <<: *oi_sud
-    command: ["celery", "-A", "oi_sud", "worker", "-l", "info", "-Q", "main", "-c", "1", "-n", "main"]
+    command: ["celery", "-A", "oi_sud", "worker", "-l", "info", "-Q", "main", "-c", "1", "-n", "main", "--without-gossip"]
     labels:
       job: celery
       instance: sudmonster
@@ -140,7 +140,7 @@ services:
   celery_other:
     container_name: sudmonster_celery_other
     <<: *oi_sud
-    command: ["celery", "-A", "oi_sud", "worker", "-l", "info", "-Q", "other", "-c", "8", "-n", "other", "-Ofair"
+    command: ["celery", "-A", "oi_sud", "worker", "-l", "info", "-Q", "other", "-c", "8", "-n", "other", "-Ofair", "--without-gossip"
     ]
     labels:
       job: celery
@@ -155,8 +155,7 @@ services:
   celery_grouper:
     container_name: sudmonster_celery_grouper
     <<: *oi_sud
-    command: ["celery", "-A", "oi_sud", "worker", "-l", "info", "-Q", "grouper", "-c", "5", "-n", "grouper", "-Ofair"
-    ]
+    command: ["celery", "-A", "oi_sud", "worker", "-l", "info", "-Q", "grouper", "-c", "5", "-n", "grouper", "-Ofair","--without-gossip"    ]
     labels:
       job: celery
       instance: sudmonster
