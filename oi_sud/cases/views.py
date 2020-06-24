@@ -11,10 +11,10 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.cache import cache_page
 from django_filters.rest_framework import DjangoFilterBackend
 from django_filters.widgets import RangeWidget
-from oi_sud.cases.models import Case, CaseEvent, PENALTY_TYPES
+from oi_sud.cases.models import Case, CaseEvent, Advocate, Prosecutor, PENALTY_TYPES
 from oi_sud.cases.serializers import (
     CSVSerializer, CaseFullSerializer, CaseResultSerializer, CaseSerializer, SimpleCaseSerializer,
-    )
+)
 from oi_sud.core.consts import region_choices
 from rest_framework import filters
 from rest_framework import permissions
@@ -48,7 +48,6 @@ class BatchPaginator(Paginator):
 
 
 class BatchCSVStreamingRenderer(CSVStreamingRenderer):
-
     """
     a CSV renderer that works with large querysets returning a generator
     function. Used with a streaming HTTP response, it provides response bytes
@@ -117,6 +116,7 @@ class BatchCSVStreamingRenderer(CSVStreamingRenderer):
 
             for row in itertools.islice(table, 1, None):
                 yield csv_writer.writerow(row)
+
 
 def get_result_text(request, case_id):
     case = get_object_or_404(Case, pk=case_id)
@@ -195,7 +195,7 @@ class CaseFilter(django_filters.FilterSet):
                                                  label='Пол ответчика')
     defendant_hidden = django_filters.BooleanFilter(field_name="defendants_hidden")
     penalty_type = django_filters.ChoiceFilter(field_name="penalties__type", choices=PENALTY_TYPES)
-    has_penalty = django_filters.BooleanFilter(field_name="penalties", method='filter_has_penalty',
+    has_penalty = django_filters.BooleanFilter(field_name="penalties", method='filter_has_value',
                                                label="Нет наказания")
     penalty_hidden = django_filters.BooleanFilter(field_name="penalties__is_hidden", label="Наказание зацензурено")
     penalty_from = django_filters.NumberFilter(field_name="penalties__num", lookup_expr="gte",
@@ -203,7 +203,8 @@ class CaseFilter(django_filters.FilterSet):
     penalty_to = django_filters.NumberFilter(field_name="penalties__num", lookup_expr="lte",
                                              label="Размер наказания (до)")
     result_type = django_filters.CharFilter(field_name="result_type", lookup_expr='icontains', label="Решение по делу")
-    has_result = django_filters.BooleanFilter(field_name="result_type", method='filter_has_result', label="Рассмотрено")
+
+    has_result = django_filters.BooleanFilter(field_name="result_type", method='filter_has_value', label="Рассмотрено")
     entry_date_range = django_filters.DateFromToRangeFilter(field_name="entry_date",
                                                             widget=RangeWidget(attrs={'placeholder': 'YYYY-MM-DD'}),
                                                             label='Дата поступления')
@@ -211,7 +212,7 @@ class CaseFilter(django_filters.FilterSet):
                                                              widget=RangeWidget(attrs={'placeholder': 'YYYY-MM-DD'}),
                                                              label='Дата поступления')
     # is_in_future = django_filters.BooleanFilter(field_name='events', method='get_future', label='Еще не рассмотрено')
-    has_result_text = django_filters.BooleanFilter(field_name='result_text', method='filter_has_result_text',
+    has_result_text = django_filters.BooleanFilter(field_name='result_text', method='filter_has_value',
                                                    label="Есть текст решения")
     result_text_search = django_filters.CharFilter(field_name="result_text", method='filter_result_search',
                                                    label="Текст решения содержит")
@@ -227,6 +228,12 @@ class CaseFilter(django_filters.FilterSet):
                                                      label="В деле нет событий этого типа")
     in_favorites = django_filters.BooleanFilter(field_name='in_favorites', method='filter_in_favorites',
                                                 label='В избранном')
+    advocate = django_filters.CharFilter(method='filter_advocates', label='Защитник')
+    has_advocate = django_filters.BooleanFilter(field_name='defenses__advocates', method='filter_has_value',
+                                                label="Есть адвокат")
+    prosecutor = django_filters.CharFilter(method='filter_prosecutors', label='Прокурор')
+    has_prosecutor = django_filters.BooleanFilter(field_name='defenses__prosecutors', method='filter_has_value',
+                                                  label="Есть прокурор")
 
     # @property
     # def qs(self):
@@ -260,20 +267,10 @@ class CaseFilter(django_filters.FilterSet):
             queryset = queryset.filter(**grouped_dict)
         return queryset
 
-    def filter_has_result_text(self, queryset, name, value):
+    def filter_has_value(self, queryset, name, value):
         # construct the full lookup expression.
         lookup = '__'.join([name, 'isnull'])
-        return queryset.filter(**{lookup: not value})
-
-    def filter_has_result(self, queryset, name, value):
-        # construct the full lookup expression.
-        lookup = '__'.join([name, 'isnull'])
-        return queryset.filter(**{lookup: not value})
-
-    def filter_has_penalty(self, queryset, name, value):
-        # construct the full lookup expression.
-        lookup = '__'.join([name, 'isnull'])
-        return queryset.filter(**{lookup: not value})
+        return queryset.filter(**{lookup: not value}).distinct()
 
     def filter_defendant_gender(self, queryset, name, value):
         if value == 'm':
@@ -298,18 +295,26 @@ class CaseFilter(django_filters.FilterSet):
     def filter_result_search(self, queryset, name, value):
         return queryset.filter(text_search=SearchQuery(value, config='russian', search_type='phrase'))
 
+    def filter_advocates(self, queryset, name, value):
+        advocates_ids = Advocate.objects.filter(name_normalized__icontains=value).values_list('id', flat=True)
+        return queryset.filter(defenses__advocates__in=advocates_ids)
+
+    def filter_prosecutors(self, queryset, name, value):
+        prosecutors_ids = Prosecutor.objects.filter(name_normalized__icontains=value).values_list('id', flat=True)
+        return queryset.filter(defenses__prosecutors__in=prosecutors_ids)
+
     # def get_future(self, queryset, name, value):
     #         return queryset.filter(Q(result_date__gt=timezone.now())|Q(events__isnull=True, result_date__isnull=True))
 
     class Meta:
         model = Case
-        fields = ['stage', 'judge', 'defendants__gender']
+        fields = ['stage', 'judge', 'defendants__gender', ]
 
 
 class CaseArticleFilter(CaseFilter):
     class Meta:
         model = Case
-        fields = ['stage', 'type', 'codex_articles', 'court', 'judge']
+        fields = ['stage', 'type', 'codex_articles', 'court', 'judge', 'case_number', 'protocol_number']
 
 
 class CaseFilterBackend(DjangoFilterBackend):
@@ -340,6 +345,7 @@ class CasesView(ListAPIView):
     def dispatch(self, *args, **kwargs):
         return super().dispatch(*args, **kwargs)
 
+
 class CasesStreamingView(CasesView):
     renderer_classes = [BatchCSVStreamingRenderer]
     pagination_class = None
@@ -348,13 +354,12 @@ class CasesStreamingView(CasesView):
     paginate_by = None
     paginate_by_param = None
     serializer_class = CSVSerializer
+
     def list(self, request, *args, **kwargs):
-
-
         queryset = self.filter_queryset(self.get_queryset())
         context = self.get_renderer_context()
 
-        response =  StreamingHttpResponse(
+        response = StreamingHttpResponse(
             request.accepted_renderer.render({
                 'queryset': queryset,
                 'serializer': self.get_serializer_class(),
@@ -375,7 +380,7 @@ class CasesStreamingView(CasesView):
             if 'fields' in self.request.GET else None)
         return context
 
-    #queryset = Case.objects.all()
+    # queryset = Case.objects.all()
 
 
 class SimpleCasesView(CasesView):

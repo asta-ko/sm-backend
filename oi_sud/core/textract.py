@@ -6,6 +6,7 @@ import tempfile
 import chardet
 import docx2txt
 import six
+from striprtf.striprtf import rtf_to_text
 
 
 class BaseParser(object):
@@ -77,7 +78,7 @@ class ShellParser(BaseParser):
             pipe = subprocess.Popen(
                 args,
                 stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                )
+            )
         except OSError as e:
             if e.errno == errno.ENOENT:
                 # File not found.
@@ -121,3 +122,10 @@ class DocXParser(BaseParser):
 
     def extract(self, filename, **kwargs):
         return docx2txt.process(filename)
+
+
+class RTFParser(BaseParser):
+    def extract(self, filename, **kwargs):
+        with open(filename, 'r') as f:
+            rtf = f.read()
+            return rtf_to_text(rtf)
