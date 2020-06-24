@@ -131,7 +131,7 @@ class RFCourtSiteParser(CourtSiteParser):
             'Зал судебного заседания': None,
             'Результат': None,
             'Результат события': None
-            }
+        }
 
         types = {
             'type': ['Наименование события'],
@@ -139,7 +139,7 @@ class RFCourtSiteParser(CourtSiteParser):
             'time': ['Время', 'Время события'],
             'courtroom': ['Зал судебного заседания', 'Зал'],
             'result': ['Результат события', 'Результат']
-            }
+        }
 
         while tr_head[0] != 'Наименование события':
             tr_head = tr_head[1:]
@@ -171,7 +171,7 @@ class RFCourtSiteParser(CourtSiteParser):
         defenses = []
         defendants_hidden = False
         title_tr = None
-        defendant_index = None
+        person_index = None
         codex_articles_index = None
         trs = el.findAll('tr')
 
@@ -192,29 +192,55 @@ class RFCourtSiteParser(CourtSiteParser):
             title_tds = title_tr.findAll('td')
 
         for index, td in enumerate(title_tds):
-            td_text = td.text
-            if 'ФИО' in td_text or 'Фамилия' in td_text:
-                defendant_index = index
+            td_text = td.text.lower()
+            if 'фио' in td_text or 'фамилия' in td_text:
+                person_index = index
             if 'статей' in td_text:
                 codex_articles_index = index
 
+        # получаем адвокатов и защитников
+        advocates = []
+        trs_advocates = [tr for tr in trs if 'адвокат' in tr.text.lower() or 'защитник' in tr.text.lower()]
+        for tr in trs_advocates:
+            tds = tr.findAll('td')
+            if len(tds) > person_index and len(tds) > codex_articles_index:
+                advocate = tds[person_index].text.strip()
+                advocates.append(advocate)
+
+        # получаем прокуроров
+        prosecutors = []
+        trs_prosecutors = [tr for tr in trs if 'прокурор' in tr.text.lower()]
+        for tr in trs_prosecutors:
+            tds = tr.findAll('td')
+            if len(tds) > person_index and len(tds) > codex_articles_index:
+                prosecutor = tds[person_index].text.strip()
+                prosecutors.append(prosecutor)
+
+        #  получаем ответчиков и составляем сущность defense с каждым из них
+        #  (если нашлись защитники или прокуроров, сразу добавляем)
         for tr in trs:
-            if 'Информация скрыта' in tr.text:
+
+            tr_text = tr.text.lower()
+            if 'информация скрыта' in tr_text:
                 defendants_hidden = True
 
-            if 'ФИО' in tr.text or 'статей' in tr.text \
-                    or 'Фамилия' in tr.text \
-                    or 'Информация скрыта' in tr.text \
-                    or 'Адвокат' in tr.text \
-                    or 'Прокурор' in tr.text:
+            if 'фио' in tr_text or 'статей' in tr_text \
+                    or 'фамилия' in tr_text \
+                    or 'информация скрыта' in tr_text \
+                    or 'адвокат' in tr_text \
+                    or 'защитник' in tr_text \
+                    or 'представитель' in tr_text \
+                    or 'прокурор' in tr_text:
                 continue
 
             tds = tr.findAll('td')
-            if len(tds) > defendant_index and len(tds) > codex_articles_index:
-                defendant = tds[defendant_index].text.strip()
+            if len(tds) > person_index and len(tds) > codex_articles_index:
+                defendant = tds[person_index].text.strip()
                 codex_articles = tds[codex_articles_index].text.strip()
-                defenses.append({'defendant': defendant, 'codex_articles': codex_articles})
-
+                if codex_articles == '':
+                    raise Exception('Defendant has no articles')
+                defenses.append({'defendant': defendant, 'codex_articles': codex_articles, 'advocates': advocates,
+                                 'prosecutors': prosecutors})
         return defenses, defendants_hidden
 
 
@@ -237,7 +263,7 @@ class FirstParser(RFCourtSiteParser):
         urls = []
         tds = page.find('table', id='tablcont').findAll('td', attrs={
             'title': 'Для получения справки по делу, нажмите на номер дела'
-            })
+        })
         for td in tds:
             href = td.find('a')['href']
             if Case.objects.filter(url=href).exists():
@@ -288,7 +314,7 @@ class FirstParser(RFCourtSiteParser):
             'events': page.find(events_table),
             'defendants': page.find(defendants_table),
             'appeal': page.find(appeal_table)
-            }
+        }
         return tabs
 
     def get_raw_case_information(self, url):
@@ -298,7 +324,9 @@ class FirstParser(RFCourtSiteParser):
         if status_code != 200:
             logging.error(f"GET error: rf case - {status_code} {url}")
             return
+
         page = BeautifulSoup(txt, 'html.parser')
+
         case_info['case_number'] = page.find('div', class_='casenumber').text.replace('ДЕЛО № ', '')
         case_info['url'] = url
         case_result_text_url = self.get_result_text_url(page)

@@ -388,11 +388,11 @@ docker_build() {
 
 docker_build_dev() {
     docker build -t "$C_PROJECT_NAME"-frontend-test:latest -f ../frontend/Dockerfile-nuxt-dev ../frontend   --no-cache
-    docker build -t "$C_PROJECT_NAME"-virtualenv-test:latest -f build/virtualenv/Dockerfile-test build/virtualenv
+    docker build -t "$C_PROJECT_NAME"-virtualenv-test:latest -f build/virtualenv/Dockerfile-test build/virtualenv --build-arg GITLAB_TOKEN="$GITLAB_TOKEN" --build-arg GITLAB_USER="$GITLAB_USER"
 }
 
 docker_build_prod() {
-    docker build -t "$C_PROJECT_NAME"-virtualenv:latest -f build/virtualenv/Dockerfile build/virtualenv #PROD
+    docker build -t "$C_PROJECT_NAME"-virtualenv:latest -f build/virtualenv/Dockerfile build/virtualenv --build-arg GITLAB_TOKEN="$GITLAB_TOKEN" --build-arg GITLAB_USER="$GITLAB_USER" #PROD
     docker build -t "$C_PROJECT_NAME"-frontend:latest -f ../oi-sud-monster-frontend/Dockerfile-nuxt ../oi-sud-monster-frontend
     # ./oi-sud-monster-frontend #PROD
 }

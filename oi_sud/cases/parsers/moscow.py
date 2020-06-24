@@ -5,12 +5,13 @@ import re
 from bs4 import BeautifulSoup
 from dateparser.conf import settings as dateparse_settings
 from django.utils.timezone import get_current_timezone
+from django.conf import settings
 from oi_sud.cases.consts import moscow_params_dict
 from oi_sud.cases.models import Case
 from oi_sud.cases.parsers.main import CourtSiteParser
 from oi_sud.codex.models import CodexArticle
 from oi_sud.core.parser import CommonParser
-from oi_sud.core.textract import DocParser, DocXParser
+from oi_sud.core.textract import DocParser, DocXParser, RTFParser
 from oi_sud.core.utils import get_query_key
 from oi_sud.courts.models import Court
 
@@ -49,6 +50,9 @@ class MoscowParser(CourtSiteParser):
 
     def get_pages_number(self, page):
         # получаем число страниц с делами
+
+        if settings.TEST_MODE:
+            return 1
 
         last_page_a = page.find('a', class_="intheend")
         if last_page_a:
@@ -138,7 +142,8 @@ class MoscowParser(CourtSiteParser):
 
         f.write(bytes0)
         f.close()
-
+        if extension == 'rtf':
+            return self.try_to_parse_result_text(RTFParser(), filename)
         if extension == 'docx':
             return self.try_to_parse_result_text(DocXParser(), filename)
         elif extension == 'doc':
@@ -327,10 +332,12 @@ class MoscowParser(CourtSiteParser):
                 if len(tds) > 1 and any(element in tds[1].text for element in
                                         ['Приговор', 'Решение по жалобе', 'Постановление',
                                          'Определение о возвращении']):
-                    if tds[2].find('a'):
-                        link = 'https://www.mos-gorsud.ru' + tds[2].find('a')['href']
+                    links = tds[2].findAll('a')
+                    if links:
+                        link = 'https://www.mos-gorsud.ru' + links[0]['href']
                         text = self.url_to_str(link)
                         case_info['result_text'] = text
+                        break
 
         return case_info
 

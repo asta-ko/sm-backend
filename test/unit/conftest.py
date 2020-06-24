@@ -38,7 +38,8 @@ def rf_courts():
 def koap_articles():
     CodexArticle.objects.bulk_create(
         [CodexArticle(article_number='19.3', part=1, codex='koap'), CodexArticle(article_number='5.38', codex='koap'),
-         CodexArticle(article_number='19.34', part=2, codex='koap'), ])
+         CodexArticle(article_number='19.34', part=2, codex='koap'),
+         CodexArticle(article_number='20.2',part=5,codex='koap')])
 
 
 @pytest.fixture()

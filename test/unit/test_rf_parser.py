@@ -1,12 +1,13 @@
 import pytest
 from oi_sud.cases.management.commands.get_admin_cases_from_spb_courts import Command as SpbCourtsCommand
-from oi_sud.cases.models import Case
-from oi_sud.cases.parsers.rf import RFCasesGetter
+from oi_sud.cases.models import Case, Advocate, Prosecutor
+from oi_sud.cases.parsers.rf import RFCasesGetter, FirstParser, SecondParser
 from oi_sud.cases.utils import parse_name
+from oi_sud.courts.models import Court
 from reversion.models import Revision
 
 
-#@pytest.mark.skip
+@pytest.mark.skip
 @pytest.mark.django_db
 def test_rf_parser_koap_first_instance(rf_courts, koap_articles):
     p = RFCasesGetter(codex='koap')
@@ -15,7 +16,7 @@ def test_rf_parser_koap_first_instance(rf_courts, koap_articles):
     # assert False
 
 
-#@pytest.mark.skip
+@pytest.mark.skip
 @pytest.mark.django_db
 def test_rf_parser_koap_second_instance(rf_courts, koap_articles):
     RFCasesGetter('koap').get_cases(2, rf_courts)
@@ -25,7 +26,7 @@ def test_rf_parser_koap_second_instance(rf_courts, koap_articles):
     # assert False
 
 
-#@pytest.mark.skip
+@pytest.mark.skip
 @pytest.mark.django_db
 def test_rf_parser_uk_first_instance(rf_courts, uk_articles):
     p = RFCasesGetter(codex='uk')
@@ -33,15 +34,32 @@ def test_rf_parser_uk_first_instance(rf_courts, uk_articles):
     assert len(Case.objects.all())
 
 
-#@pytest.mark.skip
+@pytest.mark.skip
 @pytest.mark.django_db
 def test_rf_parser_uk_second_instance(rf_courts, uk_articles):
     p = RFCasesGetter(codex='uk')
     p.get_cases(2)
     assert len(Case.objects.all())
 
-
 #@pytest.mark.skip
+@pytest.mark.django_db
+def test_raw_case_info_first(rf_courts, koap_articles):
+    url = 'https://vbr--spb.sudrf.ru/modules.php?name=sud_delo&name_op=case&case_id=401366335&case_uid=f6a0de4d-819c-4458-9577-0565645e9c89&result=0&new=&delo_id=1502001&srv_num=1'#'https://oktibrsky--spb.sudrf.ru/modules.php?name=sud_delo&srv_num=1&name_op=case&case_id=419372260&case_uid=867f0e26-b0ea-40ec-8d30-be8f8f1fca9c&delo_id=1500001'
+    case_info = FirstParser().get_raw_case_information(url)
+
+    print(case_info['defenses'])
+    assert case_info
+    assert case_info['events'] != []
+    FirstParser(court=Court.objects.first(), stage=2, codex='koap').save_cases(urls=[url,])
+    case = Case.objects.first()
+    print(case)
+    print(case.get_advocates())
+    print(case.get_prosecutors())
+    print(Advocate.objects.all())
+    print(Prosecutor.objects.all())
+
+
+@pytest.mark.skip
 def test_name_parser():
     names_list = ['Пиатровский Андрей Владимирович', 'Магомадов Арсен Сулейманович', 'Зинченко Нина Владимировна',
                   'Буриев Фазлиддин Сироджиддинович', 'МЕЛЕХИН ЕВГЕНИЙ ВИКТОРОВИЧ', 'БЫСТРОВ ДМИТРИЙ ВАЛЕНТИНОВИЧ',
@@ -89,7 +107,7 @@ def test_name_parser():
         print(parse_name(x))
 
 
-# @pytest.mark.skip
+@pytest.mark.skip
 @pytest.mark.django_db
 def test_rf_parser_update(rf_courts, koap_articles, settings):
     settings.USE_TZ = True
@@ -114,7 +132,7 @@ def test_spb_courts_command(rf_courts, koap_articles):
     assert len(Case.objects.all())
 
 
-#@pytest.mark.skip
+@pytest.mark.skip
 @pytest.mark.django_db
 def test_case_serialization(rf_courts, koap_articles):
     SpbCourtsCommand().handle()

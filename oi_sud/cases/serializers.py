@@ -1,7 +1,6 @@
 from oi_sud.cases.models import Case, CaseEvent, CasePenalty, Defendant
 from oi_sud.core.api_utils import SkipNullValuesMixin
 from rest_framework import serializers
-from rest_pandas.serializers import PandasSerializer
 from reversion.models import Version
 
 
@@ -35,6 +34,15 @@ class PenaltySerializer(SkipNullValuesMixin, serializers.ModelSerializer):
         exclude = ['id', 'case', 'defendant']
 
 
+class LinkedCaseSerializer(serializers.ModelSerializer):
+    case_title = serializers.SerializerMethodField()
+
+    def get_case_title(self, obj):
+        return f'{obj.stage} инстанция: {obj.case_number} {obj.court}'
+
+    class Meta:
+        model = Case
+        fields = ['id', 'stage', 'case_title']
 
 
 class BaseCaseSerializer(SkipNullValuesMixin, serializers.ModelSerializer):
@@ -45,6 +53,8 @@ class BaseCaseSerializer(SkipNullValuesMixin, serializers.ModelSerializer):
     revisions = serializers.SerializerMethodField()
     defendants = DefendantSerializer(many=True, read_only=True)
     defendants_simple = serializers.SerializerMethodField()
+    advocates = serializers.SerializerMethodField()
+    prosecutors = serializers.SerializerMethodField()
     events = CaseEventSerializer(many=True, read_only=True)
     stage = serializers.CharField(source='get_stage_display')
     type = serializers.CharField(source='get_type_display')
@@ -53,11 +63,10 @@ class BaseCaseSerializer(SkipNullValuesMixin, serializers.ModelSerializer):
     result_text_url = serializers.SerializerMethodField()
     penalties = PenaltySerializer(many=True, read_only=True)
     penalty = serializers.SerializerMethodField()
-    linked_cases = serializers.HyperlinkedRelatedField(
+    linked_cases = LinkedCaseSerializer(
         many=True,
-        read_only=True,
-        view_name='case-detail'
-        )
+        read_only=True
+    )
 
     def get_in_favorites(self, obj):
         request = self.context.get("request")
@@ -73,13 +82,25 @@ class BaseCaseSerializer(SkipNullValuesMixin, serializers.ModelSerializer):
             except TypeError:
                 return ''
 
+    def get_advocates(self, obj):
+        try:
+            return ', '.join(list([x.name_normalized for x in obj.get_advocates()]))
+        except TypeError:
+            return ''
+
+    def get_prosecutors(self, obj):
+        try:
+            return ', '.join(list([x.name_normalized for x in obj.get_prosecutors()]))
+        except TypeError:
+            return ''
+
     class Meta:
         model = Case
-        exclude = ['result_text', 'advocates', 'text_search']
+        exclude = ['result_text', 'text_search']
 
     def get_penalty(self, obj):
         if obj.penalties.first():
-            return obj.penalties.all().first()
+            return str(obj.penalties.all().first())
         else:
             return None
 
@@ -99,7 +120,7 @@ class BaseCaseSerializer(SkipNullValuesMixin, serializers.ModelSerializer):
                 'link': obj.get_history_link(),
                 'revisions': [{'date': str(x.revision.date_created), 'comment': x.revision.comment} for x in
                               Version.objects.get_for_object(obj)]
-                }
+            }
 
     def get_defendants(self, obj):
         if obj.defendants_hidden:
@@ -116,8 +137,6 @@ class BaseCaseSerializer(SkipNullValuesMixin, serializers.ModelSerializer):
 
 class CaseSerializer(BaseCaseSerializer, SkipNullValuesMixin):
     pass
-
-
 
 
 class SimpleCaseSerializer(SkipNullValuesMixin, serializers.ModelSerializer):
@@ -145,7 +164,7 @@ class SimpleCaseSerializer(SkipNullValuesMixin, serializers.ModelSerializer):
     class Meta:
         model = Case
         fields = ['id', 'entry_date', 'result_date', 'in_favorites', 'court', 'codex_articles', 'defendants_simple',
-                  'penalties', 'result_text_url']
+                  'penalties', 'result_type', 'result_text_url']
 
     def get_penalty(self, obj):
         if obj.penalties.first():
@@ -173,25 +192,24 @@ class CSVSerializer(SimpleCaseSerializer):
     court_city = serializers.SerializerMethodField()
     region = serializers.SerializerMethodField()
     defendants_gender = serializers.SerializerMethodField()
-    penalty  = serializers.SerializerMethodField()
+    penalty = serializers.SerializerMethodField()
     penalty_type = serializers.SerializerMethodField()
     penalty_value = serializers.SerializerMethodField()
+
     class Meta:
         model = Case
         fields = ['id', 'entry_date', 'result_date', 'in_favorites', 'court', 'codex_articles', 'defendants_simple',
-                  'penalty', 'penalty_type', 'penalty_value','result_type','result_text_url', 'court_city', 'region','type', 'stage','url','appeal_date','defendants_gender','judge',
+                  'penalty', 'penalty_type', 'penalty_value', 'result_type', 'result_text_url', 'court_city', 'region',
+                  'type', 'stage', 'url', 'appeal_date', 'defendants_gender', 'judge',
                   ]
 
     def get_penalty_type(self, obj):
         return obj.penalties.first().get_type_display() if obj.penalties.exists() else None
 
-
     def get_penalty_value(self, obj):
         return obj.penalties.first().num if obj.penalties.all().exists() else None
 
-
-
-    def get_judge(self,obj):
+    def get_judge(self, obj):
         return str(self.obj.judge)
 
     def get_defendants_gender(self, obj):
@@ -210,11 +228,8 @@ class CSVSerializer(SimpleCaseSerializer):
             return None
 
 
-
 class CaseFullSerializer(CaseSerializer):
-    class Meta:
-        model = Case
-        exclude = ['advocates']
+    pass
 
 
 class CaseResultSerializer(serializers.ModelSerializer):

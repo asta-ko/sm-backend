@@ -38,7 +38,7 @@ class CountCasesView(APIView):
             data = {
                 'all': count_all, 'koap': {'count': koap_qs.count(), 'articles': {}},
                 'uk': {'count': uk_qs.count(), 'articles': {}}
-                }
+            }
 
             for article_number in KoapCodexArticle.objects.filter(active=True).values_list('article_number',
                                                                                            flat=True).distinct():
@@ -46,7 +46,7 @@ class CountCasesView(APIView):
 
                 data['koap']['articles'][article_number] = {
                     'all': koap_qs.filter(codex_articles__article_number=article_number).count()
-                    }
+                }
                 if KoapCodexArticle.objects.filter(article_number=article_number).count() > 1:
                     for article in KoapCodexArticle.objects.filter(article_number=article_number):
                         if koap_qs.filter(codex_articles__in=[article]).count():
@@ -57,7 +57,7 @@ class CountCasesView(APIView):
                 # if cases_koap.filter(codex_articles__artile_number=article_number).count():
                 data['uk']['articles'][article_number] = {
                     'all': uk_qs.filter(codex_articles__article_number=article_number).count()
-                    }
+                }
                 if UKCodexArticle.objects.filter(article_number=article_number).count() > 1:
                     for article in UKCodexArticle.objects.filter(article_number=article_number):
                         if uk_qs.filter(codex_articles__in=[article]).count():
@@ -79,13 +79,13 @@ class FrontCountCasesView(CountCasesView):
                     stage=1).count(),
                 'count_second_instance': self.cases_koap.filter(stage=2).count(), 'key': 'koap',
                 'description': 'Всего дел об административных правонарушениях', 'children': []
-                },
+            },
             {
                 'article': 'УК', 'count': self.cases_uk.count(),
                 'count_first_instance': self.cases_uk.filter(stage=1).count(),
                 'count_second_instance': self.cases_uk.filter(stage=2).count(), 'key': 'uk',
                 'description': 'Всего уголовных дел', 'children': []
-                }]
+            }]
 
     def get_article_children(self, cases_article_qs, codex_articles, article_number):
         if KoapCodexArticle.objects.filter(article_number=article_number).count() > 1:
@@ -99,7 +99,7 @@ class FrontCountCasesView(CountCasesView):
                         'count_second_instance': cases_article_qs.filter(stage=2, codex_articles__in=[article]).count(),
                         'count': cases_article_qs.filter(codex_articles__in=[article]).count(),
                         'description': article.short_title
-                        })
+                    })
             return children
 
     def get_main_item(self, codex_type, article_number, description):
@@ -123,7 +123,7 @@ class FrontCountCasesView(CountCasesView):
             'count_first_instance': cases_article_qs.filter(stage=1).count(),
             'count_second_instance': cases_article_qs.filter(stage=2).count(), 'count': cases_article_qs.count(),
             'description': description, 'children': children
-            }
+        }
 
     def get(self, request, format=None):
 
@@ -186,7 +186,7 @@ all_metrics = {
     'defendants_f': 'Пол Ж',
     'defendants_m': 'Пол М',
     'defendants_na': 'Пол ?'
-    }
+}
 
 RESULTS_FORWARDED = ['Дело присоединено к другому делу', 'Направлено по подведомственности',
                      'Вынесено определение о передаче дела по подведомственности (ст 29.9 ч.2 п.2 и ст 29.4 ч.1 п.5)',
@@ -211,9 +211,6 @@ class DataView(PandasSimpleView):
     def process_get(self, request):
         years = self.get_list_param('years')
         article = self.get_list_param('article')
-        if len(article):
-            article = article[0]
-
         regions = self.get_list_param('regions')
         metrics = self.get_list_param('metrics')
         stage = request.GET.get('stage')
@@ -363,6 +360,26 @@ class DataRegionsViewByMetrics(DataView):
                 region_arr.append(m)
             data.append(region_arr)
 
+        return self.data_to_df(data)
+
+
+class DataArticlesViewByMetrics(DataView):
+
+    def get_data(self, request, *args, **kwargs):
+        self.request = request
+        years, articles, region, stage, metrics_list, type = self.process_get(request)
+        year = None if not len(years) else int(years[0])
+        data = []
+        header = ['Статья', ] + [all_metrics[x] for x in metrics_list]
+
+        data.append(header)
+        for article in articles:
+            articles_arr = [article, ]
+            for metric in metrics_list:
+                m = self.get_metric(metric, article, region, year, stage, type)
+                articles_arr.append(m)
+
+            data.append(articles_arr)
         return self.data_to_df(data)
 
 

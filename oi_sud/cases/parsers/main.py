@@ -6,7 +6,7 @@ from dateparser.conf import settings as dateparse_settings
 from django.conf import settings
 from django.utils.timezone import get_current_timezone
 from oi_sud.cases.consts import APPEAL_RESULT_TYPES, EVENT_RESULT_TYPES, EVENT_TYPES, RESULT_TYPES
-from oi_sud.cases.models import Case, Defendant
+from oi_sud.cases.models import Case, Defendant, Advocate, Prosecutor
 from oi_sud.codex.models import CodexArticle
 from oi_sud.core.parser import CommonParser
 from oi_sud.courts.models import Judge
@@ -180,6 +180,14 @@ class CourtSiteParser(CommonParser):
                         all_articles_ids.append(article.id)
             defendant_name = item['defendant']
             defendant = Defendant.objects.create_from_name(name=defendant_name, region=court.region)
+            if item.get('advocates'):
+                item['advocates'] = [Advocate.objects.create_from_name(name=advocate_name, region=court.region) for
+                                     advocate_name in item['advocates']]
+            if item.get('prosecutors'):
+                item['prosecutors'] = [Prosecutor.objects.create_from_name(name=prosecutor_name, region=court.region)
+                                       for
+                                       prosecutor_name in item['prosecutors']]
+
             item['defendant'] = defendant
 
         result['defenses'] = case_info['defenses']
