@@ -2,7 +2,7 @@ import pytest
 from oi_sud.cases.management.commands.get_admin_cases_from_spb_courts import Command as SpbCourtsCommand
 from oi_sud.cases.models import Case
 from oi_sud.cases.parsers.rf import RFCasesGetter
-from oi_sud.cases.utils import parse_name_and_get_gender
+from oi_sud.cases.utils import parse_name
 from reversion.models import Revision
 
 
@@ -86,7 +86,7 @@ def test_name_parser():
                   'Чепыга Сергей Николаевич', 'Дремин Михаил Сергеевич', 'Макаровский Максим Владимирович',
                   'Безденежных Иннокентий Сергеевич']
     for x in names_list:
-        print(parse_name_and_get_gender(x))
+        print(parse_name(x))
 
 
 # @pytest.mark.skip
@@ -107,7 +107,7 @@ def test_rf_parser_update(rf_courts, koap_articles, settings):
         print(item.comment)
 
 
-#@pytest.mark.skip
+@pytest.mark.skip
 @pytest.mark.django_db
 def test_spb_courts_command(rf_courts, koap_articles):
     SpbCourtsCommand().handle()

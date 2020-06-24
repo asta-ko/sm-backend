@@ -90,7 +90,7 @@ services:
       - ./:/code
       - data-static:/var/www/static
       - ./.docker/media:/var/www/media
-    command: ["gunicorn", "oi_sud.wsgi:application", "-b", "0.0.0.0:8081", "--name", "oi_sud", "--reload"]
+    command: ["gunicorn", "oi_sud.wsgi:application", "-k", "gevent", "-b", "0.0.0.0:8081", "--name", "oi_sud", "--reload", "-t", "120", "--workers", "5"]
     ports:
       - "8081:8081"
     labels:
@@ -126,19 +126,46 @@ services:
   celery_main:
     container_name: sudmonster_celery_main
     <<: *oi_sud
-    command: ["celery", "-A", "oi_sud", "worker", "-l", "info", "-Q", "main", "-c", "1", "-n", "main", "--max-tasks-per-child=1" ]
+    command: ["celery", "-A", "oi_sud", "worker", "-l", "info", "-Q", "main", "-c", "1", "-n", "main"]
     labels:
       job: celery
       instance: sudmonster
+    logging:
+      driver: loki
+      options:
+        loki-url: "https://loki.ovdinfo.org/api/prom/push"
+        labels: "instance,job"
+        max-size: "1m"
 
   celery_other:
     container_name: sudmonster_celery_other
     <<: *oi_sud
-    command: ["celery", "-A", "oi_sud", "worker", "-l", "info", "-Q", "other", "-c", "8", "-n", "other",
+    command: ["celery", "-A", "oi_sud", "worker", "-l", "info", "-Q", "other", "-c", "8", "-n", "other", "-Ofair"
     ]
     labels:
       job: celery
       instance: sudmonster
+    logging:
+      driver: loki
+      options:
+        loki-url: "https://loki.ovdinfo.org/api/prom/push"
+        labels: "instance,job"
+        max-size: "1m"
+
+  celery_grouper:
+    container_name: sudmonster_celery_grouper
+    <<: *oi_sud
+    command: ["celery", "-A", "oi_sud", "worker", "-l", "info", "-Q", "grouper", "-c", "5", "-n", "grouper", "-Ofair"
+    ]
+    labels:
+      job: celery
+      instance: sudmonster
+    logging:
+      driver: loki
+      options:
+        loki-url: "https://loki.ovdinfo.org/api/prom/push"
+        labels: "instance,job"
+        max-size: "1m"
 
   celerybeat:
     container_name: sudmonster_celerybeat

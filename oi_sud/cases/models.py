@@ -1,4 +1,4 @@
-import traceback
+import logging
 
 import editdistance
 import reversion
@@ -11,9 +11,11 @@ from django.db import models
 from django.urls import reverse
 from django.utils import timezone
 from oi_sud.cases.parsers.result_texts import kp_extractor
-from oi_sud.cases.utils import normalize_name, parse_name_and_get_gender
+from oi_sud.cases.utils import get_gender, normalize_name, parse_name
 from oi_sud.core.consts import region_choices
 from oi_sud.core.utils import DictDiffer, nullable
+
+logger = logging.getLogger(__name__)
 
 CASE_TYPES = (
     (1, 'Дело об административном правонарушении'),
@@ -59,10 +61,11 @@ class CaseManager(models.Manager):
                 for event in item['events']:
                     event['case'] = case
                     CaseEvent.objects.create(**event)
-                print('saved case ', case)
+                logger.debug(f'Saved new case: {case}')
                 return case
-            except Exception:
-                print(traceback.format_exc())
+            except Exception as e:
+                logger.error(f'Failed to save case: {e}')
+                logger.debug(item)
 
 
 class Case(models.Model):
@@ -169,19 +172,16 @@ class Case(models.Model):
             url = self.url
             if self.court.site_type != 3:
                 url = url + '&nc=1'
-            # print(url)
             raw_data = parser.get_raw_case_information(url)
             fresh_data = {i: j for i, j in parser.serialize_data(raw_data).items() if j is not None}
             fresh_data['case'] = {k: v for k, v in fresh_data['case'].items() if v is not None}
             self.update_if_needed(fresh_data)
-        except:  # NOQA
-            print('error: ', self.url)
-            print(traceback.format_exc())
+        except Exception as e:  # NOQA
+            logger.error(f'Failed to update case: {e}, case admin url: {self.get_admin_url()}, case url: {self.url}')
 
     def update_if_needed(self, fresh_data):
 
         old_data = self.serialize()
-        # print(old_data, fresh_data)
 
         if not old_data['case'].get('result_text') and fresh_data['case'].get('result_text'):
             fresh_data['case']['result_published_date'] = timezone.now()
@@ -191,13 +191,13 @@ class Case(models.Model):
         with reversion.create_revision():
             diff_keys = []
             if fresh_data['case'] != old_data['case']:
-                print(f'Updating case... {self}')
+                logger.debug(f'Updating case... {self}')
                 diff_keys += DictDiffer(fresh_data['case'], old_data['case']).get_all_diff_keys()
                 self.__dict__.update(fresh_data['case'])
                 self.save()
 
             if fresh_data['defenses'] != old_data['defenses']:
-                print(f'Updating case defendants... {self}')
+                logger.debug(f'Updating case defendants... {self}')
                 for d in fresh_data['defenses']:
                     articles = d['codex_articles']
                     defendant = d['defendant']
@@ -207,7 +207,7 @@ class Case(models.Model):
                 diff_keys.append('defenses')
 
             if fresh_data['events'] != old_data['events']:
-                print(f'Updating case events... {self}')
+                logger.debug(f'Updating case events... {self}')
                 for event in fresh_data['events']:
                     event['case'] = self
                     obj, created = CaseEvent.objects.update_or_create(**event)
@@ -277,10 +277,9 @@ class Case(models.Model):
                                                    **result[penalty_type])
                         break
         except IntegrityError:
-            print('integrity error')
+            logger.warning(f'Saving penalty integrity error {self.get_admin_url()}')
         except Exception as e:
-            print('saving error', self.get_admin_url())
-            print(e)
+            logger.error(f'Saving penalty error {e}: {self.get_admin_url()}')
             CasePenalty.objects.filter(case=self).delete()
             CasePenalty.objects.create(type='error', case=self, is_hidden=False, defendant=self.defendants.first())
             # сохраняем ошибку
@@ -391,8 +390,8 @@ class DefendantManager(models.Manager):
     @staticmethod
     def create_from_name(name, region):
 
-        names, gender = parse_name_and_get_gender(name)
-        normalized_name = normalize_name(name)
+        names = parse_name(name)[0]  # Пробуем получить ФИО
+        normalized_name = normalize_name(name)  # точно получаем нормализованное имя
         if len(names) and Defendant.objects.filter(region=region, last_name=names[0], first_name=names[1],
                                                    middle_name=names[2]).exists():  # Совпадают регион и ФИО полностью
             return Defendant.objects.filter(region=region, last_name=names[0], first_name=names[1],
@@ -415,10 +414,17 @@ class DefendantManager(models.Manager):
                 'region': region,
                 'name_normalized': normalized_name
                 }
+
+            gender = None
+
             if len(names):
                 d_dict['last_name'] = names[0]
                 d_dict['first_name'] = names[1]
                 d_dict['middle_name'] = names[2]
+                gender = get_gender(names[1], names[0])
+            else:
+                gender = get_gender(None, normalized_name.split(' ')[0])
+
             if gender:
                 d_dict['gender'] = gender
             defendant = Defendant(**d_dict)
@@ -445,6 +451,12 @@ class Defendant(models.Model):
 
     def normalize_name(self):
         return normalize_name(self.name)
+
+    def get_gender(self):
+        if self.first_name:
+            return get_gender(self.first_name, self.last_name)
+        else:
+            return get_gender(None, self.name_normalized.split(' ')[0])
 
     class Meta:
         verbose_name = 'Ответчик'

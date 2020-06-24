@@ -12,7 +12,7 @@ def courts():
 @pytest.fixture()
 def moscow_courts():
     court_dicts = [
-        {'url': 'https://mos-gorsud.ru/rs/shcherbinskij', 'title': 'Щербинский районный суд', 'phone_numbers': ['-'],
+        {'url': 'https://mos-gorsud.ru/rs/cheryomushkinskij', 'title': 'Черемушиниский районный суд', 'phone_numbers': ['-'],
          'region': 77,
          'site_type': 3, 'type': 2},
     ]
@@ -37,8 +37,8 @@ def rf_courts():
 @pytest.fixture()
 def koap_articles():
     CodexArticle.objects.bulk_create(
-        [CodexArticle(article_number='19.3', part=1, codex='koap'), CodexArticle(article_number='20.33', codex='koap'),
-         CodexArticle(article_number='19.34', part=2, codex='koap')])
+        [CodexArticle(article_number='19.3', part=1, codex='koap'), CodexArticle(article_number='5.38', codex='koap'),
+         CodexArticle(article_number='19.34', part=2, codex='koap'), ])
 
 
 @pytest.fixture()

@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework.authtoken',
     'rest_framework_expiring_authtoken',
+    'rest_framework_csv',
     'corsheaders',
     'django_extensions',
     'django_filters',
@@ -60,7 +61,7 @@ INSTALLED_APPS = [
     'oi_sud.codex.apps.CodexConfig',
     'oi_sud.cases.apps.CasesConfig',
     'oi_sud.users.apps.UsersConfig',
-    #'oi_sud.presets.apps.PresetsConfig'
+    'oi_sud.presets.apps.PresetsConfig'
 
 ]
 
@@ -73,7 +74,6 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-
 ]
 
 CORS_ORIGIN_ALLOW_ALL = True
@@ -171,7 +171,7 @@ TIME_ZONE = 'Europe/Moscow'
 
 USE_I18N = True
 
-USE_L10N = False  # True
+USE_L10N = True  # True
 
 USE_TZ = True
 
@@ -293,6 +293,10 @@ REST_FRAMEWORK = {
        # 'rest_framework_simplejwt.authentication.JWTAuthentication',
         'rest_framework.authentication.SessionAuthentication',
     ),
+
+    'DEFAULT_PARSER_CLASSES': (
+        'rest_framework.parsers.JSONParser',
+        ),
     'DEFAULT_FILTER_BACKENDS': ['django_filters.rest_framework.DjangoFilterBackend'],
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'DATETIME_FORMAT': "%d-%m-%Y %H:%M",
@@ -300,9 +304,10 @@ REST_FRAMEWORK = {
     'DEFAULT_RENDERER_CLASSES': [
         'rest_framework.renderers.JSONRenderer',
         'rest_framework.renderers.BrowsableAPIRenderer',
-        'rest_framework.renderers.AdminRenderer'
+        'rest_framework.renderers.AdminRenderer',
     ]
 }
+
 from datetime import timedelta
 
 # Add reversion models to admin interface:
@@ -310,3 +315,16 @@ ADD_REVERSION_ADMIN=True
 
 CHORD_UNLOCK_MAX_RETRIES=60
 
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': 'DEBUG',
+    },
+}

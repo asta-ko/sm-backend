@@ -31,8 +31,7 @@ def limit_chord_unlock_tasks(worker, **kwargs):
     """
     task = worker.app.tasks['celery.chord_unlock']
     if task.max_retries is None:
-        retries = getattr(worker.app.conf, 'CHORD_UNLOCK_MAX_RETRIES', None)
-        task.max_retries = retries
+        task.max_retries = 15
 
 
 def get_start_date(delta_days):
@@ -41,9 +40,13 @@ def get_start_date(delta_days):
 
 
 @shared_task  # (base=QueueOnce, once={'graceful': True})
-def main_get_cases(newest=False):
-    for region in region_choices:
-        get_cases_from_region.s(region=region[0], newest=newest).apply_async(queue='main')
+def main_get_cases(newest=False, codex=None, custom_regions=None):
+    if not custom_regions:
+        for region in region_choices:
+            get_cases_from_region.s(region=region[0], newest=newest, codex=codex).apply_async(queue='main')
+    else:
+        for region in custom_regions:
+            get_cases_from_region.s(region=region, newest=newest, codex=codex).apply_async(queue='main')
 
 
 @shared_task
@@ -65,20 +68,27 @@ def update_cases_by_week_day():
 
 
 @shared_task  # (bind=True)
-def get_cases_from_region(region=78, newest=False):
+def get_cases_from_region(region=78, newest=False, codex=None):
     # progress_recorder = ProgressRecorder(self)
-    callback = group_by_region.si(region=region).set(queue="other")
+    callback = group_by_region.si(region=region).set(queue="grouper")
     header = []
 
     region_courts = Court.objects.exclude(type=9).filter(region=region)
-    chunked_courts = chunks(region_courts.values_list('id', flat=True), 10)
+    chunked_courts = chunks(region_courts.values_list('id', flat=True), 2)
 
     for chunk in chunked_courts:
-        header += [get_koap_cases_first.si(chunk, newest=newest).set(queue="other"),
-                   get_koap_cases_second.si(chunk, newest=newest).set(queue="other"),
-                   get_uk_cases_first.si(chunk, newest=newest).set(queue="other"),
-                   get_uk_cases_second.si(chunk, newest=newest).set(queue="other")
-                   ]
+
+        if not codex:
+            header += [get_koap_cases_first.si(chunk, newest=newest).set(queue="other"),
+                       get_koap_cases_second.si(chunk, newest=newest).set(queue="other"),
+                       get_uk_cases_first.si(chunk, newest=newest).set(queue="other"),
+                       get_uk_cases_second.si(chunk, newest=newest).set(queue="other")]
+        elif codex == 'koap':
+            header += [get_koap_cases_first.si(chunk, newest=newest).set(queue="other"),
+                       get_koap_cases_second.si(chunk, newest=newest).set(queue="other")]
+        elif codex == 'uk':
+            header += [get_uk_cases_first.si(chunk, newest=newest).set(queue="other"),
+                       get_uk_cases_second.si(chunk, newest=newest).set(queue="other")]
 
     # result_progress, result = progress_chord(header)(callback)
     # result.apply_async()
@@ -149,7 +159,7 @@ def get_moscow_uk_cases_second(newest=False):
 
 @shared_task
 def get_moscow_cases(newest=False):
-    callback = group_moscow_cases.si().set(queue="other")
+    callback = group_moscow_cases.si().set(queue="grouper")
     header = []
 
     header += [get_moscow_koap_cases_first.si(newest=newest).set(queue="other"),
@@ -223,4 +233,4 @@ def update_spb():
 @shared_task
 def group_all():
     for region in [x for x in dict(region_choices).keys() if x not in [77, 78]]:
-        group_by_region.s(region).apply_async(queue="other")
+        group_by_region.s(region).apply_async(queue="grouper")

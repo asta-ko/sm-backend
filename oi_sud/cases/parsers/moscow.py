@@ -1,4 +1,5 @@
 # coding=utf-8
+import logging
 import re
 
 from bs4 import BeautifulSoup
@@ -16,13 +17,15 @@ from oi_sud.courts.models import Court
 dateparse_settings.TIMEZONE = str(get_current_timezone())
 dateparse_settings.RETURN_AS_TIMEZONE_AWARE = False
 
+logger = logging.getLogger(__name__)
+
 
 class MoscowParser(CourtSiteParser):
 
     def get_article_string(self):
 
         if not self.article:
-            print('no self article')
+            logger.debug('Moscow parser: no article string')
             return None
 
         koap_uk_space = ''
@@ -62,9 +65,12 @@ class MoscowParser(CourtSiteParser):
         for ev in events:
             ev_cols = ev.findAll('td')
             href = 'https://mos-gorsud.ru' + ev_cols[0]('a')[0]['href']
-            # проверка на точное соотстветствие, иначе смешает, например, ч.6 и ч.6.1
-            if ev_cols[4].text.strip() != self.get_article_string():
-                print('article string went wrong')
+            href = href.split('?')[0]
+            # проверка на точное соотстветствие, иначе смешает, например, ч.6 и ч.6.1 (только для КОАП, в УК эта колонка пустая)
+            if ev_cols[4].text.strip() != self.get_article_string() and self.article.codex == 'koap':
+                logger.warning(
+                    f'Moscow parsing: article string went wrong - {self.get_article_string()}, '
+                    f'{ev_cols[4].text.strip()}')
                 continue
 
             if Case.objects.filter(url=href).exists():
@@ -75,15 +81,12 @@ class MoscowParser(CourtSiteParser):
 
     def get_all_cases_urls(self, limit_pages=False):
         # Получаем все урлы дел по данной статье
-        print('get all urls')
         txt, status_code = self.send_get_request(self.url)
         if status_code != 200:
-            print("GET error: ", status_code)
-            print('Unable to save cases')
+            logger.error(f"GET error: {status_code} -- getting moscow cases -- unable to save any cases")
             return None
         first_page = BeautifulSoup(txt, 'html.parser')
         pages_number = self.get_pages_number(first_page)  # TODO CHANGE
-        print(pages_number, 'pages_number')
         if pages_number > 3 and limit_pages:
             pages_number = 3  # FOR TESTING
         all_pages = [first_page, ]
@@ -95,7 +98,7 @@ class MoscowParser(CourtSiteParser):
             for url in pages_urls:
                 txt, status_code = self.send_get_request(url)
                 if status_code != 200:
-                    print("GET error: ", status_code)
+                    logger.error(f"GET error: {status_code} -- getting moscow cases -- unable to save cases")
                     continue
                 page = BeautifulSoup(txt, 'html.parser')
                 all_pages.append(page)
@@ -107,12 +110,12 @@ class MoscowParser(CourtSiteParser):
                 urls = self.get_cases_urls_from_list(page)
                 all_cases_urls += urls
             except AttributeError:
-                print('error')
+                logger.error(f"Error getting moscow cases -- could not get urls from list")
 
         if not all_cases_urls:
-            print('...Got no cases urls')
+            logger.debug('Getting moscow cases... Got no cases urls')
         else:
-            print('...Got all cases urls')
+            logger.debug(f'Getting moscow cases... Got {len(all_cases_urls)} cases urls')
 
         return all_cases_urls
 
@@ -121,17 +124,18 @@ class MoscowParser(CourtSiteParser):
             text = parser.process(filename, 'utf-8')
             return text
         except Exception as e:
-            print('could not process')
             return ''
 
     def url_to_str(self, url):
         """ выгружает текст из файла doc / docx, загружаемого по ссылке """
         file_res, status, content, extension = self.send_get_request(url, extended=True)
-        if not extension:
-            extension = 'docx'
+
         bytes0 = content  # file_res#[2]
-        filename = "txt." + extension
+        filename = "txt"
+        if extension:
+            filename += f'.{extension}'
         f = open(filename, 'wb')
+
         f.write(bytes0)
         f.close()
 
@@ -141,18 +145,20 @@ class MoscowParser(CourtSiteParser):
             return self.try_to_parse_result_text(DocParser(), filename)
         elif not extension:
             docx = self.try_to_parse_result_text(DocXParser(), filename)
-            if not docx:
+            if docx:
+                return docx
+            else:
                 return self.try_to_parse_result_text(DocParser(), filename)
+        else:
+            logger.critical(f'{url}: Could not process moscow result text file')
 
     def get_raw_case_information(self, url):
 
         # парсим карточку дела
 
-        print(url, 'case url')
-
         txt, status_code = self.send_get_request(url)
         if status_code != 200:
-            print("GET error: ", status_code)
+            logger.error(f"GET error: {status_code} -- getting moscow case {url}")
             return
         page = BeautifulSoup(txt, 'html.parser')
 
@@ -204,7 +210,7 @@ class MoscowParser(CourtSiteParser):
             'Осужденный (оправданный, обвиняемый)': 'uk_defense',
             'Лицо': 'uk_defense',
             'Подсудимый': 'uk_defense'
-            }
+        }
         defense = {}
         for key in content_dict.keys():
             if key in dict_names.keys():
@@ -218,8 +224,8 @@ class MoscowParser(CourtSiteParser):
 
                 else:
                     case_info[dict_names[key]] = content_dict[key]
-            else:
-                print('не вошло в финальный словарь:', key, content_dict[key])
+            # else:
+            #     print('не вошло в финальный словарь:', key, content_dict[key])
 
         # выгружаем данные из таблиц "судебные заседания" и "судебные акты"
         table = page.findAll('table', class_="custom_table mainTable")
@@ -253,7 +259,7 @@ class MoscowParser(CourtSiteParser):
             event_names = {
                 'Стадия': 'type', 'date': 'date', 'time': 'time', 'courtroom': 'courtroom',
                 'Результат': 'result', 'Основание': 'reason'
-                }
+            }
             # выгружаем таблицу с прошедшими заседаниями (центральная нижняя)
             heads = [head.string.strip() for head in table[0].findAll('th')]
             results = [result.string.strip() for result in table[0].findAll('td')]
@@ -411,6 +417,5 @@ class MoscowCasesGetter(CommonParser):
             if entry_date_from:
                 params['entry_date_from'] = entry_date_from  # DD.MM.YYYY
             url = self.generate_params('https://mos-gorsud.ru/mgs/search?courtAlias=', params)
-            print(url)
 
             MoscowParser(url=url, stage=instance, codex=codex, article=article).save_cases()

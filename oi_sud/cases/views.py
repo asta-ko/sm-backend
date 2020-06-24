@@ -1,3 +1,5 @@
+import itertools
+import csv
 import django_filters
 from django.contrib.postgres.search import SearchQuery
 from django.db import models
@@ -10,7 +12,9 @@ from django.views.decorators.cache import cache_page
 from django_filters.rest_framework import DjangoFilterBackend
 from django_filters.widgets import RangeWidget
 from oi_sud.cases.models import Case, CaseEvent, PENALTY_TYPES
-from oi_sud.cases.serializers import CaseFullSerializer, CaseResultSerializer, CaseSerializer, SimpleCaseSerializer
+from oi_sud.cases.serializers import (
+    CSVSerializer, CaseFullSerializer, CaseResultSerializer, CaseSerializer, SimpleCaseSerializer,
+    )
 from oi_sud.core.consts import region_choices
 from rest_framework import filters
 from rest_framework import permissions
@@ -19,7 +23,100 @@ from rest_framework.generics import RetrieveAPIView
 from rest_framework.renderers import AdminRenderer
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework_csv.renderers import CSVStreamingRenderer
+from rest_framework_csv.misc import Echo
+from django.core.paginator import Paginator
+from django.http import StreamingHttpResponse
 
+
+class BatchPaginator(Paginator):
+    def __init__(self,*args, **kwargs):
+        p_range = kwargs.pop('page_range')
+        super().__init__(*args, **kwargs)
+        self.p_range = p_range
+
+    @property
+    def page_range(self):
+        """
+        Return a 1-based range of pages for iterating through within
+        a template for loop.
+        """
+        if self.p_range:
+            return self.p_range
+        return range(1, self.num_pages + 1)
+
+
+
+class BatchCSVStreamingRenderer(CSVStreamingRenderer):
+
+    """
+    a CSV renderer that works with large querysets returning a generator
+    function. Used with a streaming HTTP response, it provides response bytes
+    instead of the client waiting for a long period of time
+    """
+
+    def render(self, data, renderer_context={}, *args, **kwargs):
+
+        csv_buffer = Echo()
+        csv_writer = csv.writer(csv_buffer)
+
+        queryset = data['queryset']
+        serializer = data['serializer']
+
+        from_item = None
+        to_item = None
+
+        page_range = None
+
+
+        limits = renderer_context.get('limits')
+        if limits and len(limits) == 2:
+            from_item = limits[0]//50 +1 or 1
+            to_item = limits[1]//50
+            if to_item%50:
+                to_item+=1
+            page_range = range(from_item, to_item)
+        elif limits and len(limits) == 1:
+            to_item = limits[0]//50 + 1
+            if limits[0]%50:
+                to_item+=1
+            page_range = range(1,to_item)
+
+        paginator = BatchPaginator(queryset, 50, page_range=page_range)
+
+        #  rendering the header or label field was taken from the tablize
+        #  method in django rest framework csv
+
+        header = renderer_context.get('header', self.header)
+        labels = renderer_context.get('labels', self.labels)
+
+        if labels:
+            yield csv_writer.writerow([labels.get(x, x) for x in header])
+        if header:
+            yield csv_writer.writerow(header)
+
+
+
+        for page in paginator.page_range:
+
+            serialized = serializer(
+                paginator.page(page).object_list, many=True
+            ).data
+
+            #  we use the tablize function on the parent class to get a
+            #  generator that we can use to yield a row
+
+            table = self.tablize(
+                serialized,
+                header=header,
+                labels=labels,
+            )
+
+            #  we want to remove the header from the tablized data so we use
+            #  islice to take from 1 to the end of generator
+
+            for row in itertools.islice(table, 1, None):
+                yield csv_writer.writerow(row)
 
 def get_result_text(request, case_id):
     case = get_object_or_404(Case, pk=case_id)
@@ -94,6 +191,8 @@ class CaseFilter(django_filters.FilterSet):
         lookup_expr='in')
     defendant = django_filters.CharFilter(field_name="defendants__name_normalized",
                                           lookup_expr='istartswith', label="Ответчик")
+    defendant_gender = django_filters.CharFilter(field_name='defendants__gender', method='filter_defendant_gender',
+                                                 label='Пол ответчика')
     defendant_hidden = django_filters.BooleanFilter(field_name="defendants_hidden")
     penalty_type = django_filters.ChoiceFilter(field_name="penalties__type", choices=PENALTY_TYPES)
     has_penalty = django_filters.BooleanFilter(field_name="penalties", method='filter_has_penalty',
@@ -176,6 +275,14 @@ class CaseFilter(django_filters.FilterSet):
         lookup = '__'.join([name, 'isnull'])
         return queryset.filter(**{lookup: not value})
 
+    def filter_defendant_gender(self, queryset, name, value):
+        if value == 'm':
+            return queryset.filter(defendants__gender='2')
+        elif value == 'f':
+            return queryset.filter(defendants__gender='1')
+        elif value == 'na':
+            return queryset.filter(defendants__gender__isnull=True)
+
     def str_to_int(self, queryset, name, value):
         # construct the full lookup expression.
         lookup = '__'.join([name, 'in'])
@@ -207,7 +314,7 @@ class CaseArticleFilter(CaseFilter):
 
 class CaseFilterBackend(DjangoFilterBackend):
 
-    # filter_class = CaseFilter
+    #filter_class = CaseFilter
 
     def filter_queryset(self, request, queryset, view):
         filter_class = self.get_filter_class(view, queryset)
@@ -232,6 +339,43 @@ class CasesView(ListAPIView):
     @method_decorator(cache_page(60 * 60 * 1))
     def dispatch(self, *args, **kwargs):
         return super().dispatch(*args, **kwargs)
+
+class CasesStreamingView(CasesView):
+    renderer_classes = [BatchCSVStreamingRenderer]
+    pagination_class = None
+    permission_classes = ()
+    paginator = None
+    paginate_by = None
+    paginate_by_param = None
+    serializer_class = CSVSerializer
+    def list(self, request, *args, **kwargs):
+
+
+        queryset = self.filter_queryset(self.get_queryset())
+        context = self.get_renderer_context()
+
+        response =  StreamingHttpResponse(
+            request.accepted_renderer.render({
+                'queryset': queryset,
+                'serializer': self.get_serializer_class(),
+            }, context, content_type="text/csv"))
+        response['Content-Disposition'] = 'attachment; filename="export.csv"'
+        return response
+
+    def dispatch(self, *args, **kwargs):
+        return super().dispatch(*args, **kwargs)
+
+    def get_renderer_context(self):
+        context = super().get_renderer_context()
+        context['limits'] = ([int(x) for x in self.request.GET['limits'].split(',')]
+            if 'limits' in self.request.GET else None)
+
+        context['header'] = (
+            self.request.GET['fields'].split(',')
+            if 'fields' in self.request.GET else None)
+        return context
+
+    #queryset = Case.objects.all()
 
 
 class SimpleCasesView(CasesView):

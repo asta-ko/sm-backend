@@ -2,6 +2,34 @@ import pymorphy2
 
 morph = pymorphy2.MorphAnalyzer()
 
+import pandas as pd
+
+dfru = pd.read_csv('russian_names.csv')
+
+ru_male_names = set(dfru[dfru['Gender'] == 'М']['Name'])
+ru_female_names = set(dfru[dfru['Gender'] == 'Ж']['Name'])
+
+male_2_endings = ['ов', 'ий', 'ев', 'ин']
+female_2_endings = ['ая', 'ва', 'на']
+
+
+def get_gender_score(name, surname):
+    gender_score = 0
+
+    if name and name in ru_female_names:
+        gender_score += 1
+
+    if surname[-2:] in female_2_endings:
+        gender_score += 1
+
+    if name and name in ru_male_names:
+        gender_score -= 1
+
+    if surname[-2:] in male_2_endings:
+        gender_score -= 1
+
+    return gender_score
+
 
 def normalize_name(name):
     name = name.replace('ё', 'е').replace('  ', ' ')
@@ -18,50 +46,46 @@ def normalize_name(name):
     return normalized_name[:149]
 
 
-def parse_name_and_get_gender(name):
-    # first_name = None
-    # last_name = None
-    # middle_name = None
-    # gender = None
-    # prob_thresh = 0.8
+def get_gender(first_name, last_name):
+    gender = get_gender_score(first_name, last_name)
 
-    def most_common(lst):
-        return max(set(lst), key=lst.count)
+    if gender > 0:
+        gender_letter = 'f'
+    elif gender == 0:
+        gender_letter = 'na'
+    elif gender < 0:
+        gender_letter = 'm'
+    print(last_name, first_name or '-', gender_letter)
+
+    if gender > 0:
+        return 1
+    elif gender == 0:
+        return None
+    elif gender < 0:
+        return 2
+
+
+def parse_name(name):
 
     def is_first_name(parsed_word):
         return any('Name' in p.tag for p in parsed_word)
-
-    # def is_last_name(parsed_word):
-    #     return any('Surn' in p.tag for p in parsed_word)
-    # def is_middle_name(parsed_word):
-    #     return any('Patr' in p.tag for p in parsed_word)
 
     name = name.lower().replace('ё', 'е')
 
     if '.' in name:
         return (), None  # , None, None
     name_list = name.split(' ')
+
     if len(name_list) != 3:
         return (), None
 
-    genders = []
-    parsed_name_list = [morph.parse(x) for x in name_list]
-    for word in parsed_name_list:
-        genders.append(word[0].tag.gender)
-
-    gender = most_common(genders)
-    if gender == 'masc':
-        gender = 2
-    elif gender == 'femn':
-        gender = 1
-    elif gender == 'neut':
-        gender = None
-    if is_first_name(parsed_name_list[1]):
+    if is_first_name(morph.parse(name_list[1])):
         first_name = name_list[1].capitalize()
         last_name = name_list[0].capitalize()
         middle_name = name_list[2].capitalize()
-        return (last_name, first_name, middle_name), gender
-    return (), gender
+
+        return last_name, first_name, middle_name
+    return ()
 
 # def create_zip(name, text):
 #     with open(os.path.join(PROJ_DIR, "_tmp_file_"), "w+") as f:
