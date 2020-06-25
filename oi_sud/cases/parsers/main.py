@@ -109,12 +109,15 @@ class CourtSiteParser(CommonParser):
         return utc.normalize(local_dt.astimezone(utc))
 
     def check_url_actual(self, url):
+        print('check actual...')
         txt, status_code = self.send_get_request(url)
         if status_code != 200:
             logging.error(f"GET error: unable to get rf cases - {status_code} {url}")
             raise Exception('Network error')
         txt = txt.lower()
         if 'notice' in txt or 'non-object' in txt or 'pg_query' in txt:
+            print('actual false')
+            print('non actual url', url)
             return False
         return True
 

@@ -189,12 +189,17 @@ class Case(models.Model):
                 if not url_is_actual:
                     # если нет, пытаемся получить новый урл
                     url = self.search_for_new_url()
+                    if not url:
+                        print('didnt get New url')
 
             raw_data = parser.get_raw_case_information(url)
             fresh_data = {i: j for i, j in parser.serialize_data(raw_data).items() if j is not None}
             fresh_data['case'] = {k: v for k, v in fresh_data['case'].items() if v is not None}
             self.update_if_needed(fresh_data)
         except Exception as e:  # NOQA
+            #raise
+            import traceback
+            traceback.print_exc()
             logger.error(f'Failed to update case: {e}, case admin url: {self.get_admin_url()}, case url: {self.url}')
 
     # ищем новую карточку взамен протухшей. неактуально для Москвы.
@@ -218,7 +223,7 @@ class Case(models.Model):
                 logger.debug(f'Updating case... {self}')
                 diff_keys += DictDiffer(fresh_data['case'], old_data['case']).get_all_diff_keys()
                 self.__dict__.update(fresh_data['case'])
-                self.save()
+                self.save(update_fields=fresh_data['case'].keys())
 
             if fresh_data['defenses'] != old_data['defenses']:
                 logger.debug(f'Updating case defendants... {self}')
@@ -281,7 +286,7 @@ class Case(models.Model):
     def process_result_text(self):
 
         # пока мы не можем обрабатывать уголовки. третье условие верно только для административок
-        if not self.result_text or self.type != 1 or self.penalties.count() > 1:
+        if not self.result_text or self.type != 1 or  self.penalties.count() > 1:
             return
 
         result = kp_extractor.process(self.result_text)  # получаем результат

@@ -206,7 +206,6 @@ class RFCourtSiteParser(CourtSiteParser):
                 person_index = index
             if 'статей' in td_text:
                 codex_articles_index = index
-
         # получаем адвокатов и защитников
         advocates = []
         trs_advocates = [tr for tr in trs if 'адвокат' in tr.text.lower() or 'защитник' in tr.text.lower()]
@@ -313,7 +312,7 @@ class FirstParser(RFCourtSiteParser):
         def defendants_table(tag):
             return tag.name == 'table' and ('стороны по делу' in tag.text.lower() or
                                             'сведения о лице' in tag.text.lower() or
-                                            'лица' in tag.text.lower())
+                                            'ЛИЦА' in tag.text)
 
         def appeal_table(tag):
             return tag.name == 'table' and 'дата рассмотрения жалобы' in tag.text.lower()
@@ -324,9 +323,11 @@ class FirstParser(RFCourtSiteParser):
             'defendants': page.find(defendants_table),
             'appeal': page.find(appeal_table)
         }
+
         return tabs
 
     def get_raw_case_information(self, url):
+        self.current_url = url
         # парсим карточку дела
         case_info = {}
         txt, status_code = self.send_get_request(url)
@@ -510,14 +511,13 @@ class RFCasesGetter(CommonParser):
         return court.url + params_string
 
     def get_moved_case_url(self, case):
-        print('get_moved_case_url!!!')
+        print('getting moved case url...')
         got_urls = []
         article_string = self.generate_articles_string(case.codex_articles.all())
         entry_date_from = (case.entry_date - timedelta(days=1)).strftime('%d.%m.%Y')
         entry_date_to = (case.entry_date + timedelta(days=1)).strftime('%d.%m.%Y')
         defendants = [x.name_normalized.split(' ')[0] for x in case.defendants.all()]
         for name in defendants:
-            print(name)
             params = {'articles': article_string,
                       'entry_date_from': entry_date_from,
                       'entry_date_to': entry_date_to,
@@ -540,16 +540,18 @@ class RFCasesGetter(CommonParser):
                 print(url)
                 got_urls += FirstParser(court=case.court, stage=case.stage, codex=self.codex,
                                         url=url).get_all_cases_urls()
+
         got_urls = list(set(got_urls))
         if len(got_urls) == 1:
             return got_urls[0]
         else:
             case.actual_url_unknown = True
-            case.save()  # прерываем обновление дела, но помечаем дело
-            if len(got_urls) > 1:
-                raise Exception('Found multiple updated urls')
-            elif not len(got_urls):
+            case.save(update_fields=["actual_url_unknown"])  # прерываем обновление дела, но помечаем дело
+            if not got_urls:
                 raise Exception('Did not found updated urls')
+            elif len(got_urls) > 1:
+                print('multiple_found_urls', got_urls)
+                raise Exception('Found multiple updated urls')
 
     def get_cases(self, instance, courts_ids=None, courts_limit=None, entry_date_from=None, custom_articles=None):
         start_time = time.time()
