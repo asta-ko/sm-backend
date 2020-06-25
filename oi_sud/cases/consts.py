@@ -152,7 +152,7 @@ EVENT_TYPES = (
     (147, 'Удовлетворено частично'),
     (148, 'Предварительное судебное заседание'),
     (149, 'Оглашение приговора или иного судебного акта'),
-    )
+)
 
 EVENT_RESULT_TYPES = (
     (0, 'Назначено предварительное слушание'),
@@ -215,7 +215,7 @@ EVENT_RESULT_TYPES = (
     (55, 'Постановление приговора или иного судебного акта'),
     (56, 'Приостановлено'),
 
-    )
+)
 
 RESULT_TYPES = (
     (0, 'Апелляционное ПРОИЗВОДСТВО ПРЕКРАЩЕНО'),
@@ -253,7 +253,7 @@ RESULT_TYPES = (
     (30, 'Возвращено без рассмотрения в связи с пропуском срока обжалования'),
     (31, 'Приостановлено'),
     (32, 'Вынесено постановление суда апелляционной инстанции'),
-    )
+)
 
 APPEAL_RESULT_TYPES = (
     (1, 'Отмена'),
@@ -287,7 +287,7 @@ APPEAL_RESULT_TYPES = (
     (29, 'ОПРАВДАТЕЛЬНЫЙ приговор ОТМЕНЕН в части оправдания по МЕНЕЕ ТЯЖКОМУ преступлению'),
     (30, 'ОПРЕДЕЛЕНИЕ (постановление) ОТМЕНЕНО'),
 
-    )
+)
 
 adm_type_one_params_string = '/modules.php?name=sud_delo&srv_num=1&name_op=r&delo_id=DELOID&case_type=CASETYPE&new=0' \
                              '&delo_table=DELOTABLE&nc=1'
@@ -296,7 +296,7 @@ adm2_type_one_params_string = '/modules.php?name=sud_delo&srv_num=1&name_op=r&de
                               '&delo_table=DELOTABLE&nc=1'
 
 adm_type_one_params_dict = {
-    'last_name': 'adm_parts__NAMES',
+    'last_name': 'adm_parts__NAMESS',
     'case_number': 'adm_case__CASE_NUMBERSS',
     'case_uid': 'adm_case__JUDICIAL_UIDSS',
     'protocol_number': 'adm_case__PR_NUMBERSS',
@@ -311,7 +311,7 @@ adm_type_one_params_dict = {
     'publish_date_to': 'adm_document__PUBL_DATE2D',
     'validity_date_from': 'ADM_CASE__VALIDITY_DATE1D',
     'validity_date_to': 'ADM_CASE__VALIDITY_DATE2D'
-    }
+}
 
 adm_type_two_params_string = '/modules.php?name_op=r&nc=1&name=sud_delo&srv_num=1&_deloId=DELOID&case__vnkod=XXX' \
                              '&process-type=DELOID_CASETYPE_0'
@@ -332,7 +332,7 @@ adm_type_two_params_dict = {
     'publish_date_to': 'document__publ_date2d',
     'validity_date_from': 'case__validity_date1d',
     'validity_date_to': 'case__validity_date2d'
-    }
+}
 
 cr_type_one_params_string = '/modules.php?name=sud_delo&srv_num=1&name_op=r&delo_id=DELOID&case_type=CASETYPE&new=0' \
                             '&delo_table=DELOTABLE&nc=1'
@@ -352,7 +352,7 @@ cr_type_one_params_dict = {
     'publish_date_to': 'U1_DOCUMENT__PUBL_DATE2D',
     'validity_date_from': 'U1_CASE__VALIDITY_DATE1D',
     'validity_date_to': 'U1_CASE__VALIDITY_DATE2D'
-    }
+}
 
 cr_type_two_params_string = '/modules.php?name_op=r&name=sud_delo&srv_num=1&_deloId=DELOID&case__case_type=CASETYPE' \
                             '&_new=0&case__vnkod=XXX&case__num_build=1&case__case_numberss=&part__namess=&process' \
@@ -373,7 +373,7 @@ cr_type_two_params_dict = {
     'publish_date_to': 'document__publ_date2d',
     'validity_date_from': 'case__validity_date1d',
     'validity_date_to': 'case__validity_date2d'
-    }
+}
 
 moscow_params_dict = {
     'last_name': 'participant',
@@ -392,7 +392,7 @@ moscow_params_dict = {
     'validity_date_to': 'caseLegalForceDateTo',
     'instance': 'instance',
     'processType': 'processType',
-    }
+}
 
 msudrf_params_dict = {}
 
@@ -400,25 +400,25 @@ site_type_dict = {
     '1': {
         'koap': {'string': adm_type_one_params_string, 'params_dict': adm_type_one_params_dict},
         'uk': {'string': cr_type_one_params_string, 'params_dict': cr_type_one_params_dict}
-        },
+    },
     '2': {
         'koap': {'string': adm_type_two_params_string, 'params_dict': adm_type_two_params_dict},
         'uk': {'string': cr_type_two_params_string, 'params_dict': cr_type_two_params_dict}
-        },
-    }
+    },
+}
 
 site_types_by_codex = {
     'koap': {
         '1': {'string': adm_type_one_params_string, 'params_dict': adm_type_one_params_dict},
         '2': {'string': adm_type_two_params_string, 'params_dict': adm_type_two_params_dict}
-        },
+    },
     'uk': {
         '1': {'string': cr_type_one_params_string, 'params_dict': cr_type_one_params_dict},
         '2': {'string': cr_type_two_params_string, 'params_dict': cr_type_two_params_dict}
-        }
     }
+}
 
 instances_dict = {
     'koap': {'1': ('1500001', '0', 'adm_case'), '2': ('1502001', '0', 'adm1_case')},
     'uk': {'1': ('1540006', '0', 'u1_case'), '2': ('1540006', '50780001', 'u1_case')}
-    }
+}

@@ -5,7 +5,7 @@ from oi_sud.cases.parsers.moscow import MoscowParser, MoscowCasesGetter
 from oi_sud.codex.models import CodexArticle
 
 
-#@pytest.mark.skip
+@pytest.mark.skip
 @pytest.mark.django_db
 def test_moscow_getter(moscow_courts, koap_articles):
     MoscowCasesGetter().get_cases(1, 'koap', articles_list=['20.2 ч.5'])
@@ -13,7 +13,7 @@ def test_moscow_getter(moscow_courts, koap_articles):
     assert (len(CaseEvent.objects.all()))
 
 
-#@pytest.mark.skip
+@pytest.mark.skip
 @pytest.mark.django_db
 def test_save_case(moscow_courts, koap_articles):
     cases_urls=['https://mos-gorsud.ru/rs/timiryazevskij/services/cases/admin/details/4ff27edb-bf19-4526-ac73-ff89095cf666',

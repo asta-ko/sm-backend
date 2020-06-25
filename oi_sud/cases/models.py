@@ -89,7 +89,7 @@ class Case(models.Model):
     court = models.ForeignKey('courts.Court', verbose_name='Cуд', on_delete=models.CASCADE)
     defendants = models.ManyToManyField('Defendant', through='CaseDefense', related_name='cases')
     defendants_hidden = models.BooleanField(default=False)
-    # advocates = models.ManyToManyField('Advocate', through='CaseDefense')
+    actual_url_unknown = models.BooleanField(default=False)
     case_number = models.CharField(max_length=50, verbose_name='Номер дела')  # Номер дела
     case_uid = models.CharField(max_length=50, verbose_name='ID в sudrf', **nullable)  # Уникальный id в системе sudrf
     protocol_number = models.CharField(max_length=50, verbose_name='Номер протокола',
@@ -184,6 +184,12 @@ class Case(models.Model):
             url = self.url
             if self.court.site_type != 3:
                 url = url + '&nc=1'
+                # проверяем, на месте ли карточка
+                url_is_actual = parser.check_url_actual(url)
+                if not url_is_actual:
+                    # если нет, пытаемся получить новый урл
+                    url = self.search_for_new_url()
+
             raw_data = parser.get_raw_case_information(url)
             fresh_data = {i: j for i, j in parser.serialize_data(raw_data).items() if j is not None}
             fresh_data['case'] = {k: v for k, v in fresh_data['case'].items() if v is not None}
@@ -191,6 +197,12 @@ class Case(models.Model):
         except Exception as e:  # NOQA
             logger.error(f'Failed to update case: {e}, case admin url: {self.get_admin_url()}, case url: {self.url}')
 
+    # ищем новую карточку взамен протухшей. неактуально для Москвы.
+    def search_for_new_url(self):
+        from oi_sud.cases.parsers.rf import RFCasesGetter
+        return RFCasesGetter(self.type).get_moved_case_url(self)
+
+    # если есть изменения, обновляем дело (ничего при этом не удаляя)
     def update_if_needed(self, fresh_data):
 
         old_data = self.serialize()
@@ -213,9 +225,16 @@ class Case(models.Model):
                 for d in fresh_data['defenses']:
                     articles = d['codex_articles']
                     defendant = d['defendant']
+                    advocates = d.get('advocates')
+                    prosecutors = d.get('prosecutors')
                     defense, created = CaseDefense.objects.get_or_create(defendant=defendant, case=self)
                     if len(articles):
                         defense.codex_articles.set(articles)
+                    if advocates:
+                        defense.advocates.set(advocates)
+                    if prosecutors:
+                        defense.prosecutors.set(prosecutors)
+
                 diff_keys.append('defenses')
 
             if fresh_data['events'] != old_data['events']:
@@ -229,6 +248,7 @@ class Case(models.Model):
                 comment_message = 'Изменено: ' + ', '.join(diff_keys)
                 reversion.set_comment(comment_message)
 
+    # приводим дело в формат raw_case_data для сравнения с новыми данными
     def serialize(self):
 
         result = {'case': {}, 'defenses': [], 'events': [], 'codex_articles': []}
@@ -248,14 +268,9 @@ class Case(models.Model):
 
         for defense in CaseDefense.objects.filter(case=self):
             d_dict = {}
-            for attribute in ['defendant', 'advocate']:
+            for attribute in ['defendant', 'advocates', 'prosecutors', 'codex_articles']:
                 if getattr(defense, attribute) is not None:
                     d_dict[attribute] = getattr(defense, attribute)
-
-            d_dict['codex_articles'] = []
-
-            for a in defense.codex_articles.all():
-                d_dict['codex_articles'].append(a)
 
             result['defenses'].append(d_dict)
 
