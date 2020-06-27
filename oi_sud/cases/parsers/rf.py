@@ -208,7 +208,8 @@ class RFCourtSiteParser(CourtSiteParser):
                 codex_articles_index = index
         # получаем адвокатов и защитников
         advocates = []
-        trs_advocates = [tr for tr in trs if 'адвокат' in tr.text.lower() or 'защитник' in tr.text.lower()]
+        trs_advocates = [tr for tr in trs if
+                         'адвокат' in tr.text.lower() or 'защитник' in tr.text.lower() or 'представитель' in tr.text.lower()]
         for tr in trs_advocates:
             tds = tr.findAll('td')
             if len(tds) > person_index and len(tds) > codex_articles_index:
