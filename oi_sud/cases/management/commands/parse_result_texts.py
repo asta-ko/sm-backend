@@ -27,3 +27,4 @@ class Command(BaseCommand):
         print(CasePenalty.objects.exclude(type__in=['error', 'no_data']).count(), 'ok penalties')
         print(CasePenalty.objects.filter(type='error').count(), 'error penalties')
         print(CasePenalty.objects.filter(type='no_data').count(), 'could not process penalties')
+        print(CasePenalty.objects.filter(type='caution').count(), 'caution penalties')

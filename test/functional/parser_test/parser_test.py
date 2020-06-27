@@ -32,6 +32,8 @@ class TestMethods(unittest.TestCase):
         'case_works_5.txt': {'num': 60, 'is_hidden': False}
     }
 
+    cases_caution = ['case_caution_0.txt', 'case_caution_1.txt']
+
     def test_parsing_cancelled_cases(self):
         for file in self.cases_cancelled:
             path_to_file = os.path.join(self.root_files_dir, file)
@@ -109,6 +111,19 @@ class TestMethods(unittest.TestCase):
                 "Error in txt-file: {f}".format(f=file)
             )
 
+    def test_parsing_caution_cases(self):
+        for file in self.cases_caution:
+            path_to_file = os.path.join(self.root_files_dir, file)
+            with open(path_to_file, 'r') as f:
+                result_text = f.read()
+
+            outp_dict = kp_extractor.process(decision_text=result_text)
+            self.assertEqual(
+                outp_dict['caution'],
+                True,
+                "Error in txt-file: {f}".format(f=file)
+            )
+
     def test_parsing_err_cases(self):
         files_lst = os.listdir(self.root_err_files_dir)
         for file in files_lst:
@@ -127,7 +142,8 @@ class TestMethods(unittest.TestCase):
 def suite():
     suite = unittest.TestSuite()
     ordered_methods = ['test_parsing_cancelled_cases', 'test_parsing_returned_cases', 'test_parsing_forward_cases',
-                       'test_parsing_fines_cases', 'test_parsing_works_cases', 'test_parsing_err_cases']
+                       'test_parsing_fines_cases', 'test_parsing_works_cases', 'test_parsing_caution_cases',
+                       'test_parsing_err_cases']
     for method in ordered_methods:
         suite.addTest(TestMethods(method))
 

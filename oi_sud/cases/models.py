@@ -1,4 +1,5 @@
 import logging
+from datetime import timedelta
 
 import reversion
 from django.conf import settings
@@ -11,8 +12,9 @@ from django.urls import reverse
 from django.utils import timezone
 from oi_sud.cases.parsers.result_texts import kp_extractor
 from oi_sud.cases.utils import get_gender, normalize_name, get_or_create_from_name
+from oi_sud.codex.models import CodexArticle
 from oi_sud.core.consts import region_choices
-from oi_sud.core.utils import DictDiffer, nullable
+from oi_sud.core.utils import DictDiffer, nullable, get_query_key
 
 logger = logging.getLogger(__name__)
 
@@ -47,6 +49,9 @@ PENALTY_TYPES = (
 
 class CaseManager(models.Manager):
 
+    def get_queryset(self):
+        return super(CaseManager, self).get_queryset().exclude(duplicate=True)
+
     def create_case_from_data(self, item):
         with reversion.create_revision():
             try:
@@ -57,6 +62,9 @@ class CaseManager(models.Manager):
                     advocates = defense.get('advocates')
                     prosecutors = defense.get('prosecutors')
                     defendant = defense['defendant']
+                    if defendant.is_in_risk_group():
+                        defendant.risk_group = True
+                        defendant.save()
                     defense = CaseDefense.objects.create(defendant=defendant, case=case)
                     if articles:
                         defense.codex_articles.set(articles)
@@ -74,6 +82,11 @@ class CaseManager(models.Manager):
                 logger.debug(item)
 
 
+class DCaseManager(models.Manager):
+    def get_queryset(self):
+        return super(DCaseManager, self).get_queryset().filter(duplicate=True)
+
+
 class Case(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -89,7 +102,8 @@ class Case(models.Model):
     court = models.ForeignKey('courts.Court', verbose_name='Cуд', on_delete=models.CASCADE)
     defendants = models.ManyToManyField('Defendant', through='CaseDefense', related_name='cases')
     defendants_hidden = models.BooleanField(default=False)
-    # advocates = models.ManyToManyField('Advocate', through='CaseDefense')
+    actual_url_unknown = models.BooleanField(default=False)
+    duplicate = models.BooleanField(default=False)
     case_number = models.CharField(max_length=50, verbose_name='Номер дела')  # Номер дела
     case_uid = models.CharField(max_length=50, verbose_name='ID в sudrf', **nullable)  # Уникальный id в системе sudrf
     protocol_number = models.CharField(max_length=50, verbose_name='Номер протокола',
@@ -109,6 +123,7 @@ class Case(models.Model):
     text_search = SearchVectorField(null=True)
 
     objects = CaseManager()
+    duplicates = DCaseManager()
 
     class Meta:
 
@@ -165,12 +180,11 @@ class Case(models.Model):
     def update_case(self):
 
         try:
-            codex = None
+            from oi_sud.cases.parsers.rf import FirstParser, SecondParser
+            from oi_sud.cases.parsers.moscow import MoscowParser
+            existing_case = None
             parser = None
-            if self.type == 1:
-                codex = 'koap'
-            elif self.type == 2:
-                codex = 'uk'
+            codex = 'koap' if self.type == 1 else 'uk'
             if self.court.site_type == 1:
                 from oi_sud.cases.parsers.rf import FirstParser
                 parser = FirstParser(court=self.court, stage=self.stage, codex=codex)
@@ -182,60 +196,163 @@ class Case(models.Model):
                 parser = MoscowParser(stage=self.stage, codex=codex)
 
             url = self.url
-            if self.court.site_type != 3:
-                url = url + '&nc=1'
+
+            if self.court.site_type != 3 and not parser.check_url_actual(url + '&nc=1'):
+                # проверяем, на месте ли карточка (для москвы неактуально)
+                # если нет, пытаемся получить новый урл
+                url = self.search_for_new_url()
+                query_case_id = get_query_key(url, 'case_id')
+                if url and Case.objects.filter(court=self.court, url__contains=f'case_id={query_case_id}').exists():
+                    # получили новый урл и проверяем, не было ли сохранено это дело в базу под этим новым урлом
+                    existing_case = Case.objects.filter(court=self.court,
+                                                        url__contains=f'case_id={query_case_id}').first()
+                    existing_data = existing_case.serialize()
+                    existing_data['defenses'] = []
+                    existing_data['events'] = []
+                    existing_case.delete()
+
+                    if existing_data and not self.cases_data_identical(existing_data, self.serialize()):
+                        # дело под новым урлом было сохранено позже, чем текущее дело.
+                        # поэтому обновляем текущее имеющимися данными
+                        # пока не будем изменять урл, чтобы не было проблем с уникальностью
+                        existing_data['case']['url'] = self.url
+                        self.update_if_needed(existing_data)
+
+            # получаем свежие данные
             raw_data = parser.get_raw_case_information(url)
+
+            # немножко форматируем
             fresh_data = {i: j for i, j in parser.serialize_data(raw_data).items() if j is not None}
             fresh_data['case'] = {k: v for k, v in fresh_data['case'].items() if v is not None}
+
+            # обновляем текущее дело новыми данными
             self.update_if_needed(fresh_data)
+
+
         except Exception as e:  # NOQA
+            # raise
+            import traceback
+            traceback.print_exc()
             logger.error(f'Failed to update case: {e}, case admin url: {self.get_admin_url()}, case url: {self.url}')
 
+    # ищем новую карточку взамен протухшей. неактуально для Москвы.
+    def search_for_new_url(self):
+        from oi_sud.cases.parsers.rf import RFCasesGetter
+        return RFCasesGetter(self.type).get_moved_case_url(self)
+
+    @staticmethod
+    def merge_cases(case1, case2):
+        if case1.created_date > case2.created_date:
+            to_case = case1
+            from_case = case2
+        else:
+            to_case = case2
+            from_case = case1
+
+        to_case.update_if_needed(from_case.serialize())
+
+    @staticmethod
+    def cases_data_identical(first_case_data, second_case_data, compare_urls=False):
+
+        f = copy.deepcopy(first_case_data)
+        s = copy.deepcopy(second_case_data)
+
+        if not compare_urls:
+            if f['case'].get('url'):
+                del f['case']['url']
+            if s['case'].get('url'):
+                del s['case']['url']
+
+        return f == s
+
+    # если есть изменения, обновляем дело (ничего при этом не удаляя)
     def update_if_needed(self, fresh_data):
 
+        # url = new_url or self.url
+
         old_data = self.serialize()
+
+        identical = self.cases_data_identical(old_data, fresh_data)
+
+        # сравниваем два набора данных
+
+        fresh_url = fresh_data['case']['url'].replace('&nc=1', '')
+        old_url = old_data['case']['url'].replace('&nc=1', '')
+
+        if fresh_url != old_url and identical:
+            # дело было перемещено, ничего не обновилось, изменяем только урл
+
+            self.url = fresh_url
+            self.save(update_fields=['url'])
+
+        elif identical:
+
+            # вообще ничего не обновилось
+            return
 
         if not old_data['case'].get('result_text') and fresh_data['case'].get('result_text'):
             fresh_data['case']['result_published_date'] = timezone.now()
             self.process_result_text()
-        if settings.TEST_MODE:  # for tests
-            fresh_data['case']['case_number'] = '000'
-        with reversion.create_revision():
+
+        with reversion.create_revision():  # записываем данные об изменениях
             diff_keys = []
+
             if fresh_data['case'] != old_data['case']:
+                # дело обновилось
+
                 logger.debug(f'Updating case... {self}')
+
                 diff_keys += DictDiffer(fresh_data['case'], old_data['case']).get_all_diff_keys()
+
                 self.__dict__.update(fresh_data['case'])
-                self.save()
+
+                self.updated_at = timezone.now()
+                fields = list(fresh_data['case'].keys()) + ['updated_at', ]
+                self.save(update_fields=fields)
 
             if fresh_data['defenses'] != old_data['defenses']:
-                logger.debug(f'Updating case defendants... {self}')
+                logger.debug(f'Updating case defenses... {self}')
                 for d in fresh_data['defenses']:
                     articles = d['codex_articles']
                     defendant = d['defendant']
+                    advocates = d.get('advocates')
+                    prosecutors = d.get('prosecutors')
                     defense, created = CaseDefense.objects.get_or_create(defendant=defendant, case=self)
                     if len(articles):
                         defense.codex_articles.set(articles)
+                    if advocates:
+                        defense.advocates.set(advocates)
+                    if prosecutors:
+                        defense.prosecutors.set(prosecutors)
+                advocate_names = [x.name_normalized for x in self.get_advocates()]
+                prosecutors_names = [x.name_normalized for x in self.get_prosecutors()]
+                non_defendants_names = advocate_names + prosecutors_names
+                if non_defendants_names:
+                    for defense in self.defenses.all():
+                        if defense.defendant.name_normalized in non_defendants_names:
+                            defense.delete()
                 diff_keys.append('defenses')
 
             if fresh_data['events'] != old_data['events']:
                 logger.debug(f'Updating case events... {self}')
+                self.events.all().delete()
                 for event in fresh_data['events']:
                     event['case'] = self
-                    obj, created = CaseEvent.objects.update_or_create(**event)
+                    CaseEvent.objects.update_or_create(**event)
                 diff_keys.append('events')
 
             if len(diff_keys):
                 comment_message = 'Изменено: ' + ', '.join(diff_keys)
                 reversion.set_comment(comment_message)
 
+    # приводим дело в формат raw_case_data для сравнения с новыми данными
     def serialize(self):
 
         result = {'case': {}, 'defenses': [], 'events': [], 'codex_articles': []}
 
         for attribute in ['case_number', 'case_uid', 'protocol_number', 'result_text', 'entry_date', 'result_date',
                           'forwarding_to_higher_court_date', 'forwarding_to_lower_court_date', 'appeal_date',
-                          'appeal_result', 'result_type', 'type', 'stage', 'url', 'court', 'judge']:
+                          'appeal_result', 'result_type', 'type', 'stage', 'court', 'judge', 'url']:
             if getattr(self, attribute):
                 result['case'][attribute] = getattr(self, attribute)
 
@@ -248,18 +365,13 @@ class Case(models.Model):
 
         for defense in CaseDefense.objects.filter(case=self):
             d_dict = {}
-            for attribute in ['defendant', 'advocate']:
-                if getattr(defense, attribute) is not None:
-                    d_dict[attribute] = getattr(defense, attribute)
-
-            d_dict['codex_articles'] = []
-
-            for a in defense.codex_articles.all():
-                d_dict['codex_articles'].append(a)
+            for attribute in ['advocates', 'prosecutors', 'codex_articles']:
+                d_dict[attribute] = list([x for x in getattr(defense, attribute).all()])
+            d_dict['defendant'] = defense.defendant
 
             result['defenses'].append(d_dict)
 
-        result['codex_articles'] = self.codex_articles.all()
+        result['codex_articles'] = list([x for x in self.codex_articles.all()])
 
         return result
 
@@ -272,7 +384,10 @@ class Case(models.Model):
         result = kp_extractor.process(self.result_text)  # получаем результат
 
         if result and not result.get('could_not_process') \
-                and (result.get('returned') or result.get('cancelled') or result.get('forward')):
+                and (result.get('returned') or
+                     result.get('cancelled') or
+                     result.get('forward') or
+                     result.get('caution')):
             self.add_result_type(result)
             return  # если у нас есть результат, и это возврат, отмена или направление по подведомственности,
             # сохраняем его в результат дела, если он пустой, и останавливаемся.
@@ -450,6 +565,7 @@ class Defendant(models.Model):
     first_name = models.CharField(max_length=150, **nullable)
     middle_name = models.CharField(max_length=150, **nullable)
     last_name = models.CharField(max_length=150, **nullable)
+    risk_group = models.BooleanField(default=False)  # группа риска 212.1 УК по повторкам
     objects = DefendantManager()
 
     @staticmethod
@@ -467,6 +583,12 @@ class Defendant(models.Model):
             return get_gender(self.first_name, self.last_name)
         else:
             return get_gender(None, self.name_normalized.split(' ')[0])
+
+    def is_in_risk_group(self):
+        # в течение 180 дней было больше 2 и больше суда по 20.2
+        articles = CodexArticle.objects.filter(codex='koap', article_number='20.2')
+        return self.cases.filter(codex_articles__in=articles, stage=1,
+                                 result_date__gte=timezone.now() - timedelta(days=180)).count() > 1
 
     class Meta:
         verbose_name = 'Ответчик'
