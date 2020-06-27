@@ -316,7 +316,8 @@ class FirstParser(RFCourtSiteParser):
                                             'ЛИЦА' in tag.text)
 
         def appeal_table(tag):
-            return tag.name == 'table' and 'дата рассмотрения жалобы' in tag.text.lower()
+            return tag.name == 'table' and (
+                        'жалоб' in tag.text.lower() or 'пересмотр' in tag.text.lower())
 
         tabs = {
             'delo': page.find('div', id='cont1').find('table'),
