@@ -96,7 +96,14 @@ class CourtSiteParser(CommonParser):
             filter_dict['judge'] = new_case.judge
 
         duplicate_cases = Case.objects.exclude(id=new_case.id).filter(**filter_dict)
-        print(duplicate_cases)
+
+        for duplicate in duplicate_cases:
+            if Case.cases_data_identical(duplicate.serialize(), new_case.serialize()):
+                duplicate.delete()
+            else:
+                duplicate.url = duplicate.url + '?old=d'
+                duplicate.duplicate = True
+                duplicate.save(update_fields=['url', 'duplicate'])
 
     def normalize_date(self, datetime):
 
@@ -109,15 +116,12 @@ class CourtSiteParser(CommonParser):
         return utc.normalize(local_dt.astimezone(utc))
 
     def check_url_actual(self, url):
-        print('check actual...')
         txt, status_code = self.send_get_request(url)
         if status_code != 200:
             logging.error(f"GET error: unable to get rf cases - {status_code} {url}")
             raise Exception('Network error')
         txt = txt.lower()
         if 'notice' in txt or 'non-object' in txt or 'pg_query' in txt:
-            print('actual false')
-            print('non actual url', url)
             return False
         return True
 

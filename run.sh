@@ -80,85 +80,6 @@ setenv_project_version() {
   export C_PROJECT_VERSION=$C_PROJECT_VERSION
 }
 
-upgrade_() {
-    local CMD=$1
-    shift
-
-    case $CMD in
-        list) upgrade_list "$@";;
-        apply) upgrade_apply "$@";;
-        rollback) upgrade_rollback "$@";;
-        *) echo "$0 upgrade [list|apply|rollback]"; exit;;
-    esac
-}
-
-upgrade_list() {
-  local UPGRADE_SCRIPTS_DIR="./build/scripts"
-
-  if [[ "$#" -gt 0 ]]; then
-      local UPGRADE_SCRIPTS_DIR=$1
-      shift
-  fi
-
-  local SCRIPTS_VERSIONS=$(get_upgrade_scripts_versions "$UPGRADE_SCRIPTS_DIR")
-  #git describe --tags `git rev-list --tags --max-count=1`
-  local LATEST_GIT_TAG="$(git describe --abbrev=0 --tags)"
-  echo "latest git tag=$LATEST_GIT_TAG"
-  for SCRIPT_VERSION in $SCRIPTS_VERSIONS
-  do
-    if [ "$(simple_version $SCRIPT_VERSION)" -gt "$(simple_version $LATEST_GIT_TAG)" ]; then
-        echo "$SCRIPT_VERSION is newer than $LATEST_GIT_TAG. Skip it."
-        continue
-    elif [ "$(simple_version $SCRIPT_VERSION)" -le "$(simple_version $LATEST_GIT_TAG)" ]; then
-        echo "$SCRIPT_VERSION is le than $LATEST_GIT_TAG. Should apply it"
-        VERSIONS_TO_EXPORT+="$SCRIPT_VERSION"
-        VERSIONS_TO_EXPORT+=';'
-    else
-        echo "Unknown versions string Error"
-        exit 1;
-    fi
-  done
-  echo "Found versions to apply: $VERSIONS_TO_EXPORT"
-  export VERSIONS_TO_EXPORT="$VERSIONS_TO_EXPORT"
-}
-
-upgrade_apply() {
-  local UPGRADE_SCRIPTS_DIR="./build/scripts"
-
-  if [[ "$#" -gt 0 ]]; then
-      local UPGRADE_SCRIPTS_DIR=$1
-      shift
-  fi
-  upgrade_list "$UPGRADE_SCRIPTS_DIR"
-  echo "VERSIONS_TO_EXPORT:$VERSIONS_TO_EXPORT"
-  local IN="$VERSIONS_TO_EXPORT"
-  IFS=$';' VERS_SORTED=($(sort <<<"${IN[*]}"))
-  unset IFS;
-
-  for VER in "${VERS_SORTED[@]}"; do
-    echo "Try to apply from_$VER.sh"
-    find "$UPGRADE_SCRIPTS_DIR" -name "from_$VER.sh" -type f -exec chmod +x {} \; -exec {} \;
-  done
-}
-
-upgrade_rollback() {
-  local UPGRADE_SCRIPTS_DIR="./build/scripts"
-
-  if [[ "$#" -gt 0 ]]; then
-      local UPGRADE_SCRIPTS_DIR=$1
-      shift
-  fi
-  upgrade_list "$UPGRADE_SCRIPTS_DIR"
-  local IN="$VERSIONS_TO_EXPORT"
-  IFS=$';' VERS_SORTED=($(sort -r <<<"${IN[*]}"))
-  unset IFS;
-
-  for VER in "${VERS_SORTED[@]}"; do
-    echo "Try to rollback from_$VER.sh"
-    find "$UPGRADE_SCRIPTS_DIR" -name "from_$VER.sh" -type f -exec chmod +x {} \; -exec {} \;
-  done
-}
-
 simple_version() {
   echo "$@" | awk -F. '{ printf("%d%03d%03d%03d\n", $1,$2,$3,$4); }';
 }
@@ -377,13 +298,7 @@ docker_() {
 
 
 docker_build() {
-    if [ $STACK = 'dev' ]; then
-       docker_build_dev
-    elif [ $STACK = 'prod' ]; then
-       docker_build_prod
-    elif [ $STACK = 'test' ]; then
-       docker build -t "$C_PROJECT_NAME"-virtualenv-test:latest -f build/virtualenv/Dockerfile-test build/virtualenv
-    fi
+   docker_build_$STACK
 }
 
 docker_build_dev() {
@@ -397,27 +312,9 @@ docker_build_prod() {
     # ./oi-sud-monster-frontend #PROD
 }
 
-docker_buildrelease() {
-#    docker build -t "$C_PROJECT_NAME"-virtualenv-test:latest -f build/virtualenv/Dockerfile-test build/virtualenv
-#    docker build -t "$C_PROJECT_NAME"-virtualenv:latest -f build/virtualenv/Dockerfile build/virtualenv
-
-    docker build -f build/release/Dockerfile-test -t backend-test:$C_PROJECT_VERSION --build-arg VIRTUALENV_IMAGE="$C_PROJECT_NAME"-virtualenv-test:latest .
-    docker build -f build/release/Dockerfile -t backend:$C_PROJECT_VERSION --build-arg VIRTUALENV_IMAGE="$C_PROJECT_NAME"-virtualenv:latest .
+docker_build_test() {
+    docker build -t "$C_PROJECT_NAME"-virtualenv-test:latest -f build/virtualenv/Dockerfile-test build/virtualenv --build-arg GITLAB_TOKEN="$GITLAB_TOKEN" --build-arg GITLAB_USER="$GITLAB_USER"
 }
 
-docker_tagrelease() {
-  local  REGISTRY_URI=$C_PROJECT_REGISTRY
-  docker tag backend:$C_PROJECT_VERSION asta-ko/registry.gitlab.com/ovdinfo/oi-sudmonster/backend:$C_PROJECT_VERSION
-}
-
-docker_pushrelease() {
-  local  REGISTRY_URI=$C_PROJECT_REGISTRY
-  docker push asta-ko/registry.gitlab.com/ovdinfo/oi-sudmonster/backend:$C_PROJECT_VERSION
-}
-
-
-get_upgrade_scripts_versions() {
-  find "$1" -type f -name 'from_*.sh' -exec basename {} .sh \; | cut -d '_' -f 2
-}
 
 main "$@"

@@ -327,7 +327,11 @@ class FirstParser(RFCourtSiteParser):
         return tabs
 
     def get_raw_case_information(self, url):
+        if '&nc=1' not in url:
+            url += '&nc=1'
+
         self.current_url = url
+
         # парсим карточку дела
         case_info = {}
         txt, status_code = self.send_get_request(url)
@@ -338,7 +342,7 @@ class FirstParser(RFCourtSiteParser):
         page = BeautifulSoup(txt, 'html.parser')
 
         case_info['case_number'] = page.find('div', class_='casenumber').text.replace('ДЕЛО № ', '')
-        case_info['url'] = url
+        case_info['url'] = url.replace('&nc=1', '')
         case_result_text_url = self.get_result_text_url(page)
         if case_result_text_url:
             result_text = self.get_result_text(case_result_text_url)
@@ -421,16 +425,22 @@ class SecondParser(RFCourtSiteParser):
 
     def get_raw_case_information(self, url):
 
+        if '&nc=1' not in url:
+            url += '&nc=1'
+
+        self.current_url = url
+
         # парсим карточку дела
         case_info = {}
         txt, status_code = self.send_get_request(url)
         if status_code != 200:
             logging.error(f"GET error: rf case - {status_code} {url}")
             return None
+
         page = BeautifulSoup(txt, 'html.parser')
-        case_info['case_number'] = page.find('div', class_='case-num').text.replace('дело № ', '').replace('ДЕЛО № ',
-                                                                                                           '')
-        case_info['url'] = url
+        case_info['case_number'] = page.find('div',
+                                             class_='case-num').text.replace('дело № ', '').replace('ДЕЛО № ', '')
+        case_info['url'] = url.replace('&nc=1', '')
         case_result_text_div = page.find('div', id='tab_content_Document1')
         if case_result_text_div:
             case_result_text = strip_tags(case_result_text_div)
@@ -514,8 +524,8 @@ class RFCasesGetter(CommonParser):
         print('getting moved case url...')
         got_urls = []
         article_string = self.generate_articles_string(case.codex_articles.all())
-        entry_date_from = (case.entry_date - timedelta(days=1)).strftime('%d.%m.%Y')
-        entry_date_to = (case.entry_date + timedelta(days=1)).strftime('%d.%m.%Y')
+        entry_date_from = (case.entry_date - timedelta(days=2)).strftime('%d.%m.%Y')
+        entry_date_to = (case.entry_date + timedelta(days=2)).strftime('%d.%m.%Y')
         defendants = [x.name_normalized.split(' ')[0] for x in case.defendants.all()]
         for name in defendants:
             params = {'articles': article_string,
@@ -525,25 +535,23 @@ class RFCasesGetter(CommonParser):
                       }
 
             for attr in ['judge', 'case_uid']:
-                if hasattr(case, attr):
+                if getattr(case, attr):
                     params[attr] = getattr(case, attr)
 
             url = self.generate_url(case.court, params, case.stage)
 
             if case.court.site_type == 2:
                 url = url.replace('XXX', case.court.vn_kod)
-                print(url)
                 got_urls += SecondParser(court=case.court, stage=case.stage, codex=self.codex,
                                          url=url).get_all_cases_urls()
 
             elif case.court.site_type == 1:
-                print(url)
                 got_urls += FirstParser(court=case.court, stage=case.stage, codex=self.codex,
                                         url=url).get_all_cases_urls()
 
         got_urls = list(set(got_urls))
         if len(got_urls) == 1:
-            return got_urls[0]
+            return got_urls[0].replace('&nc=1', '')
         else:
             case.actual_url_unknown = True
             case.save(update_fields=["actual_url_unknown"])  # прерываем обновление дела, но помечаем дело
