@@ -7,7 +7,7 @@ from oi_sud.courts.models import Court
 from reversion.models import Revision
 # from oi_sud.core.utils import DictDiffer
 
-#@pytest.mark.skip
+@pytest.mark.skip
 @pytest.mark.django_db
 def test_double_processing_identical(rf_courts, koap_articles):
     court = Court.objects.filter(title='Выборгский районный суд').first()
@@ -21,7 +21,7 @@ def test_double_processing_identical(rf_courts, koap_articles):
     assert(Case.objects.count() == 1)
     assert (Case.duplicates.count() == 0)
 
-#@pytest.mark.skip
+@pytest.mark.skip
 @pytest.mark.django_db
 def test_double_processing_non_identical(rf_courts, koap_articles):
     court = Court.objects.filter(title='Выборгский районный суд').first()
@@ -36,7 +36,7 @@ def test_double_processing_non_identical(rf_courts, koap_articles):
     assert (Case.objects.count() == 1)
     assert (Case.duplicates.count() == 1)
 
-#@pytest.mark.skip
+@pytest.mark.skip
 @pytest.mark.django_db
 def test_non_double_processing(rf_courts, koap_articles):
     court = Court.objects.filter(title='Выборгский районный суд').first()
@@ -65,7 +65,7 @@ def save_from_raw(self, raw_case_data):
 
 FirstParser.save_from_raw = save_from_raw
 
-#@pytest.mark.skip
+@pytest.mark.skip
 @pytest.mark.django_db
 def test_update_case_add(case_raw_dict, rf_courts):
 
@@ -76,7 +76,7 @@ def test_update_case_add(case_raw_dict, rf_courts):
     c_old.update_case()
     assert c_old.case_uid
 
-#@pytest.mark.skip
+@pytest.mark.skip
 @pytest.mark.django_db
 def test_update_case_change(case_raw_dict, rf_courts):
 
@@ -87,7 +87,7 @@ def test_update_case_change(case_raw_dict, rf_courts):
     c_old.update_case()
     assert c_old.case_uid != 'blabla'
 
-#@pytest.mark.skip
+@pytest.mark.skip
 @pytest.mark.django_db
 def test_update_case_dont_remove(case_raw_dict, rf_courts):
 
@@ -98,7 +98,7 @@ def test_update_case_dont_remove(case_raw_dict, rf_courts):
     c_old.update_case()
     assert c_old.appeal_result == 'blabla'
 
-#@pytest.mark.skip
+@pytest.mark.skip
 @pytest.mark.django_db
 def test_update_case_was_moved(moved_case_raw_dict, rf_courts, mocker):
     FirstParser(stage=1, codex='koap', court=Court.objects.filter(title='Невский районный суд').first()).save_from_raw(moved_case_raw_dict)
@@ -108,7 +108,7 @@ def test_update_case_was_moved(moved_case_raw_dict, rf_courts, mocker):
     assert c_old.url != moved_case_raw_dict['url']
 
 
-#@pytest.mark.skip
+@pytest.mark.skip
 @pytest.mark.django_db
 def test_update_case_was_moved(moved_case_raw_dict, rf_courts, mocker):
     c_old = FirstParser(stage=1, codex='koap', court=Court.objects.filter(title='Невский районный суд').first()).save_from_raw(moved_case_raw_dict)
@@ -121,7 +121,7 @@ def test_update_case_was_moved(moved_case_raw_dict, rf_courts, mocker):
 def process_duplicates(self, new_case):
     return
 
-#@pytest.mark.skip
+@pytest.mark.skip
 @pytest.mark.django_db
 def test_update_case_was_moved_but_exists_in_db_non_identical(moved_case_raw_dict, moved_case_raw_dict_new, rf_courts):
     FirstParser.process_duplicates = process_duplicates
@@ -136,7 +136,7 @@ def test_update_case_was_moved_but_exists_in_db_non_identical(moved_case_raw_dic
     assert c_old.url != moved_case_raw_dict['url']
     assert c_old.url == moved_case_raw_dict_new['url']
 
-#@pytest.mark.skip
+@pytest.mark.skip
 @pytest.mark.django_db
 def test_update_case_was_moved_but_exists_in_db(moved_case_raw_dict, moved_case_raw_dict_new, rf_courts):
     FirstParser.process_duplicates = process_duplicates

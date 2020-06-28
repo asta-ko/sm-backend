@@ -209,7 +209,9 @@ class RFCourtSiteParser(CourtSiteParser):
         # получаем адвокатов и защитников
         advocates = []
         trs_advocates = [tr for tr in trs if
-                         'адвокат' in tr.text.lower() or 'защитник' in tr.text.lower() or 'представитель' in tr.text.lower()]
+                         'адвокат' in tr.text.lower() or
+                         'защитник' in tr.text.lower() or
+                         'представитель' in tr.text.lower()]
         for tr in trs_advocates:
             tds = tr.findAll('td')
             if len(tds) > person_index and len(tds) > codex_articles_index:
@@ -317,7 +319,7 @@ class FirstParser(RFCourtSiteParser):
 
         def appeal_table(tag):
             return tag.name == 'table' and (
-                        'жалоб' in tag.text.lower() or 'пересмотр' in tag.text.lower())
+                    'жалоб' in tag.text.lower() or 'пересмотр' in tag.text.lower())
 
         tabs = {
             'delo': page.find('div', id='cont1').find('table'),
@@ -499,16 +501,18 @@ class RFCasesGetter(CommonParser):
             else:
                 params_string += f'&lawbookarticles[]={article.article_number}'
 
-        return params_string  # .replace('[]', '%5B%5D').replace(' ', '%F7')
+        return params_string.replace('[]', '%5B%5D').replace(' ', '%F7')
 
     @staticmethod
     def generate_params(string, params_dict, params):
-        result_string = ''
         formatted_params = {}
         for k, v in params.items():
-            formatted_params[params_dict[k]] = v
+            if k in params_dict and k != 'articles':
+                formatted_params[params_dict[k]] = v
         params_string = urlencode(formatted_params, encoding='Windows-1251')
-        result_string += string + params_string
+        result_string = f'{string}&{params_string}'
+        if params.get("articles"):
+            result_string += f'&{params_dict["articles"]}={params["articles"]}'
         return result_string
 
     def generate_url(self, court, params, instance):
@@ -523,7 +527,7 @@ class RFCasesGetter(CommonParser):
         return court.url + params_string
 
     def get_moved_case_url(self, case):
-        print('getting moved case url...')
+        logger.debug('getting moved case url...')
         got_urls = []
         article_string = self.generate_articles_string(case.codex_articles.all())
         entry_date_from = (case.entry_date - timedelta(days=2)).strftime('%d.%m.%Y')
@@ -552,6 +556,7 @@ class RFCasesGetter(CommonParser):
                                         url=url).get_all_cases_urls()
 
         got_urls = list(set(got_urls))
+
         if len(got_urls) == 1:
             return got_urls[0].replace('&nc=1', '')
         else:
@@ -560,12 +565,11 @@ class RFCasesGetter(CommonParser):
             if not got_urls:
                 raise Exception('Did not found updated urls')
             elif len(got_urls) > 1:
-                print('multiple_found_urls', got_urls)
+                logger.error('multiple_found_urls', got_urls)
                 raise Exception('Found multiple updated urls')
 
     def get_cases(self, instance, courts_ids=None, courts_limit=None, entry_date_from=None, custom_articles=None):
         start_time = time.time()
-        articles = None
         if not custom_articles:
             articles = CodexArticle.objects.filter(codex=self.codex, active=True)
         else:
@@ -592,6 +596,7 @@ class RFCasesGetter(CommonParser):
                 if entry_date_from:
                     params['entry_date_from'] = entry_date_from  # DD.MM.YYYY
                 url = self.generate_url(court, params, instance)
+
                 if court.site_type == 2:
                     url = url.replace('XXX', court.vn_kod)
                     result = SecondParser(court=court, stage=instance, codex=self.codex, url=url).save_cases()
@@ -601,6 +606,7 @@ class RFCasesGetter(CommonParser):
                     all_results[court.title] = result
 
             except Exception as e:
+                raise
                 logger.error(f'Error getting rf cases {e}')
 
                 court.not_available = True

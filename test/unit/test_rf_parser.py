@@ -5,29 +5,33 @@ from oi_sud.cases.parsers.rf import RFCasesGetter, FirstParser, SecondParser
 from oi_sud.cases.utils import parse_name
 from oi_sud.courts.models import Court
 from reversion.models import Revision
-# from oi_sud.core.utils import DictDiffer
 
 
-@pytest.mark.skip
+#@pytest.mark.skip
+@pytest.mark.django_db
+def test_rf_parser(rf_courts, koap_articles):
+    print(rf_courts, koap_articles)
+    court = Court.objects.filter(title='Кировский районный суд',region=78)
+    RFCasesGetter(codex='koap').get_cases(1, courts_ids=[court[0].id], courts_limit=1)
+    assert len(Case.objects.all())
+
+#@pytest.mark.skip
 @pytest.mark.django_db
 def test_rf_parser_koap_first_instance(rf_courts, koap_articles):
     p = RFCasesGetter(codex='koap')
     p.get_cases(1)
     assert len(Case.objects.all())
-    # assert False
 
 
-@pytest.mark.skip
+#@pytest.mark.skip
 @pytest.mark.django_db
 def test_rf_parser_koap_second_instance(rf_courts, koap_articles):
     RFCasesGetter('koap').get_cases(2, rf_courts)
-    # p = RFCasesGetter(codex='koap')
-    # p.get_cases(1)
     assert len(Case.objects.all())
     # assert False
 
 
-@pytest.mark.skip
+#@pytest.mark.skip
 @pytest.mark.django_db
 def test_rf_parser_uk_first_instance(rf_courts, uk_articles):
     p = RFCasesGetter(codex='uk')
@@ -35,7 +39,7 @@ def test_rf_parser_uk_first_instance(rf_courts, uk_articles):
     assert len(Case.objects.all())
 
 
-@pytest.mark.skip
+#@pytest.mark.skip
 @pytest.mark.django_db
 def test_rf_parser_uk_second_instance(rf_courts, uk_articles):
     p = RFCasesGetter(codex='uk')
@@ -50,7 +54,7 @@ def test_cases_saving(rf_courts, koap_articles):
         case_info = FirstParser().get_raw_case_information(url)
 
 
-#@pytest.mark.skip
+@pytest.mark.skip
 @pytest.mark.django_db
 def test_raw_case_info_first(rf_courts, koap_articles):
     url = 'https://vbr--spb.sudrf.ru/modules.php?name=sud_delo&name_op=case&case_id=401366335&case_uid=f6a0de4d-819c-4458-9577-0565645e9c89&result=0&new=&delo_id=1502001&srv_num=1'#'https://oktibrsky--spb.sudrf.ru/modules.php?name=sud_delo&srv_num=1&name_op=case&case_id=419372260&case_uid=867f0e26-b0ea-40ec-8d30-be8f8f1fca9c&delo_id=1500001'
@@ -141,12 +145,4 @@ def test_rf_parser_update(rf_courts, koap_articles, settings):
 def test_spb_courts_command(rf_courts, koap_articles):
     SpbCourtsCommand().handle()
     assert len(Case.objects.all())
-
-
-@pytest.mark.skip
-@pytest.mark.django_db
-def test_case_serialization(rf_courts, koap_articles):
-    SpbCourtsCommand().handle()
-    assert len(Case.objects.all())
-    print(Case.objects.first().serialize())
 
