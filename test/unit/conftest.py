@@ -28,8 +28,8 @@ def rf_courts():
         # 'phone_numbers': ['-'],'region': 78,'site_type': 1, 'type': 2},
         {'url': 'https://krv--spb.sudrf.ru', 'title': 'Кировский районный суд', 'phone_numbers': ['-'], 'region': 78,
          'site_type': 1, 'type': 2, 'unprocessed_cases_urls':[]},
-        #{'url': 'https://vbr--spb.sudrf.ru', 'title': 'Выборгский районный суд', 'phone_numbers': ['-'], 'region': 78,
-        # 'site_type': 1, 'type': 2, 'unprocessed_cases_urls':[]},
+        {'url': 'https://vbr--spb.sudrf.ru', 'title': 'Выборгский районный суд', 'phone_numbers': ['-'], 'region': 78,
+         'site_type': 1, 'type': 2, 'unprocessed_cases_urls':[]},
         #{'url':'http://nvs.spb.sudrf.ru','title':'Невский районный суд','phone_numbers': ['-'], 'region': 78,
         # 'site_type': 1, 'type': 2, 'unprocessed_cases_urls':[]},
         {'url': 'https://bezhecky--twr.sudrf.ru', 'title': 'Бежецкий районный суд', 'phone_numbers': ['-'], 'region': 1,
@@ -60,7 +60,7 @@ def uk_articles():
 
 @pytest.fixture()
 def case_raw_dict():
-    return {'case_number': '12-245/2020', 'url': 'https://vbr--spb.sudrf.ru/modules.php?name=sud_delo&name_op=case&case_id=401366335&case_uid=f6a0de4d-819c-4458-9577-0565645e9c89&result=0&new=&delo_id=1502001&srv_num=1', 'case_uid': '78RS0002-01-2019-009411-25', 'entry_date': '17.02.2020', 'protocol_number': '7', 'events': [{'type': 'Материалы переданы в производство судье', 'date': '17.02.2020', 'time': '17:19'}, {'type': 'Судебное заседание', 'date': '26.03.2020', 'time': '13:45', 'courtroom': '№342', 'result': 'Заседание отложено'}, {'type': 'Судебное заседание', 'date': '04.06.2020', 'time': '14:15', 'courtroom': '№342'}], 'defenses': [{'defendant': 'Шайдуров Леонид Александрович', 'codex_articles': 'КоАП: ст. 20.2 ч.5', 'advocates': ['Рассохин А.А.'], 'prosecutors': ['Ильин Н.В.', 'Шляков никита Вадимович']}], 'defendants_hidden': False}
+    return {'case_number': '12-245/2020', 'url': 'https://vbr--spb.sudrf.ru/modules.php?name=sud_delo&name_op=case&case_id=401366335&case_uid=f6a0de4d-819c-4458-9577-0565645e9c89&result=0&new=&delo_id=1502001&srv_num=1', 'case_uid': '78RS0002-01-2019-009411-25', 'entry_date': '17.02.2020', 'protocol_number': '7', 'events': [{'type': 'Материалы переданы в производство судье', 'date': '17.02.2020', 'time': '17:19'}, {'type': 'Судебное заседание', 'date': '26.03.2020', 'time': '13:45', 'courtroom': '№342', 'result': 'Заседание отложено'}, {'type': 'Судебное заседание', 'date': '04.06.2020', 'time': '14:15', 'courtroom': '№342'}], 'defenses': [{'defendant': 'Шайдуров Леонид Александрович', 'codex_articles': 'КоАП: ст. 20.2 ч.5', 'advocates': ['Рассохин А.А.', 'Шайдурова Е.С.'], 'prosecutors': ['Ильин Н.В.', 'Шляков никита Вадимович']}], 'defendants_hidden': False}
 
 @pytest.fixture()
 def moved_case_raw_dict():

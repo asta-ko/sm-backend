@@ -20,7 +20,7 @@ weekday_regions = [  # Except SPb and Moscow
     [54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66],
     [67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 79],
     [82, 83, 86, 87, 89, 92, 94, 95]
-    ]
+]
 
 
 @worker_init.connect
@@ -65,6 +65,12 @@ def update_cases_by_week_day():
 
     for region in regions:
         update_cases_by_region.s(region, newest=True).apply_async(queue='other')
+
+
+@shared_task
+def update_all_cases():
+    for region in region_choices:
+        update_cases_by_region.s(region[0], newest=True).apply_async(queue='other')
 
 
 @shared_task  # (bind=True)

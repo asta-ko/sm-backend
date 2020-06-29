@@ -312,7 +312,13 @@ class Case(models.Model):
                         defense.advocates.set(advocates)
                     if prosecutors:
                         defense.prosecutors.set(prosecutors)
-
+                advocate_names = [x.name_normalized for x in self.get_advocates()]
+                prosecutors_names = [x.name_normalized for x in self.get_prosecutors()]
+                non_defendants_names = advocate_names + prosecutors_names
+                if non_defendants_names:
+                    for defense in self.defenses.all():
+                        if defense.defendant.name_normalized in non_defendants_names:
+                            defense.delete()
                 diff_keys.append('defenses')
 
             if fresh_data['events'] != old_data['events']:
