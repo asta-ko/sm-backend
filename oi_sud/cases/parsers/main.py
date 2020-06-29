@@ -121,7 +121,7 @@ class CourtSiteParser(CommonParser):
             logging.error(f"GET error: unable to get rf cases - {status_code} {url}")
             raise Exception('Network error')
         txt = txt.lower()
-        if 'notice' in txt or 'non-object' in txt or 'pg_query' in txt:
+        if 'notice' in txt or 'non-object' in txt or 'pg_query' in txt or 'pravosudie' in txt:
             return False
         return True
 

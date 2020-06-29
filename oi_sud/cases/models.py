@@ -200,6 +200,8 @@ class Case(models.Model):
                     existing_case = Case.objects.filter(court=self.court,
                                                         url__contains=f'case_id={query_case_id}').first()
                     existing_data = existing_case.serialize()
+                    existing_data['defenses'] = []
+                    existing_data['events'] = []
                     existing_case.delete()
 
                     if existing_data and not self.cases_data_identical(existing_data, self.serialize()):
@@ -293,10 +295,13 @@ class Case(models.Model):
                 # дело обновилось
 
                 logger.debug(f'Updating case... {self}')
+
                 diff_keys += DictDiffer(fresh_data['case'], old_data['case']).get_all_diff_keys()
 
                 self.__dict__.update(fresh_data['case'])
-                self.save(update_fields=fresh_data['case'].keys())
+                self.updated_at = timezone.now()
+                fields = list(fresh_data['case'].keys())+['updated_at',]
+                self.save(update_fields=fields)
 
             if fresh_data['defenses'] != old_data['defenses']:
                 logger.debug(f'Updating case defenses... {self}')
@@ -323,6 +328,7 @@ class Case(models.Model):
 
             if fresh_data['events'] != old_data['events']:
                 logger.debug(f'Updating case events... {self}')
+                self.events.all().delete()
                 for event in fresh_data['events']:
                     event['case'] = self
                     CaseEvent.objects.update_or_create(**event)
