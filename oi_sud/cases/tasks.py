@@ -109,6 +109,13 @@ def group_by_region(region=None):
         grouper.group_cases(region=region)
     return True
 
+@shared_task
+def group_all_regions():
+    for region in region_choices:
+        group_by_region.s(region[0]).apply_async(queue='other')
+    return True
+
+
 
 @shared_task
 def group_moscow_cases():
