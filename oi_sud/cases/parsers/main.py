@@ -1,4 +1,5 @@
 import logging
+from datetime import timedelta
 
 import dateparser
 import pytz
@@ -61,19 +62,16 @@ class CourtSiteParser(CommonParser):
                 serialized_case_data = self.serialize_data(raw_case_data)
                 new_case = Case.objects.create_case_from_data(serialized_case_data)
 
-                if new_case and Case.objects.exclude(id=new_case.id).filter(case_uid=raw_case_data.get('case_uid'),
-                                                                            court=self.court,
-                                                                            case_number=raw_case_data.get(
-                                                                                'case_number')).exists():
-                    Case.objects.exclude(id=new_case.id).filter(case_uid=raw_case_data.get('case_uid'),
-                                                                court=self.court,
-                                                                case_number=raw_case_data.get('case_number')).delete()
+                if new_case:
+                    self.process_duplicates(new_case)
                 if self.court and case_url in self.court.unprocessed_cases_urls:
                     self.court.unprocessed_cases_urls.remove(case_url)
                     self.court.save()
                 result['proccessed'] += 1
                 result['new'] += 1
             except Exception as e:
+                if settings.TEST_MODE:
+                    raise
                 logging.error(f'Failed to save case: {case_url}, {e}')
                 result['errors'] += 1
                 result['error_urls'].append(case_url)
@@ -86,7 +84,29 @@ class CourtSiteParser(CommonParser):
 
         return result
 
+    def process_duplicates(self, new_case):
+        defendants_names = [x.name_normalized for x in new_case.defendants.all()]
+        r_string = rf'({"|".join(defendants_names)})'
+
+        filter_dict = {'defendants__name_normalized__regex': r_string, 'court': new_case.court}
+        if hasattr(new_case, 'entry_date'):
+            filter_dict['entry_date__gte'] = new_case.entry_date - timedelta(days=1)
+            filter_dict['entry_date__lte'] = new_case.entry_date + timedelta(days=1)
+        if hasattr(new_case, 'judge'):
+            filter_dict['judge'] = new_case.judge
+
+        duplicate_cases = Case.objects.exclude(id=new_case.id).filter(**filter_dict)
+
+        for duplicate in duplicate_cases:
+            if Case.cases_data_identical(duplicate.serialize(), new_case.serialize()):
+                duplicate.delete()
+            else:
+                duplicate.url = duplicate.url + '?old=d'
+                duplicate.duplicate = True
+                duplicate.save(update_fields=['url', 'duplicate'])
+
     def normalize_date(self, datetime):
+
         if not self.court:
             timezone = pytz.timezone('Europe/Moscow')
         else:
@@ -94,6 +114,16 @@ class CourtSiteParser(CommonParser):
 
         local_dt = timezone.localize(dateparser.parse(datetime, date_formats=['%d.%m.%Y']))
         return utc.normalize(local_dt.astimezone(utc))
+
+    def check_url_actual(self, url):
+        txt, status_code = self.send_get_request(url)
+        if status_code != 200:
+            logging.error(f"GET error: unable to get rf cases - {status_code} {url}")
+            raise Exception('Network error')
+        txt = txt.lower()
+        if 'notice' in txt or 'non-object' in txt or 'pg_query' in txt or 'pravosudie' in txt:
+            return False
+        return True
 
     def serialize_data(self, case_info):
         # сериализуем данные, полученные методом get_raw_case_information

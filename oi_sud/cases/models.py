@@ -1,3 +1,4 @@
+import copy
 import logging
 import copy
 from datetime import timedelta
@@ -294,6 +295,7 @@ class Case(models.Model):
             return
 
         if not old_data['case'].get('result_text') and fresh_data['case'].get('result_text'):
+            # если появился текст
             fresh_data['case']['result_published_date'] = timezone.now()
             self.process_result_text()
 

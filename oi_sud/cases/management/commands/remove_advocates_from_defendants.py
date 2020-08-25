@@ -16,4 +16,5 @@ class Command(BaseCommand):
             if advocates_names:
                 for defense in case.defenses.all():
                     if defense.defendant.name_normalized in advocates_names:
+                        print(defense, 'defense_to_delet')
                         defense.delete()

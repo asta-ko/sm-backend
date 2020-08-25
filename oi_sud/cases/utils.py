@@ -62,11 +62,11 @@ def parse_name(name):
     name = name.lower().replace('ё', 'е')
 
     if '.' in name:
-        return (), None  # , None, None
+        return ()
     name_list = name.split(' ')
 
     if len(name_list) != 3:
-        return (), None
+        return ()
 
     if is_first_name(morph.parse(name_list[1])):
         first_name = name_list[1].capitalize()

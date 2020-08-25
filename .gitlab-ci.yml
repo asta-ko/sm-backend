@@ -46,7 +46,7 @@ test:
 deploy_prod:
   stage: deploy
   script:
-    - ssh root@sudmonster.ovdinfo.org "cd /home/oi-sud-monster-frontend && git checkout . && git pull origin master && cd ../oi-sud-monster && git checkout . && git pull origin master && ./run.sh stack && exit"
+    - ssh root@sudmonster.ovdinfo.org "cd /home/oi-sud-monster-frontend && git checkout . && git pull origin master && cd ../oi-sud-monster && docker-compose stop celery_main && docker-compose stop celery_other && docker-compose stop celery_grouper && git checkout . && git pull origin master && ./run.sh stack && exit"
   when: manual
   only:
     - merge_requests

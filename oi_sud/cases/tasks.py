@@ -68,6 +68,12 @@ def update_cases_by_week_day():
         update_cases_by_region.s(region, newest=True).apply_async(queue='other')
 
 
+@shared_task
+def update_all_cases():
+    for region in region_choices:
+        update_cases_by_region.s(region[0], newest=True).apply_async(queue='other')
+
+
 @shared_task  # (bind=True)
 def get_cases_from_region(region=78, newest=False, codex=None):
     # progress_recorder = ProgressRecorder(self)
@@ -103,6 +109,13 @@ def group_by_region(region=None):
     if region:
         grouper.group_cases(region=region)
     return True
+
+@shared_task
+def group_all_regions():
+    for region in region_choices:
+        group_by_region.s(region[0]).apply_async(queue='other')
+    return True
+
 
 
 @shared_task
