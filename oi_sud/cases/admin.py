@@ -29,7 +29,7 @@ class ArticlesRelatedFieldAjaxListFilter(RelatedFieldAjaxListFilter):
             'data-model': model_name,
             'data-ajax--url': reverse('jet:model_lookup'),
             'data-queryset--lookup': self.lookup_kwarg,
-            }))
+        }))
 
         if self.lookup_val is None:
             return []
@@ -50,6 +50,12 @@ class DefendantsInline(CompactInline):
 
 class CaseEventsInline(CompactInline):
     model = CaseEvent
+    show_change_link = True
+    extra = 0
+
+
+class CaseInline(CompactInline):
+    model = Case
     show_change_link = True
     extra = 0
 
@@ -109,12 +115,29 @@ class CaseAdmin(CompareVersionAdmin, admin.ModelAdmin):
     class Media:
         css = {
             'all': ('https://use.fontawesome.com/releases/v5.8.2/css/all.css',)
-            }
+        }
 
 
 class DefendantAdmin(admin.ModelAdmin):
-    list_display = ('__str__', 'get_case_court', 'get_case_link', 'get_site_type')
+    list_display = ('__str__',)
     search_fields = ('name_normalized',)
+    list_filter = ('risk_group',)
+
+    fields = ('created_at', 'region', 'gender',
+              'name_normalized', 'first_name',
+              'middle_name', 'last_name', 'list_cases')
+    readonly_fields = ('created_at', 'list_cases')
+
+    def list_cases(self, obj):
+        html = '<br><br><hr style="width:300px">'
+        for case in obj.cases.exclude(duplicate=True):
+            articles_list = ','.join([str(x) for x in case.codex_articles.all()])
+            c_text = f'{case.result_date} {articles_list} {case.stage}'
+            html += f'⯈ <a style="line-height:40px" href="{case.get_admin_url()}">{c_text}</a><hr ' \
+                    f'style="width:300px">'
+        return format_html(html)
+
+    list_cases.allow_tags = True
 
     def get_case_court(self, obj):
         if obj.cases.first():

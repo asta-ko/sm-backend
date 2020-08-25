@@ -1,5 +1,6 @@
 import copy
 import logging
+from datetime import timedelta
 
 import reversion
 from django.conf import settings
@@ -12,6 +13,7 @@ from django.urls import reverse
 from django.utils import timezone
 from oi_sud.cases.parsers.result_texts import kp_extractor
 from oi_sud.cases.utils import get_gender, normalize_name, get_or_create_from_name
+from oi_sud.codex.models import CodexArticle
 from oi_sud.core.consts import region_choices
 from oi_sud.core.utils import DictDiffer, nullable, get_query_key
 
@@ -40,7 +42,8 @@ PENALTY_TYPES = (
     ('arrest', 'Арест'),
     ('term', 'Срок'),
     ('other', 'Другое'),
-    ('warning', 'Предупреждение'),
+    ('caution', 'Предупреждение'),
+    ('suspension', 'Приостановление деятельности'),
     ('no_data', 'Нет данных'),
     ('error', 'Ошибка')
 )
@@ -61,6 +64,9 @@ class CaseManager(models.Manager):
                     advocates = defense.get('advocates')
                     prosecutors = defense.get('prosecutors')
                     defendant = defense['defendant']
+                    if defendant.is_in_risk_group():
+                        defendant.risk_group = True
+                        defendant.save()
                     defense = CaseDefense.objects.create(defendant=defendant, case=case)
                     if articles:
                         defense.codex_articles.set(articles)
@@ -147,6 +153,10 @@ class Case(models.Model):
             return 'koap'
         elif self.type == 2:
             return 'uk'
+
+    def get_result_text_resolution(self):
+        if self.result_text:
+            return kp_extractor.get_resolution_text(self.result_text)
 
     def get_advocates(self):
         return Advocate.objects.filter(a_defenses__case=self)
@@ -299,8 +309,9 @@ class Case(models.Model):
                 diff_keys += DictDiffer(fresh_data['case'], old_data['case']).get_all_diff_keys()
 
                 self.__dict__.update(fresh_data['case'])
+
                 self.updated_at = timezone.now()
-                fields = list(fresh_data['case'].keys())+['updated_at',]
+                fields = list(fresh_data['case'].keys()) + ['updated_at', ]
                 self.save(update_fields=fields)
 
             if fresh_data['defenses'] != old_data['defenses']:
@@ -377,26 +388,36 @@ class Case(models.Model):
         result = kp_extractor.process(self.result_text)  # получаем результат
 
         if result and not result.get('could_not_process') \
-                and (result.get('returned') or result.get('cancelled') or result.get('forward')):
+                and (result.get('returned') or
+                     result.get('cancelled') or
+                     result.get('forward')):
             self.add_result_type(result)
             return  # если у нас есть результат, и это возврат, отмена или направление по подведомственности,
             # сохраняем его в результат дела, если он пустой, и останавливаемся.
 
         try:
-            if result.get('could_not_process'):  # если результат с ошибкой, сохраняем 'нет данных'
-                CasePenalty.objects.create(type='no_data', case=self, is_hidden=False,
-                                           defendant=self.defendants.first())
-            else:
-                # если результат без ошибки, сохраняем наказание
-                for penalty_type in ['fine', 'arrest', 'works']:
-                    if result.get(penalty_type):
-                        CasePenalty.objects.create(type=penalty_type, case=self, defendant=self.defendants.first(),
-                                                   **result[penalty_type])
-                        break
+
+            for penalty_type in ['could_not_process', 'caution', 'suspension', 'arrest', 'works', 'fine']:
+
+                res = result.get(penalty_type)
+
+                if res:
+                    if penalty_type == 'could_not_process':
+                        penalty_type = 'no_data'
+
+                    case_penalty = {'type': penalty_type, 'case': self, 'is_hidden': False,
+                                    'defendant': self.defendants.first()}
+
+                    if isinstance(res, dict):
+                        case_penalty.update(res)
+
+                    CasePenalty.objects.create(**case_penalty)
+                    break
         except IntegrityError:
-            logger.warning(f'Saving penalty integrity error {self.get_admin_url()}')
+            raise
+            logger.warning(f'Saving penalty integrity error {self.get_result_text_url()}')
         except Exception as e:
-            logger.error(f'Saving penalty error {e}: {self.get_admin_url()}')
+            logger.error(f'Saving penalty error {e}: {self.get_result_text_url()}')
             CasePenalty.objects.filter(case=self).delete()
             CasePenalty.objects.create(type='error', case=self, is_hidden=False, defendant=self.defendants.first())
             # сохраняем ошибку
@@ -555,6 +576,7 @@ class Defendant(models.Model):
     first_name = models.CharField(max_length=150, **nullable)
     middle_name = models.CharField(max_length=150, **nullable)
     last_name = models.CharField(max_length=150, **nullable)
+    risk_group = models.BooleanField(default=False)  # группа риска 212.1 УК по повторкам
     objects = DefendantManager()
 
     @staticmethod
@@ -572,6 +594,12 @@ class Defendant(models.Model):
             return get_gender(self.first_name, self.last_name)
         else:
             return get_gender(None, self.name_normalized.split(' ')[0])
+
+    def is_in_risk_group(self):
+        # в течение 180 дней было больше 2 и больше суда по 20.2
+        articles = CodexArticle.objects.filter(codex='koap', article_number='20.2')
+        return self.cases.filter(codex_articles__in=articles, stage=1,
+                                 result_date__gte=timezone.now() - timedelta(days=180)).count() > 1
 
     class Meta:
         verbose_name = 'Ответчик'
@@ -597,8 +625,10 @@ class CasePenalty(models.Model):
             return f'{self.get_type_display()}: информация скрыта'
         elif self.type == 'error':
             return 'Ошибка при получении'
-        elif self.type == 'warning':
+        elif self.type == 'caution':
             return 'Предупреждение'
+        elif self.type == 'suspension':
+            return 'Приостановление деятельности'
         elif self.type == 'no_data':
             return 'Нет данных'
         else:

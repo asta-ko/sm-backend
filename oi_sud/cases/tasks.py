@@ -5,9 +5,10 @@ from celery import shared_task
 from celery.result import allow_join_result
 from celery.signals import worker_init
 from oi_sud.cases.grouper import grouper
-from oi_sud.cases.models import Case
+from oi_sud.cases.models import Case, Defendant
 from oi_sud.cases.parsers.moscow import MoscowCasesGetter
 from oi_sud.cases.parsers.rf import RFCasesGetter
+from oi_sud.codex.models import CodexArticle
 from oi_sud.core.consts import region_choices
 from oi_sud.core.utils import chunks
 from oi_sud.courts.models import Court
@@ -111,12 +112,12 @@ def group_by_region(region=None):
         grouper.group_cases(region=region)
     return True
 
+
 @shared_task
 def group_all_regions():
     for region in region_choices:
         group_by_region.s(region[0]).apply_async(queue='other')
     return True
-
 
 
 @shared_task
@@ -249,3 +250,14 @@ def update_spb():
 def group_all():
     for region in [x for x in dict(region_choices).keys() if x not in [77, 78]]:
         group_by_region.s(region).apply_async(queue="grouper")
+
+
+@shared_task
+def update_risk_group():
+    articles = CodexArticle.objects.filter(codex='koap', article_number='20.2')
+    defendants = Defendant.objects.filter(cases__codex_articles__in=articles)
+    for d in defendants:
+        d.risk_group = d.is_in_risk_group()
+        if d.risk_group:
+            print('in risk group', d.id)
+        d.save()
