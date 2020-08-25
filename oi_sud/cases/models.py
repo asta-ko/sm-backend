@@ -41,7 +41,8 @@ PENALTY_TYPES = (
     ('arrest', 'Арест'),
     ('term', 'Срок'),
     ('other', 'Другое'),
-    ('warning', 'Предупреждение'),
+    ('caution', 'Предупреждение'),
+    ('suspension', 'Приостановление деятельности'),
     ('no_data', 'Нет данных'),
     ('error', 'Ошибка')
 )
@@ -151,6 +152,10 @@ class Case(models.Model):
             return 'koap'
         elif self.type == 2:
             return 'uk'
+
+    def get_result_text_resolution(self):
+        if self.result_text:
+            return kp_extractor.get_resolution_text(self.result_text)
 
     def get_advocates(self):
         return Advocate.objects.filter(a_defenses__case=self)
@@ -386,27 +391,34 @@ class Case(models.Model):
         if result and not result.get('could_not_process') \
                 and (result.get('returned') or
                      result.get('cancelled') or
-                     result.get('forward') or
-                     result.get('caution')):
+                     result.get('forward')):
             self.add_result_type(result)
             return  # если у нас есть результат, и это возврат, отмена или направление по подведомственности,
             # сохраняем его в результат дела, если он пустой, и останавливаемся.
 
         try:
-            if result.get('could_not_process'):  # если результат с ошибкой, сохраняем 'нет данных'
-                CasePenalty.objects.create(type='no_data', case=self, is_hidden=False,
-                                           defendant=self.defendants.first())
-            else:
-                # если результат без ошибки, сохраняем наказание
-                for penalty_type in ['fine', 'arrest', 'works']:
-                    if result.get(penalty_type):
-                        CasePenalty.objects.create(type=penalty_type, case=self, defendant=self.defendants.first(),
-                                                   **result[penalty_type])
-                        break
+
+            for penalty_type in ['could_not_process', 'caution', 'suspension', 'arrest', 'works', 'fine']:
+
+                res = result.get(penalty_type)
+
+                if res:
+                    if penalty_type == 'could_not_process':
+                        penalty_type = 'no_data'
+
+                    case_penalty = {'type': penalty_type, 'case': self, 'is_hidden': False,
+                                    'defendant': self.defendants.first()}
+
+                    if isinstance(res, dict):
+                        case_penalty.update(res)
+
+                    CasePenalty.objects.create(**case_penalty)
+                    break
         except IntegrityError:
-            logger.warning(f'Saving penalty integrity error {self.get_admin_url()}')
+            raise
+            logger.warning(f'Saving penalty integrity error {self.get_result_text_url()}')
         except Exception as e:
-            logger.error(f'Saving penalty error {e}: {self.get_admin_url()}')
+            logger.error(f'Saving penalty error {e}: {self.get_result_text_url()}')
             CasePenalty.objects.filter(case=self).delete()
             CasePenalty.objects.create(type='error', case=self, is_hidden=False, defendant=self.defendants.first())
             # сохраняем ошибку
@@ -614,8 +626,10 @@ class CasePenalty(models.Model):
             return f'{self.get_type_display()}: информация скрыта'
         elif self.type == 'error':
             return 'Ошибка при получении'
-        elif self.type == 'warning':
+        elif self.type == 'caution':
             return 'Предупреждение'
+        elif self.type == 'suspension':
+            return 'Приостановление деятельности'
         elif self.type == 'no_data':
             return 'Нет данных'
         else:
