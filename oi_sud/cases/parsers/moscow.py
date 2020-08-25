@@ -4,8 +4,8 @@ import re
 
 from bs4 import BeautifulSoup
 from dateparser.conf import settings as dateparse_settings
-from django.utils.timezone import get_current_timezone
 from django.conf import settings
+from django.utils.timezone import get_current_timezone
 from oi_sud.cases.consts import moscow_params_dict
 from oi_sud.cases.models import Case
 from oi_sud.cases.parsers.main import CourtSiteParser

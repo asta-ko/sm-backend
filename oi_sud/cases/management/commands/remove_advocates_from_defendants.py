@@ -7,7 +7,8 @@ from oi_sud.cases.models import Case
 class Command(BaseCommand):
 
     def handle(self, *args, **options):
-        cases = Case.objects.all().annotate(num_defendants=Count('defendants')).filter(court__region=78, court__site_type=1,
+        cases = Case.objects.all().annotate(num_defendants=Count('defendants')).filter(court__region=78,
+                                                                                       court__site_type=1,
                                                                                        num_defendants__gt=1, type=1)
         for case in cases[:25]:
             case.update_case()

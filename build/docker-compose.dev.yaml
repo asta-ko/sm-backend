@@ -40,8 +40,10 @@ services:
     environment:
       DJANGO_MANAGE_MIGRATE: "on"
       DJANGO_MANAGE_COLLECTSTATIC: "on"
+    entrypoint: /code/build/virtualenv/docker-entrypoint.sh
     volumes:
       - ./:/code
+      #- ./docker-entrypoint.sh:/docker-entrypoint.sh
       - ./.docker/static:/var/www/static
       - ./.docker/media:/var/www/media
     command: ["gunicorn", "oi_sud.wsgi:application", "-b", "0.0.0.0:8081", "--name", "oi_sud", "--reload", "--log-level", "info",  "-w", "5"]
@@ -67,8 +69,6 @@ services:
     environment:
       DJANGO_SETTINGS_MODULE: 'oi_sud.config.test'
     command: ["echo", "'test'"]
-
-
 
 #    celery_main:
 #        <<: *oi_sud

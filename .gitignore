@@ -63,3 +63,6 @@ frontend/
 node_modules/
 
 /docker-compose.yaml
+
+/txt.*
+/parse_texts_log*
