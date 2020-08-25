@@ -319,7 +319,8 @@ class FirstParser(RFCourtSiteParser):
 
         def appeal_table(tag):
             return tag.name == 'table' and (
-                    'жалоб' in tag.text.lower() or 'пересмотр' in tag.text.lower())
+                    'жалоб' in tag.text.lower() or
+                    'пересмотр' in tag.text.lower())
 
         tabs = {
             'delo': page.find('div', id='cont1').find('table'),

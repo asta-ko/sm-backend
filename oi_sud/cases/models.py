@@ -1,6 +1,5 @@
 import copy
 import logging
-import copy
 from datetime import timedelta
 
 import reversion
