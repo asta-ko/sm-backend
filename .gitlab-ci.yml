@@ -32,6 +32,8 @@ test:
   script:
     - 'ls'
     - 'cp env.test.orig .env'
+    - 'echo GITLAB_TOKEN=$GITLAB_TOKEN >> .env'
+    - 'echo GITLAB_USER=$GITLAB_USER >> .env'
     - './run.sh stack'
     - './run.sh test style'
     - './run.sh test unit'
