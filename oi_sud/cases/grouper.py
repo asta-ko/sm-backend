@@ -84,10 +84,10 @@ class CasesGrouper(object):
         first_cases_not_found = Case.objects.filter(stage=1, court__region=region, appeal_result__isnull=False,
                                                     linked_cases=None)
         second_instance_cases_not_found = Case.objects.filter(stage=2, court__region=region, linked_cases=None)
-        #logger.debug(f'{len(first_cases_appealed)} first_cases_appealed')
-        #logger.debug(f'{len(first_cases_not_found)} first_cases_not_found')
-        #logger.debug(f'{len(second_cases)} second_cases_all')
-        #logger.debug(f'{len(second_instance_cases_not_found)} second_cases_not_found')
+        # logger.debug(f'{len(first_cases_appealed)} first_cases_appealed')
+        # logger.debug(f'{len(first_cases_not_found)} first_cases_not_found')
+        # logger.debug(f'{len(second_cases)} second_cases_all')
+        # logger.debug(f'{len(second_instance_cases_not_found)} second_cases_not_found')
 
         for case in first_cases_not_found:
 
