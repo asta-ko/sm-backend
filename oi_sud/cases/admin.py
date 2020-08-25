@@ -29,7 +29,7 @@ class ArticlesRelatedFieldAjaxListFilter(RelatedFieldAjaxListFilter):
             'data-model': model_name,
             'data-ajax--url': reverse('jet:model_lookup'),
             'data-queryset--lookup': self.lookup_kwarg,
-            }))
+        }))
 
         if self.lookup_val is None:
             return []
@@ -52,6 +52,7 @@ class CaseEventsInline(CompactInline):
     model = CaseEvent
     show_change_link = True
     extra = 0
+
 
 class CaseInline(CompactInline):
     model = Case
@@ -114,7 +115,7 @@ class CaseAdmin(CompareVersionAdmin, admin.ModelAdmin):
     class Media:
         css = {
             'all': ('https://use.fontawesome.com/releases/v5.8.2/css/all.css',)
-            }
+        }
 
 
 class DefendantAdmin(admin.ModelAdmin):
@@ -122,9 +123,10 @@ class DefendantAdmin(admin.ModelAdmin):
     search_fields = ('name_normalized',)
     list_filter = ('risk_group',)
 
-
-    fields = ('created_at','region','gender','name_normalized','first_name','middle_name','last_name','list_cases')
-    readonly_fields = ('created_at','list_cases')
+    fields = ('created_at', 'region', 'gender',
+              'name_normalized', 'first_name',
+              'middle_name', 'last_name', 'list_cases')
+    readonly_fields = ('created_at', 'list_cases')
 
     def list_cases(self, obj):
         html = '<br><br><hr style="width:300px">'
@@ -135,9 +137,7 @@ class DefendantAdmin(admin.ModelAdmin):
                     f'style="width:300px">'
         return format_html(html)
 
-
     list_cases.allow_tags = True
-
 
     def get_case_court(self, obj):
         if obj.cases.first():

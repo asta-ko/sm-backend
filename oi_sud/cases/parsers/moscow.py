@@ -4,8 +4,8 @@ import re
 
 from bs4 import BeautifulSoup
 from dateparser.conf import settings as dateparse_settings
-from django.utils.timezone import get_current_timezone
 from django.conf import settings
+from django.utils.timezone import get_current_timezone
 from oi_sud.cases.consts import moscow_params_dict
 from oi_sud.cases.models import Case
 from oi_sud.cases.parsers.main import CourtSiteParser
@@ -70,7 +70,8 @@ class MoscowParser(CourtSiteParser):
             ev_cols = ev.findAll('td')
             href = 'https://mos-gorsud.ru' + ev_cols[0]('a')[0]['href']
             href = href.split('?')[0]
-            # проверка на точное соотстветствие, иначе смешает, например, ч.6 и ч.6.1 (только для КОАП, в УК эта колонка пустая)
+            # проверка на точное соотстветствие, иначе смешает, например, ч.6 и ч.6.1
+            # (только для КОАП, в УК эта колонка пустая)
             if ev_cols[4].text.strip() != self.get_article_string() and self.article.codex == 'koap':
                 logger.warning(
                     f'Moscow parsing: article string went wrong - {self.get_article_string()}, '

@@ -8,10 +8,10 @@ from oi_sud.cases.grouper import grouper
 from oi_sud.cases.models import Case, Defendant
 from oi_sud.cases.parsers.moscow import MoscowCasesGetter
 from oi_sud.cases.parsers.rf import RFCasesGetter
+from oi_sud.codex.models import CodexArticle
 from oi_sud.core.consts import region_choices
 from oi_sud.core.utils import chunks
 from oi_sud.courts.models import Court
-from oi_sud.codex.models import CodexArticle
 
 weekday_regions = [  # Except SPb and Moscow
     [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13],
@@ -21,7 +21,7 @@ weekday_regions = [  # Except SPb and Moscow
     [54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66],
     [67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 79],
     [82, 83, 86, 87, 89, 92, 94, 95]
-    ]
+]
 
 
 @worker_init.connect
@@ -236,12 +236,13 @@ def group_all():
     for region in [x for x in dict(region_choices).keys() if x not in [77, 78]]:
         group_by_region.s(region).apply_async(queue="grouper")
 
+
 @shared_task
 def update_risk_group():
     articles = CodexArticle.objects.filter(codex='koap', article_number='20.2')
     defendants = Defendant.objects.filter(cases__codex_articles__in=articles)
     for d in defendants:
-        d.risk_group =  d.is_in_risk_group()
+        d.risk_group = d.is_in_risk_group()
         if d.risk_group:
             print('in risk group', d.id)
         d.save()
