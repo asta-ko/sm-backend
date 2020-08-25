@@ -334,73 +334,66 @@ class MoscowParser(CourtSiteParser):
                 if not len(tds) > 1:
                     continue
 
-                print(self.stage, 'stage')
-
                 if (self.stage == 1 and any(element in tds[1].text for element in
                                             ['Приговор', 'Постановление',
                                              'Определение о возвращении'])) or (
                         self.stage == 2 and 'Решение по жалобе' in tds[1].text):
                     links = tds[2].findAll('a')
-                    print(links)
                     if links:
                         link = 'https://www.mos-gorsud.ru' + links[0]['href']
                         text = self.url_to_str(link)
-                        print(text)
                         case_info['result_text'] = text
                         break
 
         return case_info
 
+    def get_uk_defenses(self, defenses_string):
+        defenses = []
+        defenses_arr = re.split(r',(?= \w+ \w\.\w\.)', defenses_string)
+        for d in defenses_arr:
+            d = re.sub('\(отм\. \d{2}\.\d{2}\.\d{4}\) ', '', d)
+            defendant = d.split('(')[0].strip()
+            articles_str = ''
+            if len(d.split('(')) > 1:
+                articles_str = d.split('(')[1].strip(')')
+            defense = {'defendant': defendant, 'codex_articles': articles_str}
+            defenses.append(defense)
+        return defenses
 
-def get_uk_defenses(self, defenses_string):
-    defenses = []
-    defenses_arr = re.split(r',(?= \w+ \w\.\w\.)', defenses_string)
-    for d in defenses_arr:
-        d = re.sub('\(отм\. \d{2}\.\d{2}\.\d{4}\) ', '', d)
-        defendant = d.split('(')[0].strip()
-        articles_str = ''
-        if len(d.split('(')) > 1:
-            articles_str = d.split('(')[1].strip(')')
-        defense = {'defendant': defendant, 'codex_articles': articles_str}
-        defenses.append(defense)
-    return defenses
+    def get_koap_article(self, raw_string):
+        # получаем объекты статей КОАП из строки, полученной из карточки дела
 
+        m = re.search(r'Ст\.\s([0-9\.]+),?\s?Ч?\.?([0-9\.]*)', raw_string)
 
-def get_koap_article(self, raw_string):
-    # получаем объекты статей КОАП из строки, полученной из карточки дела
-
-    m = re.search(r'Ст\.\s([0-9\.]+),?\s?Ч?\.?([0-9\.]*)', raw_string)
-
-    if m:
-        article = m.group(1)
-        part = m.group(2)
-        if part == '':
-            part = None
-        codex_article = CodexArticle.objects.filter(codex='koap', article_number=article, part=part).first()
-        if codex_article:
-            return [codex_article]
-    return []
-
-
-def get_uk_articles(self, raw_string):
-    # получаем объекты статей УК из строки, полученной из карточки дела
-
-    codex_articles = []
-    arr = raw_string.split('; ')
-    for item in arr:
-
-        item = item.strip()
-        m = re.search(r'Ст\. ([[0-9\.]+)\s?,?\s?Ч?\.?\s?([0-9\.]*)', item)
         if m:
             article = m.group(1)
             part = m.group(2)
             if part == '':
                 part = None
-            codex_article = CodexArticle.objects.filter(codex='uk', article_number=article,
-                                                        part=part).first()
+            codex_article = CodexArticle.objects.filter(codex='koap', article_number=article, part=part).first()
             if codex_article:
-                codex_articles.append(codex_article)
-    return codex_articles
+                return [codex_article]
+        return []
+
+    def get_uk_articles(self, raw_string):
+        # получаем объекты статей УК из строки, полученной из карточки дела
+
+        codex_articles = []
+        arr = raw_string.split('; ')
+        for item in arr:
+
+            item = item.strip()
+            m = re.search(r'Ст\. ([[0-9\.]+)\s?,?\s?Ч?\.?\s?([0-9\.]*)', item)
+            if m:
+                article = m.group(1)
+                part = m.group(2)
+                if part == '':
+                    part = None
+                codex_article = CodexArticle.objects.filter(codex='uk', article_number=article,
+                                                            part=part).first()
+                if codex_article:
+                    codex_articles.append(codex_article)
+        return codex_articles
 
 
 class MoscowCasesGetter(CommonParser):
