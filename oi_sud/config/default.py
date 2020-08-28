@@ -49,6 +49,7 @@ INSTALLED_APPS = [
     'rest_framework_expiring_authtoken',
     'rest_framework_csv',
     'corsheaders',
+    'model_clone',
     'django_extensions',
     'django_filters',
     'django_celery_results',

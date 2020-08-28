@@ -140,7 +140,6 @@ class MoscowParser(CourtSiteParser):
         if extension:
             filename += f'.{extension}'
         f = open(filename, 'wb')
-
         f.write(bytes0)
         f.close()
         if extension == 'rtf':
@@ -151,10 +150,14 @@ class MoscowParser(CourtSiteParser):
             return self.try_to_parse_result_text(DocParser(), filename)
         elif not extension:
             docx = self.try_to_parse_result_text(DocXParser(), filename)
-            if docx:
-                return docx
-            else:
-                return self.try_to_parse_result_text(DocParser(), filename)
+            rtf = self.try_to_parse_result_text(RTFParser(), filename)
+            doc = self.try_to_parse_result_text(DocParser(), filename)
+
+            if not (docx or rtf or doc):
+                logger.critical(f'{url}: Could not process moscow result text file')
+
+            return docx or rtf or doc
+
         else:
             logger.critical(f'{url}: Could not process moscow result text file')
 
@@ -339,9 +342,11 @@ class MoscowParser(CourtSiteParser):
                                              'Определение о возвращении'])) or (
                         self.stage == 2 and 'Решение по жалобе' in tds[1].text):
                     links = tds[2].findAll('a')
+
                     if links:
                         link = 'https://www.mos-gorsud.ru' + links[0]['href']
                         text = self.url_to_str(link)
+
                         case_info['result_text'] = text
                         break
 
