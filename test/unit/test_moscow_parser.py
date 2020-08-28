@@ -32,6 +32,29 @@ def test_save_case(moscow_courts, koap_articles):
     assert (len(Case.objects.all()) == 2)
 
 
+
+@pytest.mark.skip
+@pytest.mark.django_db
+def test_correct_result_text_1inst(moscow_courts, koap_articles):
+    url = 'https://mos-gorsud.ru/rs/meshchanskij/services/cases/admin/details/ff082d8f-d712-4661-b6f0-165e7c11b7df'
+    case_info = MoscowParser(stage=1).get_raw_case_information(url)
+    print(case_info)
+    assert case_info
+    assert case_info['events'] != []
+    assert case_info['result_text'] != ''
+    assert 'без удовлетворения' not in case_info['result_text']
+
+@pytest.mark.skip
+@pytest.mark.django_db
+def test_correct_result_text_2inst(moscow_courts, koap_articles):
+    url = 'https://mos-gorsud.ru/mgs/services/cases/review-not-yet/details/a0d44509-e1ce-41ad-af55-542d164c3766'
+    case_info = MoscowParser(stage=2).get_raw_case_information(url)
+    print(case_info)
+    assert case_info
+    assert case_info['events'] != []
+    assert case_info['result_text'] != ''
+    assert 'без удовлетворения' in case_info['result_text']
+
 @pytest.mark.skip
 @pytest.mark.django_db
 def test_correct_result_text_1inst(moscow_courts, koap_articles):

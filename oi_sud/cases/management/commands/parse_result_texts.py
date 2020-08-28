@@ -13,7 +13,7 @@ class Command(BaseCommand):
         CasePenalty.objects.filter(type='error').delete()
 
         count = 0
-        for case in chunkator(Case.objects.filter(penalties__isnull=True, result_text__contains='приостановления',
+        for case in chunkator(Case.objects.filter(penalties__isnull=True,
                                                   result_text__isnull=False, type=1, stage=1), 100):
             count += 1
             if count == 1:
