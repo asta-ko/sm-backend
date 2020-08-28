@@ -1,10 +1,13 @@
 import re
 
 import requests
+import logging
 from requests import Request
 from requests.packages.urllib3.util.retry import Retry
 from requests_futures.sessions import FuturesSession
 from user_agent import generate_user_agent
+
+logging.getLogger("urllib3").setLevel(logging.WARNING)
 
 
 class CommonParser(object):
