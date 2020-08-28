@@ -212,6 +212,7 @@ class RFCourtSiteParser(CourtSiteParser):
                          'адвокат' in tr.text.lower() or
                          'защитник' in tr.text.lower() or
                          'представитель' in tr.text.lower()]
+
         for tr in trs_advocates:
             tds = tr.findAll('td')
             if len(tds) > person_index and len(tds) > codex_articles_index:
@@ -318,9 +319,8 @@ class FirstParser(RFCourtSiteParser):
                                             'ЛИЦА' in tag.text)
 
         def appeal_table(tag):
-            return tag.name == 'table' and (
-                    'жалоб' in tag.text.lower() or
-                    'пересмотр' in tag.text.lower())
+            return tag.name == 'table' and ('жалоб' in tag.text.lower() or
+                                            'пересмотр' in tag.text.lower())
 
         tabs = {
             'delo': page.find('div', id='cont1').find('table'),
@@ -442,6 +442,13 @@ class SecondParser(RFCourtSiteParser):
             logging.error(f"GET error: rf case - {status_code} {url}")
             return None
 
+        if 'notice' in txt.lower() or \
+                'non-object' in txt.lower() or \
+                'pg_query' in txt.lower() or \
+                'pravosudie' in txt.lower():
+            logging.error("Bad page content")
+            return None
+
         page = BeautifulSoup(txt, 'html.parser')
         case_info['case_number'] = page.find('div',
                                              class_='case-num').text.replace('дело № ', '').replace('ДЕЛО № ', '')
@@ -476,10 +483,12 @@ class SecondParser(RFCourtSiteParser):
             events_trs = page.find('div', id='tab_content_EventList').findAll('tr')[1:]
             tr_head = [x.text for x in page.find('div', id='tab_content_EventList').findAll('td')][:10]
             case_info['events'] = self.parse_events(events_trs, tr_head)
-
-        defense_table = page.find('div', id='tab_content_PersonList').find('table', class_='none-mobile')
-
-        case_info['defenses'], case_info['defendants_hidden'] = self.parse_defenses(defense_table)
+        if self.codex == 'koap':
+            defense_table = page.find('div', id='tab_content_PersonList').find('table', class_='none-mobile')
+            case_info['defenses'], case_info['defendants_hidden'] = self.parse_defenses(defense_table)
+        elif self.codex == 'uk':
+            defense_table = page.find('div', id='tab_content_DefList').find('table', class_='none-mobile')
+            case_info['defenses'], case_info['defendants_hidden'] = self.parse_defenses(defense_table)
 
         return case_info
 

@@ -1,5 +1,4 @@
 import logging
-from datetime import timedelta
 
 import dateparser
 import pytz
@@ -8,6 +7,7 @@ from django.conf import settings
 from django.utils.timezone import get_current_timezone
 from oi_sud.cases.consts import APPEAL_RESULT_TYPES, EVENT_RESULT_TYPES, EVENT_TYPES, RESULT_TYPES
 from oi_sud.cases.models import Case, Defendant, Advocate, Prosecutor
+from oi_sud.cases.updater import merger_updater
 from oi_sud.codex.models import CodexArticle
 from oi_sud.core.parser import CommonParser
 from oi_sud.courts.models import Judge
@@ -48,6 +48,7 @@ class CourtSiteParser(CommonParser):
         result = {'found': len(urls), 'errors': 0, 'proccessed': 0, 'error_urls': [], 'exist': 0, 'new': 0}
 
         for case_url in urls:
+
             try:
                 u = case_url.replace('&nc=1', '')
                 if Case.objects.filter(url=u).exists():
@@ -63,7 +64,7 @@ class CourtSiteParser(CommonParser):
                 new_case = Case.objects.create_case_from_data(serialized_case_data)
 
                 if new_case:
-                    self.process_duplicates(new_case)
+                    merger_updater.process_duplicates(new_case)
                 if self.court and case_url in self.court.unprocessed_cases_urls:
                     self.court.unprocessed_cases_urls.remove(case_url)
                     self.court.save()
@@ -83,27 +84,6 @@ class CourtSiteParser(CommonParser):
             self.court.save()
 
         return result
-
-    def process_duplicates(self, new_case):
-        defendants_names = [x.name_normalized for x in new_case.defendants.all()]
-        r_string = rf'({"|".join(defendants_names)})'
-
-        filter_dict = {'defendants__name_normalized__regex': r_string, 'court': new_case.court}
-        if hasattr(new_case, 'entry_date'):
-            filter_dict['entry_date__gte'] = new_case.entry_date - timedelta(days=1)
-            filter_dict['entry_date__lte'] = new_case.entry_date + timedelta(days=1)
-        if hasattr(new_case, 'judge'):
-            filter_dict['judge'] = new_case.judge
-
-        duplicate_cases = Case.objects.exclude(id=new_case.id).filter(**filter_dict)
-
-        for duplicate in duplicate_cases:
-            if Case.cases_data_identical(duplicate.serialize(), new_case.serialize()):
-                duplicate.delete()
-            else:
-                duplicate.url = duplicate.url + '?old=d'
-                duplicate.duplicate = True
-                duplicate.save(update_fields=['url', 'duplicate'])
 
     def normalize_date(self, datetime):
 
@@ -197,7 +177,6 @@ class CourtSiteParser(CommonParser):
             if item.get('result'):
                 result_item['result'] = item['result'].strip()
             result['events'].append(result_item)
-
         for item in case_info['defenses']:
             if self.codex == 'koap':
                 article = item['codex_articles'] = self.get_koap_article(item['codex_articles'])  # TODO: КАС и ГПК

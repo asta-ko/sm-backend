@@ -8,6 +8,7 @@ from oi_sud.cases.grouper import grouper
 from oi_sud.cases.models import Case, Defendant
 from oi_sud.cases.parsers.moscow import MoscowCasesGetter
 from oi_sud.cases.parsers.rf import RFCasesGetter
+from oi_sud.cases.updater import merger_updater
 from oi_sud.codex.models import CodexArticle
 from oi_sud.core.consts import region_choices
 from oi_sud.core.utils import chunks
@@ -148,6 +149,13 @@ def update_cases_by_region(region, newest=False, delta_days=3 * 30):
 
 
 @shared_task
+def update_cases_by_region_async(region, newest=False, delta_days=3 * 30):
+    region_courts = Court.objects.exclude(type=9).filter(region=region).values_list('id', flat=True)
+    for court in region_courts:
+        update_cases_by_court.s(court, newest=newest).apply_async(queue='other')
+
+
+@shared_task
 def get_moscow_koap_cases_first(newest=False):
     entry_date = get_start_date(30 * 6) if newest else None
     return MoscowCasesGetter().get_cases(1, 'koap', entry_date_from=entry_date)
@@ -259,3 +267,35 @@ def update_risk_group():
         if d.risk_group:
             print('in risk group', d.id)
         d.save()
+    print(Defendant.objects.filter(risk_group=True).count(), ' risk group defendants')
+
+
+@shared_task
+def update_cases_actual_url_unknown(region=None):
+    filters = {'actual_url_unknown': True}
+    if region:
+        filters['court__region'] = region
+    cases = Case.objects.filter(**filters)
+    count = cases.count()
+    for case in cases:
+        case.update_case()
+    after_cases_count = Case.objects.filter(**filters).count()
+    print('Urls unknown count before: ', count)
+    print('Urls unknown count after: ', after_cases_count)
+
+
+@shared_task
+def remove_duplicates_by_regions(region=None):
+    courts = Court.objects.all()
+    if region:
+        courts = courts.filter(region=region)
+    for court in courts:
+        remove_duplicates_by_court.s(court).apply_async(queue='other')
+
+
+@shared_task
+def remove_duplicates_by_court(court_id):
+    court = Court.objects.get(pk=court_id)
+    cases = Case.objects.filter(court=court)
+    for case in cases:
+        merger_updater.process_duplicates(case)

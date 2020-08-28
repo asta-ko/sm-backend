@@ -4,6 +4,8 @@ SECRET_KEY = 'gl)+h@c5pg_9i(8mwzpah_h5#*lr1u13w1xl_h-*60(gb=+%j^'
 
 DEBUG = True
 
+DEBUG_REQUESTS = False
+
 CELERY_TASK_ALWAYS_EAGER = True
 
 DEFAULT_FILE_STORAGE = 'django.core.files.storage.FileSystemStorage'

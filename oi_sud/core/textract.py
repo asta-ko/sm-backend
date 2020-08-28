@@ -113,6 +113,7 @@ class DocParser(ShellParser):
 
     def extract(self, filename, **kwargs):
         stdout, stderr = self.run(['antiword', filename])
+        # print(stdout[:150], 'doc')
         return stdout
 
 
@@ -121,6 +122,8 @@ class DocXParser(BaseParser):
     """
 
     def extract(self, filename, **kwargs):
+        # text = docx2txt.process(filename)
+        # print(text[:150], 'docx')
         return docx2txt.process(filename)
 
 
@@ -128,4 +131,6 @@ class RTFParser(BaseParser):
     def extract(self, filename, **kwargs):
         with open(filename, 'r') as f:
             rtf = f.read()
+            # text = rtf_to_text(rtf)
+            # print(text[:150], 'rtf')
             return rtf_to_text(rtf)
