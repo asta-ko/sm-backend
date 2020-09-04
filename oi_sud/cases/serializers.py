@@ -1,3 +1,5 @@
+from functools import reduce
+
 from oi_sud.cases.models import Case, CaseEvent, CasePenalty, Defendant
 from oi_sud.core.api_utils import SkipNullValuesMixin
 from rest_framework import serializers
@@ -11,7 +13,7 @@ class CaseEventSerializer(SkipNullValuesMixin, serializers.ModelSerializer):
         # fields = "__all__"#['order', 'title', 'duration']
 
 
-class DefendantSerializer(SkipNullValuesMixin, serializers.ModelSerializer):
+class DefendantBaseSerializer(SkipNullValuesMixin, serializers.ModelSerializer):
     gender = serializers.CharField(source='get_gender_display')
     full_name = serializers.SerializerMethodField()
 
@@ -51,7 +53,7 @@ class BaseCaseSerializer(SkipNullValuesMixin, serializers.ModelSerializer):
     court = serializers.SerializerMethodField()
     codex_articles = serializers.SerializerMethodField()
     revisions = serializers.SerializerMethodField()
-    defendants = DefendantSerializer(many=True, read_only=True)
+    defendants = DefendantBaseSerializer(many=True, read_only=True)
     defendants_simple = serializers.SerializerMethodField()
     advocates = serializers.SerializerMethodField()
     prosecutors = serializers.SerializerMethodField()
@@ -118,7 +120,8 @@ class BaseCaseSerializer(SkipNullValuesMixin, serializers.ModelSerializer):
         if len(revisions) > 1:
             return {
                 'link': obj.get_history_link(),
-                'revisions': [{'date': str(x.revision.date_created), 'comment': x.revision.comment} for x in
+                'revisions': [{'date': str(x.revision.date_created),
+                               'comment': x.revision.comment} for x in
                               Version.objects.get_for_object(obj)]
             }
 
@@ -139,7 +142,7 @@ class CaseSerializer(BaseCaseSerializer, SkipNullValuesMixin):
     pass
 
 
-class SimpleCaseSerializer(SkipNullValuesMixin, serializers.ModelSerializer):
+class CaseSimpleSerializer(SkipNullValuesMixin, serializers.ModelSerializer):
     in_favorites = serializers.SerializerMethodField()
     court = serializers.SerializerMethodField()
     codex_articles = serializers.SerializerMethodField()
@@ -164,7 +167,7 @@ class SimpleCaseSerializer(SkipNullValuesMixin, serializers.ModelSerializer):
     class Meta:
         model = Case
         fields = ['id', 'entry_date', 'result_date', 'in_favorites', 'court', 'codex_articles', 'defendants_simple',
-                  'penalties', 'result_type', 'result_text_url']
+                  'penalties', 'result_type', 'result_text_url', 'case_number', 'stage']
 
     def get_penalty(self, obj):
         if obj.penalties.first():
@@ -188,13 +191,15 @@ class SimpleCaseSerializer(SkipNullValuesMixin, serializers.ModelSerializer):
             return obj.get_result_text_url()
 
 
-class CSVSerializer(SimpleCaseSerializer):
+class CSVSerializer(CaseSimpleSerializer):
     court_city = serializers.SerializerMethodField()
     region = serializers.SerializerMethodField()
     defendants_gender = serializers.SerializerMethodField()
     penalty = serializers.SerializerMethodField()
+    judge = serializers.SerializerMethodField()
     penalty_type = serializers.SerializerMethodField()
     penalty_value = serializers.SerializerMethodField()
+    type = serializers.SerializerMethodField()
 
     class Meta:
         model = Case
@@ -210,7 +215,10 @@ class CSVSerializer(SimpleCaseSerializer):
         return obj.penalties.first().num if obj.penalties.all().exists() else None
 
     def get_judge(self, obj):
-        return str(self.obj.judge)
+        return str(obj.judge.name)
+
+    def get_type(self, obj):
+        return 'КОАП' if obj.type == 1 else 'УК'
 
     def get_defendants_gender(self, obj):
         return ', '.join([x.get_gender_display() or '-' for x in obj.defendants.all()])
@@ -219,7 +227,7 @@ class CSVSerializer(SimpleCaseSerializer):
         return obj.court.city
 
     def get_region(self, obj):
-        return obj.court.region
+        return obj.court.get_region_display()
 
     def get_penalty(self, obj):
         if obj.penalties.first():
@@ -247,3 +255,34 @@ class CaseResultSerializer(serializers.ModelSerializer):
     class Meta:
         model = Case
         fields = ['result_text_url', 'url', 'api_url', 'codex_articles']
+
+
+class DefendantFullSerializer(DefendantBaseSerializer):
+    cases = CaseSimpleSerializer(many=True, read_only=True)
+    codex_articles = serializers.SerializerMethodField()
+    region = serializers.CharField(source='get_region_display')
+    cases_count = serializers.IntegerField()
+    cases_second_count = serializers.IntegerField()
+
+    class Meta:
+        model = Defendant
+        fields = ['id', 'full_name', 'region', 'cases', 'codex_articles', 'cases_count', 'cases_second_count', 'gender',
+                  'risk_group']
+
+    def get_codex_articles(self, obj):
+        nested_list = [[str(codex_article) for codex_article in case.codex_articles.all()] for case in obj.cases.all()]
+        if len(nested_list):
+            return set(reduce(lambda x, y: x + y, nested_list))
+
+
+class DefendantsCSVSerializer(DefendantFullSerializer):
+    cases = serializers.SerializerMethodField()
+
+    def get_cases(self, obj):
+        return [x.get_default_url() for x in obj.cases.all()]
+
+    def get_codex_articles(self, obj):
+        nested_list = [[str(codex_article) for codex_article in case.codex_articles.all()]
+                       for case in obj.cases.all()]
+        if len(nested_list):
+            return ','.join(set(reduce(lambda x, y: x + y, nested_list)))

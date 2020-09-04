@@ -145,7 +145,7 @@ def test_update_case_dont_remove(case_raw_dict, rf_courts):
 
 @pytest.mark.skip
 @pytest.mark.django_db
-def test_update_case_was_moved(moved_case_raw_dict, rf_courts, mocker):
+def test_update_case_was_moved(moved_case_raw_dict, rf_courts):
     c_old = FirstParser(stage=1, codex='koap',
                         court=Court.objects.filter(title='Невский районный суд').first()).save_from_raw(
         moved_case_raw_dict)

@@ -5,7 +5,7 @@ import django_filters
 from django.contrib.postgres.search import SearchQuery
 from django.core.paginator import Paginator
 from django.db import models
-from django.db.models import Prefetch
+from django.db.models import Prefetch, Count, Q
 from django.db.utils import ProgrammingError
 from django.http import HttpResponse
 from django.http import StreamingHttpResponse
@@ -14,9 +14,10 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.cache import cache_page
 from django_filters.rest_framework import DjangoFilterBackend
 from django_filters.widgets import RangeWidget
-from oi_sud.cases.models import Case, CaseEvent, Advocate, Prosecutor, PENALTY_TYPES
+from oi_sud.cases.models import Case, CaseEvent, Advocate, Prosecutor, Defendant, PENALTY_TYPES
 from oi_sud.cases.serializers import (
-    CSVSerializer, CaseFullSerializer, CaseResultSerializer, CaseSerializer, SimpleCaseSerializer,
+    CSVSerializer, DefendantsCSVSerializer, CaseFullSerializer, CaseResultSerializer, CaseSerializer,
+    CaseSimpleSerializer, DefendantFullSerializer
 )
 from oi_sud.core.consts import region_choices
 from rest_framework import filters
@@ -57,13 +58,10 @@ class BatchCSVStreamingRenderer(CSVStreamingRenderer):
     def render(self, data, renderer_context={}, *args, **kwargs):
 
         csv_buffer = Echo()
-        csv_writer = csv.writer(csv_buffer)
+        csv_writer = csv.writer(csv_buffer, quoting=csv.QUOTE_ALL)
 
         queryset = data['queryset']
         serializer = data['serializer']
-
-        from_item = None
-        to_item = None
 
         page_range = None
 
@@ -90,7 +88,7 @@ class BatchCSVStreamingRenderer(CSVStreamingRenderer):
 
         if labels:
             yield csv_writer.writerow([labels.get(x, x) for x in header])
-        if header:
+        elif header:
             yield csv_writer.writerow(header)
 
         for page in paginator.page_range:
@@ -179,18 +177,21 @@ class CaseFilter(django_filters.FilterSet):
     entry_year_from = django_filters.NumberFilter(field_name="entry_date__year", lookup_expr='gte', label="Год (от)")
     entry_year_to = django_filters.NumberFilter(field_name="entry_date__year", lookup_expr='lte', label="Год (до)")
     judge_name = django_filters.CharFilter(field_name="judge__name", lookup_expr='istartswith', label="Фамилия судьи")
-    court_city = django_filters.CharFilter(field_name="court__city", lookup_expr='istartswith',
+    court_city = django_filters.CharFilter(field_name="court__city", lookup_expr='exact',
                                            label="Город/Населенный пункт")
     regions = django_filters.MultipleChoiceFilter(
         choices=region_choices,
         field_name='court__region',
         method='str_to_int',
         lookup_expr='in')
+
     defendant = django_filters.CharFilter(field_name="defendants__name_normalized",
                                           lookup_expr='istartswith', label="Ответчик")
     defendant_gender = django_filters.CharFilter(field_name='defendants__gender', method='filter_defendant_gender',
                                                  label='Пол ответчика')
     defendant_hidden = django_filters.BooleanFilter(field_name="defendants_hidden")
+    defendant_risk_group = django_filters.BooleanFilter(field_name='defendants__risk_group',
+                                                        label="Ответчик в группе риска")
     penalty_type = django_filters.ChoiceFilter(field_name="penalties__type", choices=PENALTY_TYPES)
     has_penalty = django_filters.BooleanFilter(field_name="penalties", method='filter_has_value',
                                                label="Нет наказания")
@@ -211,6 +212,7 @@ class CaseFilter(django_filters.FilterSet):
     # is_in_future = django_filters.BooleanFilter(field_name='events', method='get_future', label='Еще не рассмотрено')
     has_result_text = django_filters.BooleanFilter(field_name='result_text', method='filter_has_value',
                                                    label="Есть текст решения")
+
     result_text_search = django_filters.CharFilter(field_name="result_text", method='filter_result_search',
                                                    label="Текст решения содержит")
 
@@ -305,7 +307,7 @@ class CaseFilter(django_filters.FilterSet):
 
     class Meta:
         model = Case
-        fields = ['stage', 'judge', 'defendants__gender', ]
+        fields = ['stage', 'judge', 'defendants__gender', 'court__city']
 
 
 class CaseArticleFilter(CaseFilter):
@@ -314,7 +316,7 @@ class CaseArticleFilter(CaseFilter):
         fields = ['stage', 'type', 'codex_articles', 'court', 'judge', 'case_number', 'protocol_number']
 
 
-class CaseFilterBackend(DjangoFilterBackend):
+class DefaultFilterBackend(DjangoFilterBackend):
 
     # filter_class = CaseFilter
 
@@ -329,7 +331,7 @@ class CaseFilterBackend(DjangoFilterBackend):
 class CasesView(ListAPIView):
     permission_classes = (permissions.IsAdminUser,)
     serializer_class = CaseSerializer
-    filter_backends = [CaseFilterBackend, filters.OrderingFilter]
+    filter_backends = [DefaultFilterBackend, filters.OrderingFilter]
     filterset_class = CaseArticleFilter
     queryset = Case.objects.prefetch_related(Prefetch('events',
                                                       queryset=CaseEvent.objects.order_by('date')), 'penalties',
@@ -351,6 +353,27 @@ class CasesStreamingView(CasesView):
     paginate_by = None
     paginate_by_param = None
     serializer_class = CSVSerializer
+    labels = {
+        'id': 'id',
+        'entry_date': 'Дата поступления',
+        'result_date': 'Дата рассмотрения',
+        'in_favorites': 'В избранном',
+        'court': 'Суд',
+        'codex_articles': 'Статьи',
+        'defendants_simple': 'Ответчики',
+        'penalty': 'Наказание',
+        'penalty_type': 'Тип наказания',
+        'penalty_value': 'Размер наказания',
+        'result_type': 'Решение',
+        'result_text_url': 'Ссылка на текст решения',
+        'court_city': 'Населенный пункт',
+        'region': 'Регион',
+        'type': 'Тип судопроизводства',
+        'stage': 'Инстанция',
+        'url': 'Ссылка на сайте суда',
+        'appeal_date': 'Дата апелляции',
+        'defendants_gender': 'Пол ответчиков',
+        'judge': 'Судья'}
 
     def list(self, request, *args, **kwargs):
         queryset = self.filter_queryset(self.get_queryset())
@@ -374,14 +397,15 @@ class CasesStreamingView(CasesView):
 
         context['header'] = (
             self.request.GET['fields'].split(',')
-            if 'fields' in self.request.GET else None)
+            if 'fields' in self.request.GET else self.serializer_class.Meta.fields)
+        context['labels'] = self.labels
         return context
 
     # queryset = Case.objects.all()
 
 
 class SimpleCasesView(CasesView):
-    serializer_class = SimpleCaseSerializer
+    serializer_class = CaseSimpleSerializer
     queryset = Case.objects.prefetch_related('penalties', 'defendants', 'court', 'codex_articles')
     #
     # @method_decorator(cache_page(60*60*1))
@@ -400,7 +424,7 @@ class CaseView(RetrieveAPIView):
 class CasesResultTextView(ListAPIView):
     permission_classes = (permissions.IsAdminUser,)
     serializer_class = CaseResultSerializer
-    filter_backends = [CaseFilterBackend]
+    filter_backends = [DefaultFilterBackend]
     filterset_class = CaseArticleFilter
     ordering_fields = ['entry_date', ]
     queryset = Case.objects.filter(result_text__isnull=False)
@@ -422,7 +446,7 @@ class CasesResultTypesView(APIView):
         return Case.objects.all()
 
     permission_classes = (permissions.IsAdminUser,)
-    filter_backends = [CaseFilterBackend]
+    filter_backends = [DefaultFilterBackend]
     filterset_class = CaseArticleFilter
 
     def get(self, request, format=None):
@@ -454,3 +478,99 @@ class CasesEventTypesView(APIView):  # TODO: may be add filtering
         queryset = self.get_queryset()
         filtered = queryset.values_list('type', flat=True)
         return Response(filtered)
+
+
+class DefendantFilter(django_filters.FilterSet):
+
+    def __init__(self, *args, **kwargs):
+        request = kwargs.get('request')
+        if request:
+            self.user = request.user
+        super().__init__(*args, **kwargs)
+
+    court_city = django_filters.CharFilter(field_name="cases__court__city", lookup_expr='exact',
+                                           label="Город/Населенный пункт")
+
+    codex_articles = django_filters.CharFilter(field_name="defenses__codex_articles", method="filter_codex_articles")
+    regions = django_filters.MultipleChoiceFilter(
+        choices=region_choices,
+        field_name='region',
+        method='str_to_int',
+        lookup_expr='in')
+
+    defendant = django_filters.CharFilter(field_name="name_normalized",
+                                          lookup_expr='istartswith', label="Ответчик")
+    defendant_gender = django_filters.CharFilter(field_name='gender', method='filter_defendant_gender',
+                                                 label='Пол ответчика')
+    defendant_risk_group = django_filters.BooleanFilter(field_name='risk_group',
+                                                        label="Ответчик в группе риска")
+
+    def filter_defendant_gender(self, queryset, name, value):
+        if value == 'm':
+            return queryset.filter(gender='2')
+        elif value == 'f':
+            return queryset.filter(gender='1')
+        elif value == 'na':
+            return queryset.filter(gender__isnull=True)
+
+    def filter_codex_articles(self, queryset, name, value):
+        print('filtercodexarticles')
+        return queryset.filter(defenses__codex_articles__id__in=value)
+
+    def str_to_int(self, queryset, name, value):
+        # construct the full lookup expression.
+        lookup = '__'.join([name, 'in'])
+        return queryset.filter(**{lookup: [int(x) for x in value]})
+
+
+class DefendantsView(ListAPIView):
+    # permission_classes = (permissions.IsAdminUser,)
+    serializer_class = DefendantFullSerializer
+    filterset_class = DefendantFilter
+    filter_backends = [DefaultFilterBackend, filters.OrderingFilter]
+    queryset = Defendant.objects.prefetch_related('defenses').annotate(cases_count=Count('cases'),
+                                                                       cases_second_count=Count('cases', filter=Q(
+                                                                           cases__stage=2)))
+
+
+class DefendantsStreamingView(DefendantsView):
+    renderer_classes = [BatchCSVStreamingRenderer]
+    pagination_class = None
+    permission_classes = ()
+    paginator = None
+    paginate_by = None
+    paginate_by_param = None
+    serializer_class = DefendantsCSVSerializer
+    labels = {'id': 'id',
+              'full_name': 'Имя',
+              'cases_count': 'Всего дел',
+              'cases_second_count': 'Всего дел по 2 инстанции',
+              'risk_group': 'В группе риска',
+              'region': 'Регион',
+              'cases': 'Ссылки на дела',
+              'codex_articles': 'Все статьи',
+              'gender': 'Пол'}
+
+    def list(self, request, *args, **kwargs):
+        queryset = self.filter_queryset(self.get_queryset())
+        context = self.get_renderer_context()
+
+        response = StreamingHttpResponse(
+            request.accepted_renderer.render({
+                'queryset': queryset,
+                'serializer': self.get_serializer_class(),
+            }, context, content_type="text/csv"))
+        response['Content-Disposition'] = 'attachment; filename="export.csv"'
+        return response
+
+    def dispatch(self, *args, **kwargs):
+        return super().dispatch(*args, **kwargs)
+
+    def get_renderer_context(self):
+        context = super().get_renderer_context()
+        context['limits'] = ([int(x) for x in self.request.GET['limits'].split(',')]
+                             if 'limits' in self.request.GET else None)
+
+        context['header'] = self.serializer_class.Meta.fields
+        context['labels'] = self.labels
+        return context
