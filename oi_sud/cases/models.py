@@ -173,6 +173,9 @@ class Case(models.Model):
     def get_admin_url(self):
         return f'{settings.BASE_URL}/admin/cases/{self.get_codex_type()}case/{self.pk}/change/'
 
+    def get_default_url(self):
+        return f'{settings.FRONTEND_URL}/cases/{self.pk}/'
+
     def get_result_text_url(self):
         return f"{settings.BASE_URL}{reverse('case-result-text', kwargs={'case_id': self.pk})}"
 
@@ -262,7 +265,13 @@ class Case(models.Model):
                         case_penalty.update(res)
 
                     CasePenalty.objects.create(**case_penalty)
+
+                    if not self.result_type:
+                        self.result_type = 'Вынесено постановление о назначении административного наказания'
+                        self.save()
+
                     break
+
         except IntegrityError:
             raise
             logger.warning(f'Saving penalty integrity error {self.get_result_text_url()}')

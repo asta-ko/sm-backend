@@ -4,6 +4,7 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.cache import cache_page
 from oi_sud.codex.models import CodexArticle
 from oi_sud.codex.serializers import CodexArticleSerializer
+from rest_framework import filters
 from rest_framework import permissions
 from rest_framework.generics import ListAPIView
 from rest_framework.response import Response
@@ -53,9 +54,10 @@ class CodexArticleIListView(APIView):
 class CodexArticleSearchView(ListAPIView):
     permission_classes = (permissions.IsAdminUser,)
     serializer_class = CodexArticleSerializer
-    queryset = CodexArticle.objects.all()
+    queryset = CodexArticle.objects.all().distinct()
     search_fields = ['article_number']
-    filter_fields = ('codex')
+    filter_backends = (filters.SearchFilter,)
+    filter_fields = ('codex',)
     pagination_class = None
 
     @method_decorator(cache_page(60 * 60 * 24 * 10))

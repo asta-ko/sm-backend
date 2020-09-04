@@ -2,6 +2,7 @@ from chunkator import chunkator
 from django.core.management.base import BaseCommand
 from django.utils import timezone
 from oi_sud.cases.models import Case, CasePenalty
+from oi_sud.core.consts import region_choices
 
 
 class Command(BaseCommand):
@@ -9,21 +10,23 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         print('init...')
 
-        CasePenalty.objects.filter(type='no_data').delete()
-        CasePenalty.objects.filter(type='error').delete()
+        for region in region_choices:
 
-        count = 0
-        for case in chunkator(Case.objects.filter(penalties__isnull=True, result_text__contains='приостановления',
-                                                  result_text__isnull=False, type=1, stage=1), 100):
-            count += 1
-            if count == 1:
-                print('started...')
-            if not case.penalties.count():
-                case.process_result_text()
-            if count % 100 == 0:
-                print(count)
-            if count > 2000:  # здесь определяем число дел, которые обрабатываем
-                break
+            # CasePenalty.objects.filter(case__court__region=region[0]).delete()
+
+            count = 0
+            for case in chunkator(Case.objects.filter(court__region=region[0], penalties__isnull=True,
+                                                      result_text__isnull=False, type=1, stage=1), 100):
+                count += 1
+                if count == 1:
+                    print(f'started...')
+                if not case.penalties.count():
+                    case.process_result_text()
+                if count % 100 == 0:
+                    print(count, region[1])
+                # if count > 2000:  # здесь определяем число дел, которые обрабатываем
+                #     break
+            print(f'Ended {region[1]}')
 
         print(CasePenalty.objects.count(), 'all penalties count')
         print(CasePenalty.objects.exclude(type__in=['error', 'no_data']).count(), 'ok penalties')

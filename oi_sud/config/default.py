@@ -33,6 +33,8 @@ ALLOWED_HOSTS = ['sm.ovdinfo.org, sudmonster.ovdinfo.org']
 BASE_URL = 'https://sm.ovdinfo.org'
 # Application definition
 
+FRONTEND_URL = 'https://sudmonster.ovdinfo.org'
+
 INSTALLED_APPS = [
 
     # 'suit',

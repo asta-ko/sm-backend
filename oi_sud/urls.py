@@ -11,18 +11,18 @@ from oi_sud.cases.dataviews import (
 )
 from oi_sud.cases.views import (
     CaseView, CasesEventTypesView, CasesResultTextView, CasesResultTypesView, CasesView, CasesStreamingView,
-    SimpleCasesView,
+    SimpleCasesView, DefendantsView, DefendantsStreamingView,
     get_result_text,
 )
 from oi_sud.codex.views import CodexArticleIListView, CodexArticleListView, CodexArticleSearchView
 from oi_sud.core.admin import admin_celery_view, get_progress
 from oi_sud.core.views import DebugView
-from oi_sud.courts.views import CourtsDebugView, CourtsSearchView, CourtsView, JudgesSearchView
-from oi_sud.users.views import CurrentUserView, LogoutView
+from oi_sud.courts.views import CourtsDebugView, CourtsSearchView, CourtsView, JudgesSearchView, CitiesSearchView
 from oi_sud.presets.views import FilterPresetViewSet, FilterPresetCategoryViewSet
+from oi_sud.users.views import CurrentUserView, LogoutView
 from rest_framework.routers import DefaultRouter
-from rest_framework_expiring_authtoken.views import obtain_expiring_auth_token
 from rest_framework.urlpatterns import format_suffix_patterns
+from rest_framework_expiring_authtoken.views import obtain_expiring_auth_token
 
 admin.site.site_header = 'OVD-info Sud Monster'
 
@@ -54,6 +54,7 @@ urlpatterns = format_suffix_patterns([
       path('api/v1/courtssearch/', CourtsSearchView.as_view(), name='courts-search'),
       path('api/v1/courtsdebug/', CourtsDebugView.as_view(), name='courts-debug-list'),
       path('api/v1/judgessearch/', JudgesSearchView.as_view(), name='judges-search'),
+      path('api/v1/citiessearch/', CitiesSearchView.as_view(), name='cities-search'),
       path('api/v1/countcases/', CountCasesView.as_view()),
       path('api/v1/frontcountcases/', FrontCountCasesView.as_view()),
       path('api/v1/casesresulttypes/', CasesResultTypesView.as_view(), name='cases-result-types'),
@@ -63,11 +64,13 @@ urlpatterns = format_suffix_patterns([
       path('api/v1/casestexts/', CasesResultTextView.as_view(), name='case-result-list'),
       path('api/v1/cases/<int:pk>/', CaseView.as_view(), name='case-detail'),
       path('case/<int:case_id>/result.txt', get_result_text, name='case-result-text'),
+      path('api/v1/defendants/', DefendantsView.as_view(), name='defendants-list'),
       path('api/v1/data/regions_by_metrics/', DataRegionsViewByMetrics.as_view()),
       path('api/v1/data/metrics_by_years/', DataMetricsViewByYears.as_view()),
       path('api/v1/data/courts_by_metrics/', DataCourtsViewByMetrics.as_view()),
       path('api/v1/data/articles_by_metrics/', DataArticlesViewByMetrics.as_view()),
       path('api/v1/data/casescsv/export.csv', CasesStreamingView.as_view(), name='flex-case-list'),
+      path('api/v1/data/defendantscsv/export.csv', DefendantsStreamingView.as_view(), name='flex-defendant-list'),
 
       path('jet/', include('jet.urls', 'jet')),
       re_path(r'^celery_progress/(?P<task_id>[\w-]+)$', get_progress, name='task_status'),

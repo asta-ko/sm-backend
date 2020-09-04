@@ -8,6 +8,7 @@ DEBUG = True
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 ALLOWED_HOSTS = ['127.0.0.1', 'backend', '*']
 BASE_URL = 'http://127.0.0.1:8082'
+FRONTEND_URL = 'http://127.0.0.1:3000'
 
 CORS_ORIGIN_WHITELIST = (
 

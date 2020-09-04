@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 from oi_sud.cases.models import Case
-from oi_sud.cases.views import CaseFilter, CaseFilterBackend
+from oi_sud.cases.views import CaseFilter, DefaultFilterBackend
 from oi_sud.codex.models import CodexArticle, KoapCodexArticle, UKCodexArticle
 from oi_sud.core.consts import region_choices
 from oi_sud.courts.models import Court
@@ -22,7 +22,7 @@ class CountCasesView(APIView):
         return Case.objects.all()
 
     permission_classes = (permissions.IsAdminUser,)
-    filter_backends = [CaseFilterBackend]
+    filter_backends = [DefaultFilterBackend]
     filterset_class = CaseFilter
 
     def get(self, request, format=None):

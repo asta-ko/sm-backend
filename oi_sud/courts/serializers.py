@@ -35,3 +35,9 @@ class JudgeSerializer(serializers.ModelSerializer):
     class Meta:
         model = Judge
         fields = ['id', 'name', 'court']
+
+
+class CitySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Court
+        fields = ['city', ]
