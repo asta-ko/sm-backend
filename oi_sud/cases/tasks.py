@@ -72,7 +72,9 @@ def update_cases_by_week_day():
 @shared_task
 def update_all_cases():
     for region in region_choices:
-        update_cases_by_region.s(region[0], newest=True).apply_async(queue='other')
+        region_courts = Court.objects.exclude(type=9).filter(region=region[0]).values_list('id', flat=True)
+        for court in region_courts:
+            update_cases_by_court.s(court, newest=False).apply_async(queue='other')
 
 
 @shared_task  # (bind=True)

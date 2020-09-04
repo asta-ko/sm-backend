@@ -9,7 +9,6 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         print('init...')
-
         for region in region_choices:
 
             # CasePenalty.objects.filter(case__court__region=region[0]).delete()
