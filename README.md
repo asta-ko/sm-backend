@@ -1,3 +1,11 @@
+## Курсовой проект
+
+- [Короткое описание и задачи](https://www.notion.so/DE-f0552bc9b80441fab4474934d3aa6f5e)
+- [Презентация проекта](https://docs.google.com/presentation/d/14MMPzufBBZvvILmaqUBUKyn-dAkJeia3A2Duk0f_EAI/edit?usp=sharing)
+
+## Установка
+
+
 1) если не установлены docker и docker-compose, устанавливаем:
 
 - https://docs.docker.com/install/linux/docker-ce/ubuntu/
@@ -7,7 +15,7 @@
 
 `mkdir ovdinfo_sudmonster && cd ovdinfo_sudmonster`
 
-`git clone git@gitlab.com:ovdinfo/oi-sudmonster/backend.git && git clone git@gitlab.com:ovdinfo/oi-sudmonster/frontend.git`
+`git clone git@github.com:asta-ko/sm-backend.git && git clone git@github.com:ovdinfo/sm-frontend.git`
 
 `mv backend sudmonster && cd frontend && cp env.orig .env && cd ../sudmonster && git checkout develop && cp env.orig .env`  - 
 
