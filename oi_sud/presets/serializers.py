@@ -21,12 +21,9 @@ class PresetCategorySerializer(serializers.ModelSerializer):
 
 
 class PresetSerializer(serializers.ModelSerializer):
-    category = save_dict_or_pk_return_dict(PresetCategorySerializer)  # use cautiously
+    category = save_dict_or_pk_return_dict(PresetCategorySerializer, required=False)  # use cautiously
     applied = serializers.SerializerMethodField()
     human_readable = serializers.SerializerMethodField()
-
-    def validate_category(self, data):
-        return data
 
     def get_applied(self, obj):  # hack for correct frontend rendering
         return False
@@ -66,10 +63,14 @@ class PresetSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
 
-        if validated_data.get('category') == '':  # poor magic
+        if validated_data.get('category') == {}:  # poor magic, see api_utils.py: save_dict_or_pk_return_dict
             validated_data.pop('category')
 
         validated_data['user'] = self.context['request'].user
+        if FilterPreset.objects.filter(user=validated_data['user'], title=validated_data['title']).exists():
+            raise serializers.ValidationError('Набор с таким названием уже есть')
+        if FilterPreset.objects.filter(get_params=validated_data['get_params'], user=validated_data['user']):
+            raise serializers.ValidationError('Такой набор уже есть, измените фильтры')
 
         return super().create(validated_data)
 
@@ -77,3 +78,4 @@ class PresetSerializer(serializers.ModelSerializer):
         model = FilterPreset
         fields = '__all__'
         read_only_fields = ['user']
+        optional_fields = ['category', ]

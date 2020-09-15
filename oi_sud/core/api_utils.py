@@ -53,7 +53,7 @@ def save_dict_or_pk_return_dict(serializer_class, string_field='title', required
         def to_internal_value(self, data):
 
             if not data and not required:
-                return ""
+                return {}
 
             user = self.context['request'].user
             if isinstance(data, str):
