@@ -85,16 +85,6 @@ class CourtSiteParser(CommonParser):
 
         return result
 
-    def normalize_date(self, datetime):
-
-        if not self.court:
-            timezone = pytz.timezone('Europe/Moscow')
-        else:
-            timezone = self.court.get_timezone()
-
-        local_dt = timezone.localize(dateparser.parse(datetime, date_formats=['%d.%m.%Y']))
-        return utc.normalize(local_dt.astimezone(utc))
-
     def check_url_actual(self, url):
         txt, status_code = self.send_get_request(url)
         if status_code != 200:
@@ -116,22 +106,11 @@ class CourtSiteParser(CommonParser):
         for attribute in ['case_number', 'case_uid', 'protocol_number']:
             if result['case'][attribute]:
                 result['case'][attribute] = result['case'][attribute].replace(' ', '').replace('\n', '')
-        if case_info.get('entry_date'):
-            result['case']['entry_date'] = self.normalize_date(case_info['entry_date']).date()
-        if case_info.get('result_date'):
-            result['case']['result_date'] = self.normalize_date(case_info['result_date']).date()
-        if case_info.get('result_published_date'):
-            result['case']['result_published_date'] = self.normalize_date(case_info['result_published_date']).date()
-        if case_info.get('result_valid_date'):
-            result['case']['result_valid_date'] = self.normalize_date(case_info['result_valid_date']).date()
-        if case_info.get('forwarding_to_higher_court_date'):
-            result['case']['forwarding_to_higher_court_date'] = self.normalize_date(
-                case_info['forwarding_to_higher_court_date']).date()
-        if case_info.get('forwarding_to_lower_court_date'):
-            result['case']['forwarding_to_lower_court_date'] = self.normalize_date(
-                case_info['forwarding_to_lower_court_date']).date()
-        if case_info.get('appeal_date'):
-            result['case']['appeal_date'] = self.normalize_date(case_info['appeal_date']).date()
+
+        for d in ['entry_date', 'result_date', 'result_published_date', 'result_valid_date',
+                  'forwarding_to_higher_court_date', 'forwarding_to_lower_court_date', 'appeal_date']:
+            result['case'][d] = dateparser.parse(case_info[d], date_formats=['%d.%m.%Y'])
+
         if case_info.get('appeal_result'):
             result['case']['appeal_result'] = case_info['appeal_result'].strip()
         if case_info.get('result_type'):

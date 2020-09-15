@@ -233,7 +233,7 @@ class DataView(PandasSimpleView):
         return years, article, regions, stage, metrics_list, type
 
     @staticmethod
-    def get_metric(name, articles_string, region=None, year=None, stage=None, type=None, court=None):  # NOQA
+    def get_metric(name, articles, region=None, year=None, stage=None, type=None, court=None):  # NOQA
         filters = {}
         if year and not name == 'resulted':
             filters['entry_date__year'] = year
@@ -243,8 +243,10 @@ class DataView(PandasSimpleView):
             filters['type'] = type
         if court:
             filters['court'] = court
-        if articles_string:
-            articles = CodexArticle.objects.get_from_list([articles_string, ])
+        if articles:
+            if isinstance(articles, str):
+                articles = [articles, ]
+            articles = CodexArticle.objects.get_from_list(articles)
             filters['codex_articles__in'] = articles
         if region and not court:
             filters['court__region'] = region
