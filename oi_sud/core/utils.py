@@ -76,3 +76,4 @@ class DictDiffer(object):
     def get_all_diff_keys(self):
         d = [self.added(), self.removed(), self.changed()]
         return list(set().union(*d))
+

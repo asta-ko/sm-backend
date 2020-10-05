@@ -12,18 +12,20 @@ logger = logging.getLogger(__name__)
 
 class MergerUpdater:
 
-    def merge_duplicates(self, duplicates):
-        duplicates = duplicates.order_by('created_at')
-        merges_count = 0
-        while len(duplicates) > 1:
-            merges_count += 1
-            case1, case2 = duplicates[0], duplicates[1]
-            new_data = case2.serialize()
-            e_id = case2.id
-            case2.delete()
-            self.update_if_needed(case1, new_data)
+    def merge_duplicates(self, filters):
 
-            duplicates = duplicates.exclude(id=e_id)
+        merges_count = 0
+        while True:
+            if Case.objects.filter(**filters).count() > 1:
+                duplicates = Case.objects.filter(**filters)
+                merges_count += 1
+                case1, case2 = duplicates[0], duplicates[1]
+                new_data = case2.serialize()
+                case2.delete()
+                self.update_if_needed(case1, new_data)
+
+            else:
+                break
 
     def update_case(self, case):
 
@@ -84,15 +86,16 @@ class MergerUpdater:
         defendants_names = [x.name_normalized for x in case.defendants.all()]
         r_string = rf'({"|".join(defendants_names)})'
 
-        filter_dict = {'defendants__name_normalized__regex': r_string, 'court': case.court}
+        filter_dict = {'stage': case.stage, 'defendants__name_normalized__regex': r_string, 'court': case.court}
         if hasattr(self, 'entry_date'):
             filter_dict['entry_date__gte'] = self.entry_date - timedelta(days=1)
             filter_dict['entry_date__lte'] = self.entry_date + timedelta(days=1)
         if hasattr(self, 'judge'):
             filter_dict['judge'] = self.judge
+        if hasattr(self, 'case_number'):
+            filter_dict['case_number'] = self.case_number
 
-        duplicates = Case.objects.filter(**filter_dict)
-        self.merge_duplicates(duplicates)
+        self.merge_duplicates(filters=filter_dict)
 
     @staticmethod
     def cases_data_identical(first_case_data, second_case_data, compare_urls=False):
@@ -154,7 +157,9 @@ class MergerUpdater:
                 case.save(update_fields=fields)
 
             if fresh_data['defenses'] != old_data['defenses']:
+                case.defenses.all().delete()
                 logger.debug(f'Updating case defenses... {case}')
+
                 for d in fresh_data['defenses']:
                     articles = d['codex_articles']
                     defendant = d['defendant']
@@ -195,8 +200,9 @@ class MergerUpdater:
 
             if fresh_data['case'].get('linked_case_number'):
                 for case_num in fresh_data['case']['linked_case_number']:
-                    if not case.linked_cases.filter(case_num=case_num).count():
-                        linked_case = Case.objects.filter(case_num=case_num, court=fresh_data['case']['court']).first()
+                    if not case.linked_cases.filter(case_number=case_num).count():
+                        linked_case = Case.objects.filter(case_number=case_num,
+                                                          court=fresh_data['case']['court']).first()
                         if linked_case:
                             case.linked_cases.add(linked_case)
 

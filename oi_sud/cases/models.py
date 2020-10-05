@@ -81,7 +81,7 @@ class CaseManager(models.Manager):
                 return case
             except Exception as e:
                 logger.error(f'Failed to save case: {e}')
-                logger.debug(item)
+                # logger.debug(item)
 
 
 class DCaseManager(models.Manager):

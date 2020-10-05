@@ -1,12 +1,12 @@
 version: '3.4'
 
 x-global-environment: &global-environment
-  C_PROJECT_VERSION: __C_PROJECT_VERSION__
-  C_PROJECT_STACK: __C_PROJECT_STACK__
+  C_PROJECT_VERSION: 848791d6f691e3c53b6502119d2884835e3ebc0f
+  C_PROJECT_STACK: dev
 
 x-projectname: &oi_sud
   env_file: .env
-  image: __C_PROJECT_NAME__-virtualenv-test:latest
+  image: sudmonster-virtualenv-test:latest
   environment:
     <<: *global-environment
   volumes:
@@ -16,6 +16,14 @@ x-projectname: &oi_sud
   restart: on-failure
 
 services:
+
+  postgres:
+      image: postgres:9.6
+      environment:
+          - POSTGRES_USER=airflow
+          - POSTGRES_PASSWORD=airflow
+          - POSTGRES_DB=airflow
+
   db:
     image: postgres:alpine
     ports:
@@ -30,7 +38,7 @@ services:
       - ./share/sql:/docker-entrypoint-initdb.d
 
   redis:
-    image: redis:4.0.11
+    image: redis:5.0.5
     volumes:
       - ./.docker/redis/data:/var/redis
     restart: always
@@ -63,6 +71,87 @@ services:
       - "3000:3000"
     command: sh -c "npm install && npm run dev"
 
+  webserver:
+      image: sudmonster-virtualenv-airflow:latest
+      entrypoint: /entrypoint.sh
+      restart: always
+      env_file: .env.airflow
+      depends_on:
+          - postgres
+          - redis
+      environment:
+          - LOAD_EX=n
+          - FERNET_KEY=46BKJoQYlPPOexq0OhDZnIlNepKFf87WFwLbfzqDDho=
+          - EXECUTOR=Celery
+          - POSTGRES_USER=airflow
+          - POSTGRES_PASSWORD=airflow
+          - POSTGRES_DB=airflow
+          # - REDIS_PASSWORD=redispass
+      volumes:
+          - ./:/code
+          - ./airflow/airflow.cfg:/airflow/airflow.cfg
+          - ./airflow/dags:/usr/local/airflow/dags
+          # Uncomment to include custom plugins
+          - ./airflow/plugins:/usr/local/airflow/plugins
+      ports:
+          - "8083:8080"
+      command: webserver
+      healthcheck:
+          test: ["CMD-SHELL", "[ -f /usr/local/airflow/airflow-webserver.pid ]"]
+          interval: 30s
+          timeout: 30s
+          retries: 3
+
+  scheduler:
+      #image: puckel/docker-airflow:1.10.9
+      image: sudmonster-virtualenv-airflow:latest
+      env_file: .env.airflow
+      entrypoint: /entrypoint.sh
+      restart: always
+      depends_on:
+          - webserver
+      volumes:
+          - ./:/code
+          - ./airflow/dags:/usr/local/airflow/dags
+          - ./airflow/airflow.cfg:/airflow/airflow.cfg
+
+        # Uncomment to include custom plugins
+          - ./airflow/plugins:/usr/local/airflow/plugins
+      environment:
+          - LOAD_EX=n
+          - FERNET_KEY=46BKJoQYlPPOexq0OhDZnIlNepKFf87WFwLbfzqDDho=
+          - EXECUTOR=Celery
+          - POSTGRES_USER=airflow
+          - POSTGRES_PASSWORD=airflow
+          - POSTGRES_DB=airflow
+          # - REDIS_PASSWORD=redispass
+      command: scheduler
+
+
+  worker:
+      entrypoint: /entrypoint.sh
+      image: sudmonster-virtualenv-airflow:latest
+      restart: always
+      env_file: .env.airflow
+      depends_on:
+          - scheduler
+      volumes:
+          - ./.docker/datalake:/code/data
+          - ./:/code
+          - ./airflow/dags:/usr/local/airflow/dags
+          - ./airflow/airflow.cfg:/airflow/airflow.cfg
+          # Uncomment to include custom plugins
+          - ./airflow/plugins:/usr/local/airflow/plugins
+      environment:
+          - STACK=default_tasks
+          - PYTHONUNBUFFERED=1
+          - FERNET_KEY=46BKJoQYlPPOexq0OhDZnIlNepKFf87WFwLbfzqDDho=
+          - EXECUTOR=Celery
+          - POSTGRES_USER=airflow
+          - POSTGRES_PASSWORD=airflow
+          - POSTGRES_DB=airflow
+          # - REDIS_PASSWORD=redispass
+      command: worker
 
   test:
     <<: *oi_sud
@@ -70,22 +159,5 @@ services:
       DJANGO_SETTINGS_MODULE: 'oi_sud.config.test'
     command: ["echo", "'test'"]
 
-#    celery_main:
-#        <<: *oi_sud
-#        command: ["celery", "-A", "oi_sud", "worker", "-l", "info", "-Q", "main", "-c", "1", "-n", "main" ]
-#
-#    celery_other:
-#        <<: *oi_sud
-#        command: ["celery", "-A", "oi_sud", "worker", "-l", "info", "-Q", "other", "-c", "8", "-n", "other" ]
-#
-#    celerybeat:
-#        <<: *oi_sud
-#        command: ["celery", "-A", "oi_sud", "beat", "--scheduler", "django_celery_beat.schedulers:DatabaseScheduler", "-l", "info", "--pidfile", "/tmp/celerybeat123324.pid", "--schedule", "/tmp/celerybeat-schedule"]
-#
-#    flower:
-#      image: mher/flower
-#      command: ["flower", "--broker=redis://redis:6379/0", "--port=8888"]
-#      ports:
-#         - 8888:8888
 volumes:
   db-data:

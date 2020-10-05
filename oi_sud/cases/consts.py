@@ -392,6 +392,7 @@ moscow_params_dict = {
     'validity_date_to': 'caseLegalForceDateTo',
     'instance': 'instance',
     'processType': 'processType',
+    'courtAlias': 'courtAlias'
 }
 
 msudrf_params_dict = {}

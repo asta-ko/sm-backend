@@ -514,7 +514,6 @@ class DefendantFilter(django_filters.FilterSet):
             return queryset.filter(gender__isnull=True)
 
     def filter_codex_articles(self, queryset, name, value):
-        print('filtercodexarticles')
         return queryset.filter(defenses__codex_articles__id__in=value)
 
     def str_to_int(self, queryset, name, value):

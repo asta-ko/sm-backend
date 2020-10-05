@@ -13,6 +13,9 @@ dateparse_settings.RETURN_AS_TIMEZONE_AWARE = False
 
 
 class CasesGrouper(object):
+
+    __slots__ = ()
+
     def get_first_cases(self, case):
         params = {'stage': 1, 'defendants__in': case.defendants.all()}
         other_params_list = []

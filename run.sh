@@ -266,7 +266,7 @@ test_unit() {
     docker-compose run \
         -v "${PWD}":/code \
         --rm test \
-        python -m pytest --capture=sys -p no:cacheprovider test/unit "$@"
+        python -m pytest --log-level=ERROR -s -p no:cacheprovider test/unit "$@"
 }
 
 test_ci() {
@@ -304,6 +304,7 @@ docker_build() {
 docker_build_dev() {
     docker build -t "$C_PROJECT_NAME"-frontend-test:latest -f ../frontend/Dockerfile-nuxt-dev ../frontend   --no-cache
     docker build -t "$C_PROJECT_NAME"-virtualenv-test:latest -f build/virtualenv/Dockerfile-test build/virtualenv --build-arg GITLAB_TOKEN="$GITLAB_TOKEN" --build-arg GITLAB_USER="$GITLAB_USER"
+    docker build -t "$C_PROJECT_NAME"-virtualenv-airflow:latest -f build/virtualenv/Dockerfile-airflow build/virtualenv --build-arg GITLAB_TOKEN="$GITLAB_TOKEN" --build-arg GITLAB_USER="$GITLAB_USER"
 }
 
 docker_build_prod() {

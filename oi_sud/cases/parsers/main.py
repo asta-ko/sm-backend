@@ -3,7 +3,6 @@ import logging
 import dateparser
 import pytz
 from dateparser.conf import settings as dateparse_settings
-from django.conf import settings
 from django.utils.timezone import get_current_timezone
 from oi_sud.cases.consts import APPEAL_RESULT_TYPES, EVENT_RESULT_TYPES, EVENT_TYPES, RESULT_TYPES
 from oi_sud.cases.models import Case, Defendant, Advocate, Prosecutor
@@ -25,6 +24,7 @@ appeal_result_types_dict = {y: x for x, y in dict(APPEAL_RESULT_TYPES).items()}
 
 
 class CourtSiteParser(CommonParser):
+    __slots__ = ('court', 'url', 'codex', 'stage', 'article')
 
     def __init__(self, court=None, url=None, codex=None, stage=None, article=None):
         self.court = court
@@ -33,57 +33,18 @@ class CourtSiteParser(CommonParser):
         self.stage = stage
         self.article = article
 
-    def save_cases(self, urls=None):
-        # Берем список урлов дел данного суда данной инстанции и сохраняем дела в базу. Это самый главный метод
+    def save_cases_from_df(self, records):
 
-        if not urls:
-            urls = self.get_all_cases_urls()
+        for index, record in records.iterrows():
 
-        if not urls:
-            return {'found': 0}
+            raw_case_data = self.get_raw_case_information(record['case_url'], page_html=record['case_html'],
+                                                          result_text_html=record['text_html'])
 
-        if settings.TEST_MODE:
-            urls = urls[:2]
+            serialized_case_data = self.serialize_data(raw_case_data)
+            new_case = Case.objects.create_case_from_data(serialized_case_data)
 
-        result = {'found': len(urls), 'errors': 0, 'proccessed': 0, 'error_urls': [], 'exist': 0, 'new': 0}
-
-        for case_url in urls:
-
-            try:
-                u = case_url.replace('&nc=1', '')
-                if Case.objects.filter(url=u).exists():
-                    result['exist'] += 1
-                    continue
-                raw_case_data = self.get_raw_case_information(case_url)
-
-                if not raw_case_data:
-                    result['errors'] += 1
-                    result['error_urls'].append(case_url)
-                    continue
-                serialized_case_data = self.serialize_data(raw_case_data)
-                new_case = Case.objects.create_case_from_data(serialized_case_data)
-
-                if new_case:
-                    merger_updater.process_duplicates(new_case)
-                if self.court and case_url in self.court.unprocessed_cases_urls:
-                    self.court.unprocessed_cases_urls.remove(case_url)
-                    self.court.save()
-                result['proccessed'] += 1
-                result['new'] += 1
-            except Exception as e:
-                if settings.TEST_MODE:
-                    raise
-                logging.error(f'Failed to save case: {case_url}, {e}')
-                result['errors'] += 1
-                result['error_urls'].append(case_url)
-
-        if self.court:
-            for error_url in result['error_urls']:
-                if error_url not in self.court.unprocessed_cases_urls:
-                    self.court.unprocessed_cases_urls.append(error_url)
-            self.court.save()
-
-        return result
+            if new_case:
+                merger_updater.process_duplicates(new_case)
 
     def check_url_actual(self, url):
         txt, status_code = self.send_get_request(url)
@@ -109,7 +70,8 @@ class CourtSiteParser(CommonParser):
 
         for d in ['entry_date', 'result_date', 'result_published_date', 'result_valid_date',
                   'forwarding_to_higher_court_date', 'forwarding_to_lower_court_date', 'appeal_date']:
-            result['case'][d] = dateparser.parse(case_info[d], date_formats=['%d.%m.%Y'])
+            if case_info.get(d):
+                result['case'][d] = dateparser.parse(case_info[d], date_formats=['%d.%m.%Y'])
 
         if case_info.get('appeal_result'):
             result['case']['appeal_result'] = case_info['appeal_result'].strip()
@@ -183,7 +145,9 @@ class CourtSiteParser(CommonParser):
         result['codex_articles'] = CodexArticle.objects.filter(pk__in=all_articles_ids)
 
         if case_info.get('judge'):
-            judge, created = Judge.objects.get_or_create(name=case_info['judge'], court=court)
-            result['case']['judge'] = judge
+            try:
+                result['case']['judge'] = Judge.objects.get_or_create(name=case_info['judge'], court=court)[0]
+            except Judge.MultipleObjectsReturned:
+                result['case']['judge'] = Judge.objects.filter(name=case_info['judge'], court=court).first()
 
         return result

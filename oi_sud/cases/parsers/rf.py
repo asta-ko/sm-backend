@@ -295,13 +295,15 @@ class FirstParser(RFCourtSiteParser):
                 return self.court.url + a['href'] + '&nc=1'
         return
 
-    def get_result_text(self, url):
+    def get_result_text(self, url, page_html=None):
         # получаем текст решения
-        txt, status_code = self.send_get_request(url)
-        if status_code != 200:
-            logging.error(f"GET error: rf case result text - {status_code} {url}")
-            return None
-        page = BeautifulSoup(txt, 'html.parser')
+
+        if not page_html:
+            page_html, status_code = self.send_get_request(url)
+            if status_code != 200:
+                logging.error(f"GET error: rf case result text - {status_code} {url}")
+                return None
+        page = BeautifulSoup(page_html, 'html.parser')
         result_text_span = page.find('span')
         if result_text_span:
             return strip_tags(result_text_span.text)
@@ -331,7 +333,7 @@ class FirstParser(RFCourtSiteParser):
 
         return tabs
 
-    def get_raw_case_information(self, url):
+    def get_raw_case_information(self, url, page_html=None, result_text_html=None):
         if '&nc=1' not in url:
             url += '&nc=1'
 
@@ -339,19 +341,31 @@ class FirstParser(RFCourtSiteParser):
 
         # парсим карточку дела
         case_info = {}
-        txt, status_code = self.send_get_request(url)
-        if status_code != 200:
-            logging.error(f"GET error: rf case - {status_code} {url}")
-            return
 
-        page = BeautifulSoup(txt, 'html.parser')
+        if not page_html:
+
+            page_html, status_code = self.send_get_request(url)
+            if status_code != 200:
+                logging.error(f"GET error: rf case - {status_code} {url}")
+                return
+
+        page = BeautifulSoup(page_html, 'html.parser')
 
         case_info['case_number'] = page.find('div', class_='casenumber').text.replace('ДЕЛО № ', '')
         case_info['url'] = url.replace('&nc=1', '')
-        case_result_text_url = self.get_result_text_url(page)
-        if case_result_text_url:
-            result_text = self.get_result_text(case_result_text_url)
+
+        if page_html and result_text_html:
+            result_text = self.get_result_text(page_html=result_text_html)
+
             case_info['result_text'] = result_text
+
+        elif not page_html:  # legacy
+
+            case_result_text_url = self.get_result_text_url(page)
+            if case_result_text_url:
+                result_text = self.get_result_text(case_result_text_url)
+                case_info['result_text'] = result_text
+
         tables = self.get_tabs(page)
         case_trs = tables['delo'].find('tr').findAll('tr')
         for tr in case_trs:
@@ -428,8 +442,7 @@ class SecondParser(RFCourtSiteParser):
 
         return urls
 
-    def get_raw_case_information(self, url):
-
+    def get_raw_case_information(self, url, page_html=None, result_text_html=None):
         if '&nc=1' not in url:
             url += '&nc=1'
 
@@ -437,19 +450,27 @@ class SecondParser(RFCourtSiteParser):
 
         # парсим карточку дела
         case_info = {}
-        txt, status_code = self.send_get_request(url)
-        if status_code != 200:
-            logging.error(f"GET error: rf case - {status_code} {url}")
-            return None
 
-        if 'notice' in txt.lower() or \
-                'non-object' in txt.lower() or \
-                'pg_query' in txt.lower() or \
-                'pravosudie' in txt.lower():
-            logging.error("Bad page content")
-            return None
+        if not page_html:
 
-        page = BeautifulSoup(txt, 'html.parser')
+            page_html, status_code = self.send_get_request(url)
+            if status_code != 200:
+                logging.error(f"GET error: rf case - {status_code} {url}")
+                return
+
+            if 'notice' in page_html.lower() or \
+                    'non-object' in page_html.lower() or \
+                    'pg_query' in page_html.lower() or \
+                    'pravosudie' in page_html.lower():
+                logging.error("Bad page content")
+                return
+
+        page = BeautifulSoup(page_html, 'html.parser')
+
+        case_info['case_number'] = page.find('div', class_='casenumber').text.replace('ДЕЛО № ', '')
+        case_info['url'] = url.replace('&nc=1', '')
+
+        page = BeautifulSoup(page_html, 'html.parser')
         case_info['case_number'] = page.find('div',
                                              class_='case-num').text.replace('дело № ', '').replace('ДЕЛО № ', '')
         case_info['url'] = url.replace('&nc=1', '')

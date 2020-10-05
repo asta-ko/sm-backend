@@ -1,25 +1,38 @@
-FROM alpine:3.7
-FROM clutteredcode/python3-alpine-pandas
+FROM python:3.7-slim-buster
 
+
+RUN apt-get update
+
+RUN apt-get -y install libpq-dev python3-dev gcc libsnappy-dev
+RUN apt-get -y install g++
 COPY python-libs.txt /tmp/
 COPY python-test-libs.txt /tmp/
-
-RUN apk add --update --no-cache   git openssh bash postgresql-dev libpq py3-psycopg2 py3-gevent libstdc++ antiword
-RUN apk --no-cache add --virtual build-deps linux-headers libc-dev ca-certificates gcc g++ libffi-dev
-RUN apk --no-cache add make
-RUN pip install gevent
-
-ARG GITLAB_TOKEN
-
-
-ARG GITLAB_USER
 RUN pip install  -r /tmp/python-test-libs.txt
 
-RUN  pip install git+https://$GITLAB_USER:$GITLAB_TOKEN@gitlab.com/ovdinfo/oi-packages/django-jet-oi-edition.git
+RUN apt-get -y install bash git
+
+RUN pip install numpy==1.16.1
+
+RUN apt-get purge --auto-remove -yqq $buildDeps && apt-get autoremove -yqq --purge \
+    && apt-get clean && rm -rf var/lib/apt/lists/* /tmp/* /var/tmp/* /usr/share/man \
+        /usr/share/doc /usr/share/doc-base
+
+RUN mkdir /data/
+RUN chmod  755 -R /data/
+EXPOSE 8793
 
 
-RUN apk del build-deps
+
+ARG GITLAB_TOKEN
+ARG GITLAB_USER
+
+RUN pip install git+https://$GITLAB_USER:$GITLAB_TOKEN@gitlab.com/ovdinfo/oi-packages/django-jet-oi-edition.git
+
 
 WORKDIR /code/
+
+
+
+
 
 

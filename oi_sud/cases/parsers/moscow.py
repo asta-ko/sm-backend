@@ -161,17 +161,50 @@ class MoscowParser(CourtSiteParser):
         else:
             logger.critical(f'{url}: Could not process moscow result text file')
 
-    def get_raw_case_information(self, url):
+    def get_result_text_url(self, page):
+
+        div_acts = page.find('div', id='act-documents')
+
+        table_acts = div_acts.find('table') if div_acts else None
+
+        if table_acts:
+
+            trs = table_acts.findAll('tr')
+            for tr in trs:
+                tds = tr.findAll('td')
+
+                if not len(tds) > 1:
+                    continue
+
+                if (self.stage == 1 and any(element in tds[1].text for element in
+                                            ['Приговор', 'Постановление',
+                                             'Определение о возвращении'])) or (
+                        self.stage == 2 and 'Решение по жалобе' in tds[1].text):
+                    links = tds[2].findAll('a')
+
+                    if links:
+                        link = 'https://www.mos-gorsud.ru' + links[0]['href']
+                        return link
+
+    def get_raw_case_information(self, url, page_html=None, result_text_html=None):
+
+        self.current_url = url
+
+        # парсим карточку дела
+        case_info = {}
+
+        if not page_html:
+
+            page_html, status_code = self.send_get_request(url)
+            if status_code != 200:
+                logging.error(f"GET error: rf case - {status_code} {url}")
+                return
 
         # парсим карточку дела
 
-        txt, status_code = self.send_get_request(url)
-        if status_code != 200:
-            logger.error(f"GET error: {status_code} -- getting moscow case {url}")
-            return
-        page = BeautifulSoup(txt, 'html.parser')
+        page = BeautifulSoup(page_html, 'html.parser')
 
-        case_info = {'court': self.get_court_from_url(url), 'url': url.split('?')[0]}
+        case_info = {'court': self.court, 'url': url.split('?')[0]}
 
         content_dict = {}
         content = page.findAll('div', class_="row_card")
@@ -249,8 +282,6 @@ class MoscowParser(CourtSiteParser):
             table_sessions = div_sessions.find('table')
 
         div_acts = page.find('div', id='act-documents')
-        if div_acts:
-            table_acts = div_acts.find('table')
 
         div_states = page.find('div', id='state-history')
         if div_states:
@@ -327,28 +358,8 @@ class MoscowParser(CourtSiteParser):
 
         case_info['events'] = events
 
-        # ищем ссылку на текст решения
-
-        if table_acts:
-            trs = table_acts.findAll('tr')
-            for tr in trs:
-                tds = tr.findAll('td')
-
-                if not len(tds) > 1:
-                    continue
-
-                if (self.stage == 1 and any(element in tds[1].text for element in
-                                            ['Приговор', 'Постановление',
-                                             'Определение о возвращении'])) or (
-                        self.stage == 2 and 'Решение по жалобе' in tds[1].text):
-                    links = tds[2].findAll('a')
-
-                    if links:
-                        link = 'https://www.mos-gorsud.ru' + links[0]['href']
-                        text = self.url_to_str(link)
-
-                        case_info['result_text'] = text
-                        break
+        if result_text_html:
+            case_info['result_text'] = result_text_html
 
         return case_info
 
