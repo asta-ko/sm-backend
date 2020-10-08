@@ -23,7 +23,7 @@ class MergerUpdater:
                 new_data = case2.serialize()
                 case2.delete()
                 self.update_if_needed(case1, new_data)
-
+                logger.info(f'merges count {merges_count}')
             else:
                 break
 
@@ -87,13 +87,13 @@ class MergerUpdater:
         r_string = rf'({"|".join(defendants_names)})'
 
         filter_dict = {'stage': case.stage, 'defendants__name_normalized__regex': r_string, 'court': case.court}
-        if hasattr(self, 'entry_date'):
-            filter_dict['entry_date__gte'] = self.entry_date - timedelta(days=1)
-            filter_dict['entry_date__lte'] = self.entry_date + timedelta(days=1)
-        if hasattr(self, 'judge'):
-            filter_dict['judge'] = self.judge
+        if hasattr(case, 'entry_date'):
+            filter_dict['entry_date__gte'] = case.entry_date - timedelta(days=1)
+            filter_dict['entry_date__lte'] = case.entry_date + timedelta(days=1)
+        if hasattr(case, 'judge'):
+            filter_dict['judge'] = case.judge
         if hasattr(self, 'case_number'):
-            filter_dict['case_number'] = self.case_number
+            filter_dict['case_number'] = case.case_number
 
         self.merge_duplicates(filters=filter_dict)
 
@@ -114,6 +114,10 @@ class MergerUpdater:
     # если есть изменения, обновляем дело (ничего при этом не удаляя)
 
     def update_if_needed(self, case, fresh_data):
+
+        if not Case.objects.filter(id=case.id).exists():
+            logger.info([case, case.url, 'Case does not exist'])
+            return
 
         old_data = case.serialize()
 

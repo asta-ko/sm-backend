@@ -1,5 +1,5 @@
 import sys
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from airflow import DAG
 from airflow.operators.dummy_operator import DummyOperator
@@ -26,6 +26,10 @@ def generate_tasks(v):
     region = court.region
     kw['instance'] = v[1]
     kw['codex'] = v[0]
+
+    date_from = datetime.now() - timedelta(days=20)
+    kw['date_from'] = date_from.strftime('%d.%m.%Y')
+    kw['date_to'] = datetime.now().strftime('%d.%m.%Y')
 
     collect_task = DjangoOperator(task_id=f'{court.id}-{v[0]}-{v[1]}-get',
                                   python_callable=collect_rf_cases,
@@ -72,7 +76,7 @@ def create_district_dag(dag_id,
 
     dag = DAG(dag_id,
               schedule_interval=schedule,
-              start_date=datetime(2018, 11, 1),
+              start_date=datetime(2020, 10, 6),
               catchup=False,
               default_args={'owner': 'airflow'})
 

@@ -54,7 +54,7 @@ def generate_court_tasks(c):
 
 with DAG(dag_id,
          schedule_interval=schedule,
-         start_date=datetime(2018, 11, 1),
+         start_date=datetime(2020, 10, 6),
          catchup=False,
          default_args={'owner': 'airflow', 'provide_context': True}) as dag:
     django_init()

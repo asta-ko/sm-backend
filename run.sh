@@ -310,7 +310,8 @@ docker_build_dev() {
 docker_build_prod() {
     docker build -t "$C_PROJECT_NAME"-virtualenv:latest -f build/virtualenv/Dockerfile build/virtualenv --build-arg GITLAB_TOKEN="$GITLAB_TOKEN" --build-arg GITLAB_USER="$GITLAB_USER" #PROD
     docker build -t "$C_PROJECT_NAME"-frontend:latest -f ../oi-sud-monster-frontend/Dockerfile-nuxt ../oi-sud-monster-frontend
-    # ./oi-sud-monster-frontend #PROD
+    docker build -t "$C_PROJECT_NAME"-virtualenv-airflow:latest -f build/virtualenv/Dockerfile-airflow build/virtualenv 
+# ./oi-sud-monster-frontend #PROD
 }
 
 docker_build_test() {

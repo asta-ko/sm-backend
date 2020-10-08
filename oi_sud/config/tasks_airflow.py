@@ -29,4 +29,16 @@ ROOT_URLCONF = 'oi_sud.urls_d'
 
 SECRET_KEY = 'gl)+h@c5pg_9i(8mwzpah_h5#*lr1u13w1xl_h-*60(gb=+%j^'
 
-DEBUG = True
+DEBUG = False
+
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'sudmonster',
+        'USER': 'sudmonster',
+        'PASSWORD': os.environ.get('DB_PASS'),
+        'HOST': 'db',
+        'PORT': '5432',
+    }
+}
+

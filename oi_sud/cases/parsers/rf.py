@@ -54,6 +54,7 @@ class RFCourtSiteParser(CourtSiteParser):
 
         if not url:
             url = self.url
+        logger.info(url)
         txt, status_code = self.send_get_request(url)
         if status_code != 200:
             logging.error(f"GET error: unable to get rf cases - {status_code} {url}")
@@ -78,6 +79,7 @@ class RFCourtSiteParser(CourtSiteParser):
                 all_pages.append(page)
 
         all_cases_urls = []
+        logger.info(len(all_pages))
 
         for page in all_pages:
             try:
@@ -85,6 +87,8 @@ class RFCourtSiteParser(CourtSiteParser):
                 urls = [self.url.replace('/modules.php', '').split('?')[0] + u for u in urls]
                 all_cases_urls += urls
             except AttributeError:
+                logger.info(page)
+                raise
                 pass
         if not all_cases_urls:
             logger.debug('Getting rf cases... Got no cases urls')
@@ -250,6 +254,7 @@ class RFCourtSiteParser(CourtSiteParser):
                 defendant = tds[person_index].text.strip()
                 codex_articles = tds[codex_articles_index].text.strip()
                 if codex_articles == '':
+                    logging.info(tds)
                     raise Exception('Defendant has no articles')
                 defenses.append({'defendant': defendant, 'codex_articles': codex_articles, 'advocates': advocates,
                                  'prosecutors': prosecutors})

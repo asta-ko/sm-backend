@@ -1,0 +1,26 @@
+from django.core.management.base import BaseCommand
+
+from oi_sud.cases.models import Case, CasePenalty
+from oi_sud.courts.models import Court
+
+class Command(BaseCommand):
+
+    def handle(self, *args, **options):
+        print('starting')
+    cases = Case.objects.filter(result_text='', court__region='77')  # [10000:35000]
+    print(cases.count())
+    for case in cases:
+        count += 1
+
+        case.update_case()
+
+        try:
+            if case.type == 1:
+                case.process_result_text()
+        except:
+            #raise
+            print('error', case.get_admin_url())
+        if count % 1000 == 0:
+            print(count)
+    cases = Case.objects.filter(result_text='', court__region='77')  # [10000:35000]
+    print(cases.count())

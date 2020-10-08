@@ -30,7 +30,7 @@ x-projectname: &oi_sud
 services:
   db:
     container_name: sudmonster_db
-    image: postgres:alpine
+    image: postgres:11.9-alpine
     ports:
       - 5432
     restart: always
@@ -51,8 +51,8 @@ services:
       instance: sudmonster
 
   postgres:
-      container_name: sudmonster_airflow_postgres
-      image: postgres:9.6
+      container_name: sudmonster_airflow_psql
+      image: postgres:alpine
       environment:
           - POSTGRES_USER=airflow
           - POSTGRES_PASSWORD=airflow
@@ -130,7 +130,7 @@ services:
 
   airflow_web:
       container_name: sudmonster_airflow_web
-      image: sudmonster-virtualenv-airflow:latest
+      image: oi-sud-monster-virtualenv-airflow:latest
       entrypoint: /entrypoint.sh
       restart: always
       env_file: .env.airflow
@@ -147,7 +147,8 @@ services:
           # - REDIS_PASSWORD=redispass
       volumes:
           - ./:/code
-          - ./airflow/airflow.cfg:/airflow/airflow.cfg
+          - ./airflow/airflow.cfg:/usr/local/airflow/airflow.cfg
+         # - ./airflow/webserver_config.py:/usr/local/airflow/webserver_config.py:z
           - ./airflow/dags:/usr/local/airflow/dags
           # Uncomment to include custom plugins
           - ./airflow/plugins:/usr/local/airflow/plugins
@@ -163,16 +164,16 @@ services:
   airflow_scheduler:
       #image: puckel/docker-airflow:1.10.9
       container_name: sudmonster_airflow_scheduler
-      image: sudmonster-virtualenv-airflow:latest
+      image: oi-sud-monster-virtualenv-airflow:latest
       env_file: .env.airflow
       entrypoint: /entrypoint.sh
       restart: always
       depends_on:
-          - webserver
+          - airflow_web
       volumes:
           - ./:/code
           - ./airflow/dags:/usr/local/airflow/dags
-          - ./airflow/airflow.cfg:/airflow/airflow.cfg
+          - ./airflow/airflow.cfg:/usr/local/airflow/airflow.cfg
 
         # Uncomment to include custom plugins
           - ./airflow/plugins:/usr/local/airflow/plugins
@@ -190,16 +191,16 @@ services:
   worker:
       entrypoint: /entrypoint.sh
       container_name: sudmonster_airflow_worker
-      image: sudmonster-virtualenv-airflow:latest
+      image: oi-sud-monster-virtualenv-airflow:latest
       restart: always
       env_file: .env.airflow
       depends_on:
-          - scheduler
+          - airflow_scheduler
       volumes:
-          - ./.docker/datalake:/code/data
+          - ./.docker/datalake:/data
           - ./:/code
           - ./airflow/dags:/usr/local/airflow/dags
-          - ./airflow/airflow.cfg:/airflow/airflow.cfg
+          - ./airflow/airflow.cfg:/usr/local/airflow/airflow.cfg
           # Uncomment to include custom plugins
           - ./airflow/plugins:/usr/local/airflow/plugins
       environment:

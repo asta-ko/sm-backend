@@ -161,3 +161,5 @@ class RFScraper(Scraper):
                             'year': year,
                             'region': region})
         return records
+
+rf_sc = RFScraper()

@@ -16,7 +16,7 @@ def django_init():
 def collect_rf_cases(court=None, instance=None, codex=None, date_from=None, date_to=None, *args, **kwargs):
     from oi_sud.cases.scraper.rf import rf_sc
     if not date_from:
-        dt = datetime.now() - timedelta(days=60)
+        dt = datetime.now() - timedelta(days=30)
         start_from = dt.strftime('%d.%m.%Y')
     params = {'entry_date_from': date_from, 'entry_date_to': date_to}
     urls_data = rf_sc.get_cases_urls_by_court(court, params, instance, codex)
@@ -31,7 +31,7 @@ def parse_rf_cases(court=None, instance=None, codex=None, *args, **kwargs):
 def collect_moscow_cases(court=None, instance=None, codex=None, date_from=None, date_to=None, *args, **kwargs):
     from oi_sud.cases.scraper.moscow import moscow_sc
     if not date_from:
-        dt = datetime.now() - timedelta(days=60)
+        dt = datetime.now() - timedelta(days=30)
         date_from = dt.strftime('%d.%m.%Y')
     params = {'entry_date_from': date_from, 'entry_date_to': date_to}
     urls_data = moscow_sc.get_cases_urls_by_court(court, params, instance, codex)

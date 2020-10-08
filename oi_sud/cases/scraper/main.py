@@ -3,15 +3,17 @@ import os
 import shutil
 from datetime import datetime, timedelta
 
-import dask
+
+
 import pandas as pd
+import fastparquet
 from oi_sud.cases.consts import *
 from oi_sud.cases.parsers.moscow import MoscowParser
 from oi_sud.cases.parsers.rf import FirstParser, SecondParser
 
 logger = logging.getLogger(__name__)
 
-dask.config.set({'distributed.logging.distributed': 'info'})
+#dask.config.set({'distributed.logging.distributed': 'info'})
 
 
 class Scraper():
@@ -67,6 +69,9 @@ class Scraper():
 
         df_new = pd.DataFrame(records)
 
+
+
+
         try:
 
             df_old = pd.read_parquet(filepath,
@@ -82,9 +87,9 @@ class Scraper():
             shutil.rmtree(f'{filepath}region={region}/court={court}/year={year}/codex={codex}/stage={stage}/')
 
             # пишем датасет без дупликатов в новый
-            new_df.to_parquet(filepath, file_scheme='hive', mkdirs=self.mkdirs,
-                              partition_on=['region', 'court', 'year', 'codex', 'stage'])
+            new_df.to_parquet(filepath, engine='pyarrow', compression='gzip',
+                              partition_cols=['region', 'court', 'year', 'codex', 'stage'])
 
         except FileNotFoundError:
-            df_new.to_parquet(filepath, file_scheme='hive', mkdirs=self.mkdirs,
-                              partition_on=['region', 'court', 'year', 'codex', 'stage'])
+            df_new.to_parquet(filepath, engine='pyarrow', compression='gzip',
+                              partition_cols=['region', 'court', 'year', 'codex', 'stage'])
